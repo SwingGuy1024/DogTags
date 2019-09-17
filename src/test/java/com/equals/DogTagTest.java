@@ -1,10 +1,13 @@
+package com.equals;
+
 import java.awt.geom.Point2D;
 import org.junit.Test;
 
+@SuppressWarnings({"HardCodedStringLiteral", "MagicNumber"})
 public class DogTagTest {
   @Test
   public void testEquals() {
-
+    DogTagTestBase baseTest = new DogTagTestBase(5, "bravo", 7, 5L, "echo", new Point2D.Double(14.2, 2.14), 44);
   }
 
   // Things to test:
@@ -20,6 +23,7 @@ public class DogTagTest {
   // illegal field name?
   // overridden getters!.
 
+  @SuppressWarnings({"unused", "AssignmentOrReturnOfFieldWithMutableType", "EqualsWhichDoesntCheckParameterClass", "WeakerAccess", "PublicConstructorInNonPublicClass"})
   private static class DogTagTestBase {
     private final int alphaInt;
     private final String bravoString;
@@ -158,6 +162,21 @@ public class DogTagTest {
 
     public void setMikeFloat(float mikeFloat) {
       this.mikeFloat = mikeFloat;
+    }
+    
+    private static final DogTag<DogTagTestBase> dogTag = DogTag.create(DogTagTestBase.class)
+        .withTransients(true)
+        .withExcludedFields("charlieInt", "echoString")
+        .build();
+
+    @Override
+    public int hashCode() {
+      return dogTag.doHashCode(this);
+    }
+
+    @Override
+    public boolean equals(final Object obj) {
+      return dogTag.doEqualsTest(this, obj);
     }
   }
 

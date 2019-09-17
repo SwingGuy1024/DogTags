@@ -8,8 +8,65 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * Fast equals() and hashCode() methods to use Reflection to easily get all the desired fields, and produce an equals()
+ * method and a HashCode method that are guaranteed to be consistent with each other.
+ * <p>
+ * Unlike Apache's EqualsBuilder, most of the slow reflective calls are not done at runtime, but at class-load time, 
+ * so they are only done once for each class. This gives us a big improvement in performance.
+ * <p>
+ * Example usage:
+ * <pre>
+ *   public class MyClass {
+ *     // Define various fields, getters, and methods here.
+ *     
+ *     private static final{@literal DogTag<MyClass>} dogTag = DogTag.from(MyClass.class);
+ *     
+ *    {@literal @Override}
+ *     public boolean equals(Object that) {
+ *       return dogTag.doEqualsTest(this, that);
+ *     }
+ *     
+ *     public int hashCode() {
+ *       return dogTag.doHashCode(this);
+ *     }
+ *   }
+ * </pre>
+ * <p>
+ * The equals comparison is done according to the guidelines set down in EffectiveJava by Joshua Bloch. The hashCode
+ * is generated using the same calculations done with {@code java.lang.Objects.hash(Object...)}, although you are free
+ * to provide a different hash calculator. Floats and Doubles are done to avoid problems with comparing Nan values.
+ * <p>
+ * Options include testing transient fields, excluding fields, and specifying a superclass to include in the 
+ * reflective process. These options are invoked by using the DogTagBuilder class.
+ * <pre>
+ *   public class MyClass extends MyBaseClass {
+ *     // Define various fields, getters, and methods here.
+ *
+ *     private static final{@literal DogTag<MyClass>} dogTag = DogTag.create(MyClass.class)
+ *       .withTransients(true)                // defaults to false
+ *       .withExcludedFields("size", "date")  // defaults to all non-transient and non-static fields
+ *       .withReflectUpTo(MyBaseClass.class)  // defaults to no superclasses included
+ *       .build();
+ *
+ *    {@literal @Override}
+ *     public boolean equals(Object that) {
+ *       return dogTag.doEqualsTest(this, that);
+ *     }
+ *
+ *     public int hashCode() {
+ *       return dogTag.doHashCode(this);
+ *     }
+ *   }
+ * </pre>
+ * @param <T>
+ */
 public class DogTag<T> {
-//  private static final Field[] EMPTY_FIELDS = new Field[0];
+  // Todo: Add a withValidatedExcludedFields()? 
+  // Todo: Add a field validator assertion?
+  // Todo: Add business key support, using annotations
+  // Todo: Add exclusion support using annotations.
+  // Todo: Add use-only-final-fields option
   private final Class<T> dogTagClass;
   private final List<FieldProcessor<T>> fieldProcessors;
   private final int startingHash;
@@ -19,6 +76,10 @@ public class DogTag<T> {
     return new DogTagBuilder<>(theClass).build();
   }
 
+  public static <T> DogTagBuilder<T> create(Class<T> theClass) {
+    return new DogTagBuilder<>(theClass);
+  }
+
   private DogTag(
       Class<T> theClass,
       List<FieldProcessor<T>> getters,
@@ -26,21 +87,18 @@ public class DogTag<T> {
       HashBuilder hashBuilder
   ) {
     dogTagClass = theClass;
-//    this.lastSuperClass = reflectUpTo;
-//    excludedFields = fields;
-//    includeTransients = testTransients;
     fieldProcessors = getters;
     this.startingHash = startingHash;
     this.hashBuilder = hashBuilder;
   }
 
-  public static class DogTagBuilder<T> {
+  public static final class DogTagBuilder<T> {
     private final Class<T> dogTagClass;
     private Class<? super T> lastSuperClass;
     private boolean testTransients = false;
     private Set<Field> excludedFields = new HashSet<>();
     private int priorHash = 1;
-    private HashBuilder hashBuilder = (int i, Object o) -> priorHash * 39 + o.hashCode(); // Same as Objects.class
+    private HashBuilder hashBuilder = (int i, Object o) -> (priorHash * 39) + o.hashCode(); // Same as Objects.class
 
     private DogTagBuilder(Class<T> theClass) {
       dogTagClass = theClass;
@@ -79,7 +137,7 @@ public class DogTag<T> {
       this.hashBuilder = hashBuilder;
       return this;
     }
-
+    
     public DogTag<T> build() {
       return new DogTag<>(dogTagClass, makeGetterList(), priorHash, hashBuilder);
     }
@@ -91,9 +149,10 @@ public class DogTag<T> {
         Field[] declaredFields = dogTagClass.getDeclaredFields();
         for (Field field : declaredFields) {
           int modifiers = field.getModifiers();
+          //noinspection MagicCharacter
           if (!excludedFields.contains(field)
-              && field.getName().indexOf('$') >= 0
-              && testTransients || Modifier.isTransient(modifiers)
+              && (field.getName().indexOf('$') >= 0)
+              && (testTransients || Modifier.isTransient(modifiers))
               && !Modifier.isStatic(modifiers)) {
             field.setAccessible(true);
             Class<?> fieldType = field.getType();
@@ -157,18 +216,19 @@ public class DogTag<T> {
   /**
    * Compare two objects for null. This should always be called with {@code this} as the first parameter. Your
    * equals method should look like this:
-   * <code>
-   *   private static final DogTag dogTag = DogTag.from(YourClass.class); // Or built from the builder
-   *   public boolean equals(Object other) {
-   *     return dogTag.doEqualsTest(this, other);
+   * <pre>
+   *   private static final{@literal DogTag<YourClass>} dogTag = DogTag.from(YourClass.class); // Or built from the builder
+   *   public boolean equals(Object that) {
+   *     return dogTag.doEqualsTest(this, that);
    *   }
-   * </code>
+   * </pre>
    * @param thisOneNeverNull Pass {@code this} to this parameter
    * @param thatOneNullable {@code 'other'} in the equals() method
    * @return true if the objects are equal, false otherwise
    */
   boolean doEqualsTest(T thisOneNeverNull, Object thatOneNullable) {
     assert thisOneNeverNull != null : "Always pass 'this' to the first parameter of this method!";
+    //noinspection ObjectEquality
     if (thisOneNeverNull == thatOneNullable) {
       return true;
     }
@@ -191,6 +251,18 @@ public class DogTag<T> {
     }
   }
 
+  /**
+   * Get the hashCode from an instance of the containing class, consistent with {@code equals()}
+   * For example:
+   * <pre>
+   *  {@literal @Override}
+   *   public int hashCode() {
+   *     return dogTag.doHashCode(this);
+   *   }
+   * </pre>
+   * @param thisOne Pass 'this' to this parameter
+   * @return The hashCode
+   */
   int doHashCode(T thisOne) {
     assert thisOne != null : "Always pass 'this' to this method!";
     int hash = startingHash;
@@ -220,6 +292,7 @@ public class DogTag<T> {
     R get(T object) throws IllegalAccessException;
   }
 
+  @FunctionalInterface
   public interface HashBuilder {
     int newHash(int previousHash, Object nextObject);
   }
@@ -236,6 +309,7 @@ public class DogTag<T> {
     }
     @Override
     public boolean testForEquals(T thisOne, T thatOne) throws IllegalAccessException {
+      //noinspection EqualsReplaceableByObjectsCall
       return getter.get(thisOne).equals(getter.get(thatOne));
     }
 
