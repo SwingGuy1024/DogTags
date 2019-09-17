@@ -67,6 +67,7 @@ public class DogTag<T> {
   // Todo: Add business key support, using annotations
   // Todo: Add exclusion support using annotations.
   // Todo: Add use-only-final-fields option
+  // Todo: Add assertion for static dogTag class?
   private final Class<T> dogTagClass;
   private final List<FieldProcessor<T>> fieldProcessors;
   private final int startingHash;
