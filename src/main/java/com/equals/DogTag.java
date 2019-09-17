@@ -61,6 +61,7 @@ import java.util.Set;
  * </pre>
  * @param <T>
  */
+@SuppressWarnings("WeakerAccess")
 public class DogTag<T> {
   // Todo: Add a withValidatedExcludedFields()? 
   // Todo: Add a field validator assertion?
@@ -68,6 +69,7 @@ public class DogTag<T> {
   // Todo: Add exclusion support using annotations.
   // Todo: Add use-only-final-fields option
   // Todo: Add assertion for static dogTag class?
+  // Todo: Specify field order by annotations?
   private final Class<T> dogTagClass;
   private final List<FieldProcessor<T>> fieldProcessors;
   private final int startingHash;
@@ -99,7 +101,9 @@ public class DogTag<T> {
     private boolean testTransients = false;
     private Set<Field> excludedFields = new HashSet<>();
     private int priorHash = 1;
-    private HashBuilder hashBuilder = (int i, Object o) -> (priorHash * 39) + o.hashCode(); // Same as Objects.class
+    @SuppressWarnings("MagicNumber")
+    private static final HashBuilder defaultHashBuilder = (int i, Object o) -> (i * 39) + o.hashCode(); // Same as Objects.class
+    private HashBuilder hashBuilder = defaultHashBuilder; // Reuse the same HashBuilder
 
     private DogTagBuilder(Class<T> theClass) {
       dogTagClass = theClass;
@@ -115,10 +119,10 @@ public class DogTag<T> {
     public DogTagBuilder<T> withExcludedFields(String... excludedFieldNames) {
       for (String fieldName : excludedFieldNames) {
         try {
-          Field field = dogTagClass.getField(fieldName);
+          Field field = dogTagClass.getDeclaredField(fieldName);
           excludedFields.add(field);
         } catch (NoSuchFieldException e) {
-          throw new IllegalArgumentException("No such field: " + fieldName, e);
+          throw new IllegalArgumentException(String.format("No such field %s in %s", fieldName, dogTagClass), e);
         }
       }
       return this;
@@ -151,10 +155,11 @@ public class DogTag<T> {
         for (Field field : declaredFields) {
           int modifiers = field.getModifiers();
           //noinspection MagicCharacter
-          if (!excludedFields.contains(field)
-              && (field.getName().indexOf('$') >= 0)
-              && (testTransients || Modifier.isTransient(modifiers))
-              && !Modifier.isStatic(modifiers)) {
+          if (!Modifier.isStatic(modifiers)
+              && (testTransients || !Modifier.isTransient(modifiers))
+              && !excludedFields.contains(field)
+              && (field.getName().indexOf('$') < 0)
+          ) {
             field.setAccessible(true);
             Class<?> fieldType = field.getType();
             if (fieldType.isArray()) {
