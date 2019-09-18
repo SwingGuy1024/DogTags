@@ -118,14 +118,39 @@ public class DogTag<T> {
 
     public DogTagBuilder<T> withExcludedFields(String... excludedFieldNames) {
       for (String fieldName : excludedFieldNames) {
-        try {
-          Field field = dogTagClass.getDeclaredField(fieldName);
-          excludedFields.add(field);
-        } catch (NoSuchFieldException e) {
-          throw new IllegalArgumentException(String.format("No such field %s in %s", fieldName, dogTagClass), e);
-        }
+        excludedFields.add(getFieldFromName(fieldName));
       }
       return this;
+    }
+
+    /**
+     * Search through classes starting with dogTagClass, up to and including lastSuperClass, for a field with the
+     * specified name.
+     * Can this be defeated by clashing private fields?
+     * Should we filter out ineligible fields, like static fields?
+     * @param fieldName The Field name
+     * @return A Field, from one of the classes in the range from dogTagClass to lastSuperClass.
+     */
+    private Field getFieldFromName(String fieldName) {
+      Class<?> theClass = dogTagClass;
+      boolean lastSuperClassReached = false;
+      while (!lastSuperClassReached) {
+        if (theClass == lastSuperClass) {
+          lastSuperClassReached = true;
+        }
+        try {
+          return theClass.getDeclaredField(fieldName);
+        } catch (NoSuchFieldException e) {
+          theClass = theClass.getSuperclass();
+        }
+      }
+
+      // If we only searched through one class...
+      if (dogTagClass == lastSuperClass) {
+        // ... we send a simpler error message.
+        throw new IllegalArgumentException(String.format("Field %s not found in class %s", fieldName, dogTagClass));
+      }
+      throw new IllegalArgumentException(String.format("Field '%s' not found from class %s to superClass %s", fieldName, dogTagClass, lastSuperClass));
     }
 
     public DogTagBuilder<T> withReflectUpTo(Class<? super T> reflectUpTo) {
@@ -150,6 +175,8 @@ public class DogTag<T> {
     List<FieldProcessor<T>> makeGetterList() {
       List<FieldProcessor<T>> fieldProcessorList = new LinkedList<>();
       Class<? super T> theClass = dogTagClass;
+
+      // We shouldn't ever reach Object.class unless someone specifies it as the reflect-up-to superclass.
       while (theClass != Object.class) {
         Field[] declaredFields = dogTagClass.getDeclaredFields();
         for (Field field : declaredFields) {

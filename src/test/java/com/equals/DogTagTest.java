@@ -7,6 +7,10 @@ import static org.junit.Assert.*;
 
 @SuppressWarnings({"HardCodedStringLiteral", "MagicNumber", "MagicCharacter"})
 public class DogTagTest {
+
+  public static final int[] EMPTY_INT_ARRAY = new int[0];
+  public static final String[] EMPTY_STRING_ARRAY = new String[0];
+
   @Test
   public void testEquals() {
     DogTagTestBase baseTest1 = new DogTagTestBase(5, "bravo", 7, 5L);
@@ -27,7 +31,11 @@ public class DogTagTest {
     assertFalse(includeAll.doEqualsTest(baseTest2, baseTest1));
     
     assertFalse(includeAll.doEqualsTest(baseTest1, includeAll));
-    
+
+    baseTest1.setCharlieInt(12);
+    assertTrue(includeAll.doEqualsTest(baseTest1, baseTest2));
+    assertTrue(includeAll.doEqualsTest(baseTest2, baseTest1));
+
     DogTagTestMid midTest = new DogTagTestMid(5, "bravo", 7, 5L, "echo", 
         new Point2D.Double(14.2, 2.14), 44, (byte)12, 'I');
   }
@@ -37,12 +45,68 @@ public class DogTagTest {
     DogTag<DogTagTestMid> dogTag = DogTag.from(DogTagTestMid.class); // Tests may construct their own DogTags.
     DogTagTestMid mid1 = new DogTagTestMid(12, "bravo", 3, 4L, "echo", new Point2D.Double(14.2, 2.14), 7, (byte)8, 'I');
     DogTagTestMid mid2 = mid1.duplicate();
-    mid2.setGolfIntTr(77);
+    mid2.setGolfIntTr(77); // transient value
     
     assertTrue(dogTag.doEqualsTest(mid1, mid2));
     
     mid2.setFoxtrotPoint(new Point2D.Double(3.3, 4.4));
     assertFalse(dogTag.doEqualsTest(mid1, mid2));
+
+    mid2.setFoxtrotPoint((Point2D) mid1.getFoxtrotPoint().clone()); // reset Point2D
+    DogTag<DogTagTestMid> dogTagWithTransients = DogTag.create(DogTagTestMid.class)
+        .withTransients(true)
+        .build();
+    assertFalse(dogTagWithTransients.doEqualsTest(mid1, mid2));
+    mid2.setGolfIntTr(mid1.getGolfIntTr());
+    assertTrue(dogTagWithTransients.doEqualsTest(mid1, mid2));
+  }
+
+  @Test
+  public void testSuperClasses() {
+    DogTagTestTail tail1 = new DogTagTestTail();
+    DogTagTestTail tail2 = new DogTagTestTail();
+
+    DogTag<DogTagTestTail> dogTag = DogTag.create(DogTagTestTail.class)
+        .withReflectUpTo(DogTagTestBase.class)
+        .withExcludedFields("kiloShort", "julietBoolean")
+        .build();
+
+    testForMatch(dogTag, tail1, tail2);
+
+    DogTag<DogTagTestTail> dogTagSuper = DogTag.create(DogTagTestTail.class)
+        .withReflectUpTo(DogTagTestMid.class)
+        .withExcludedFields("kiloShort", "julietBoolean", "hotelByte", "indigoChar")
+        .build();
+    testForMatch(dogTagSuper, tail1, tail2);
+  }
+
+  @Test
+  public void testNoStatic() {
+    DogTagTestTail tail = new DogTagTestTail();
+    DogTag<DogTagTestTail> dogTag = DogTag.from(DogTagTestTail.class);
+    int hashCode = dogTag.doHashCode(tail);
+
+    // Change the static value and get a new hashCode.
+    tail.setStaticInt(tail.getStaticInt()*500);
+    int revisedHashCode = dogTag.doHashCode(tail);
+
+    // If it's not using the static value, the hashCode won't change when the static value changes.
+    assertEquals(hashCode, revisedHashCode);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testBadFieldName() {
+    try {
+      DogTag.create(DogTagTestTail.class)
+          .withReflectUpTo(DogTagTestBase.class)
+          // Include fields from all three classes
+          .withExcludedFields("kiloShort", "indigoChar", "alphaInt", "missing")
+          .build();
+      fail();
+    } catch (IllegalArgumentException e) {
+      assertTrue(e.getMessage().contains("missing"));
+      throw e;
+    }
   }
   
   private <T> void testForMatch(DogTag<T> dogTag, T t1, T t2) {
@@ -106,6 +170,14 @@ public class DogTagTest {
     
     public DogTagTestBase duplicate() {
       return new DogTagTestBase(getAlphaInt(), getBravoString(), getCharlieInt(), getDeltaLong());
+    }
+
+    public void setStaticInt(int i) {
+      staticInt = i;
+    }
+
+    public int getStaticInt() {
+      return staticInt;
     }
   }
 
@@ -171,11 +243,11 @@ public class DogTagTest {
     public DogTagTestMid duplicate() {
       final Point2D pt = getFoxtrotPoint();
       return new DogTagTestMid(getAlphaInt(), getBravoString(), getCharlieInt(), getDeltaLong(), getEchoString(), 
-          new Point2D.Double(pt.getX(), pt.getY()), getGolfIntTr(), getHotelByte(), getIndigoChar());
+          (Point2D) pt.clone(), getGolfIntTr(), getHotelByte(), getIndigoChar());
     }
   }
 
-  @SuppressWarnings({"EqualsWhichDoesntCheckParameterClass", "AssignmentOrReturnOfFieldWithMutableType"})
+  @SuppressWarnings("AssignmentOrReturnOfFieldWithMutableType")
   private static class DogTagTestTail extends DogTagTestMid {
 
     DogTagTestTail(int alphaInt, String bravoString, int charlieInt, long deltaLong, String echoString, 
@@ -186,6 +258,14 @@ public class DogTagTest {
       this.kiloShort = kiloShort;
       this.limaDouble = limaDouble;
       this.mikeFloat = mikeFloat;
+
+      novemberIntArray = new int[] { 11, 12, 13 };
+      operaStringArray = new String[] { "papa", "quebec", "romeo", "sierra", "tango" };
+    }
+
+    DogTagTestTail() {
+      super(1, "bravo", 3, 4L, "echo",
+          new Point2D.Double(6.54, 4.56), 7, (byte)8, 'I');
     }
 
     private boolean julietBoolean;
@@ -193,24 +273,23 @@ public class DogTagTest {
     private double limaDouble;
     private float mikeFloat;
 
-    private int[] hotelIntArray;
-    private String[] indigoStringArray;
+    private int[] novemberIntArray = EMPTY_INT_ARRAY;
+    private String[] operaStringArray = EMPTY_STRING_ARRAY;
 
-
-    public int[] getHotelIntArray() {
-      return hotelIntArray;
+    public int[] getNovemberIntArray() {
+      return novemberIntArray;
     }
 
-    public void setHotelIntArray(int[] hotelIntArray) {
-      this.hotelIntArray = hotelIntArray;
+    public void setNovemberIntArray(int[] novemberIntArray) {
+      this.novemberIntArray = novemberIntArray;
     }
 
-    public String[] getIndigoStringArray() {
-      return indigoStringArray;
+    public String[] getOperaStringArray() {
+      return operaStringArray;
     }
 
-    public void setIndigoStringArray(String[] indigoStringArray) {
-      this.indigoStringArray = indigoStringArray;
+    public void setOperaStringArray(String[] operaStringArray) {
+      this.operaStringArray = operaStringArray;
     }
 
     public boolean isJulietBoolean() {
@@ -251,20 +330,20 @@ public class DogTagTest {
           getIndigoChar(), isJulietBoolean(), getKiloShort(), getLimaDouble(), getMikeFloat());
     }
 
-    private static final DogTag<DogTagTestBase> dogTag = DogTag.create(DogTagTestBase.class)
-        .withTransients(true)
-        .withExcludedFields("charlieInt", "echoString")
-        .build();
-
-    @Override
-    public int hashCode() {
-      return dogTag.doHashCode(this);
-    }
-
-    @Override
-    public boolean equals(final Object obj) {
-      return dogTag.doEqualsTest(this, obj);
-    }
+//    private static final DogTag<DogTagTestBase> dogTag = DogTag.create(DogTagTestBase.class)
+//        .withTransients(true)
+//        .withExcludedFields("charlieInt", "bravoString")
+//        .build();
+//
+//    @Override
+//    public int hashCode() {
+//      return dogTag.doHashCode(this);
+//    }
+//
+//    @Override
+//    public boolean equals(final Object obj) {
+//      return dogTag.doEqualsTest(this, obj);
+//    }
   }
 
 
