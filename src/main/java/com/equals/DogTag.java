@@ -178,7 +178,7 @@ public class DogTag<T> {
 
       // We shouldn't ever reach Object.class unless someone specifies it as the reflect-up-to superclass.
       while (theClass != Object.class) {
-        Field[] declaredFields = dogTagClass.getDeclaredFields();
+        Field[] declaredFields = theClass.getDeclaredFields();
         for (Field field : declaredFields) {
           int modifiers = field.getModifiers();
           //noinspection MagicCharacter
@@ -211,39 +211,52 @@ public class DogTag<T> {
   private static <T> FieldProcessor<T> getProcessorForArray(Field arrayField, Class<?> fieldType) {
     Class<?> componentType = fieldType.getComponentType();
     if (componentType == Integer.TYPE) {
-      ArrayEquals intEquals = (thisOne, thatOne) -> Arrays.equals((int[]) thisOne, (int[]) thatOne);
-      return new ArrayProcessor<>(arrayField, intEquals);
+      ArrayEquals intEquals = (thisOne, thatOne) -> {
+        int[] thisOne1 = (int[]) thisOne;
+        int[] thatOne1 = (int[]) thatOne;
+        return Arrays.equals(thisOne1, thatOne1);
+      };
+      ArrayHash intHash = (array) -> Arrays.hashCode((int[]) array);
+      return new ArrayProcessor<>(arrayField, intEquals, intHash);
     }
     if (componentType == Long.TYPE) {
       ArrayEquals longEquals = (thisOne, thatOne) -> Arrays.equals((long[]) thisOne, (long[]) thatOne);
-      return new ArrayProcessor<>(arrayField, longEquals);
+      ArrayHash longHash = (array) -> Arrays.hashCode((long[]) array);
+      return new ArrayProcessor<>(arrayField, longEquals, longHash);
     }
     if (componentType == Short.TYPE) {
       ArrayEquals shortEquals = (thisOne, thatOne) -> Arrays.equals((short[]) thisOne, (short[]) thatOne);
-      return new ArrayProcessor<>(arrayField, shortEquals);
+      ArrayHash shortHash = (array) -> Arrays.hashCode((short[]) array);
+      return new ArrayProcessor<>(arrayField, shortEquals, shortHash);
     }
     if (componentType == Character.TYPE) {
       ArrayEquals charEquals = (thisOne, thatOne) -> Arrays.equals((char[]) thisOne, (char[]) thatOne);
-      return new ArrayProcessor<>(arrayField, charEquals);
+      ArrayHash charHash = (array) -> Arrays.hashCode((char[]) array);
+      return new ArrayProcessor<>(arrayField, charEquals, charHash);
     }
     if (componentType == Byte.TYPE) {
       ArrayEquals byteEquals = (thisOne, thatOne) -> Arrays.equals((byte[]) thisOne, (byte[]) thatOne);
-      return new ArrayProcessor<>(arrayField, byteEquals);
+      ArrayHash byteHash = (array) -> Arrays.hashCode((byte[]) array);
+      return new ArrayProcessor<>(arrayField, byteEquals, byteHash);
     }
     if (componentType == Double.TYPE) {
       ArrayEquals doubleEquals = (thisOne, thatOne) -> Arrays.equals((double[]) thisOne, (double[]) thatOne);
-      return new ArrayProcessor<>(arrayField, doubleEquals);
+      ArrayHash doubleHash = (array) -> Arrays.hashCode((double[]) array);
+      return new ArrayProcessor<>(arrayField, doubleEquals, doubleHash);
     }
     if (componentType == Float.TYPE) {
       ArrayEquals floatEquals = (thisOne, thatOne) -> Arrays.equals((float[]) thisOne, (float[]) thatOne);
-      return new ArrayProcessor<>(arrayField, floatEquals);
+      ArrayHash floatHash = (array) -> Arrays.hashCode((float[]) array);
+      return new ArrayProcessor<>(arrayField, floatEquals, floatHash);
     }
     if (componentType == Boolean.TYPE) {
       ArrayEquals booleanEquals = (thisOne, thatOne) -> Arrays.equals((boolean[]) thisOne, (boolean[]) thatOne);
-      return new ArrayProcessor<>(arrayField, booleanEquals);
+      ArrayHash booleanHash = (array) -> Arrays.hashCode((boolean[]) array);
+      return new ArrayProcessor<>(arrayField, booleanEquals, booleanHash);
     }
     ArrayEquals objectEquals = (thisOne, thatOne) -> Arrays.equals((Object[]) thisOne, (Object[]) thatOne);
-    return new ArrayProcessor<>(arrayField, objectEquals);
+    ArrayHash objectHash = (array) -> Arrays.hashCode((Object[]) array);
+    return new ArrayProcessor<>(arrayField, objectEquals, objectHash);
   }
 
   /**
@@ -371,9 +384,11 @@ public class DogTag<T> {
   private static class ArrayProcessor<T> implements FieldProcessor<T> {
     private final ThrowingFunction<T, ?> getter;
     private final ArrayEquals arrayEquals;
-    ArrayProcessor(Field arrayField, ArrayEquals arrayEquals) {
+    private final ArrayHash arrayHash;
+    ArrayProcessor(Field arrayField, ArrayEquals arrayEquals, ArrayHash arrayHash) {
       getter = arrayField::get;
       this.arrayEquals = arrayEquals;
+      this.arrayHash = arrayHash;
     }
 
     @Override
@@ -383,13 +398,18 @@ public class DogTag<T> {
 
     @Override
     public int getHashValue(T thisOne) throws IllegalAccessException {
-      return getter.get(thisOne).hashCode();
+      return arrayHash.hash(getter.get(thisOne));
     }
   }
 
   @FunctionalInterface
   private interface ArrayEquals {
     boolean isEqual(Object thisOne, Object thatOne);
+  }
+
+  @FunctionalInterface
+  private interface ArrayHash {
+    int hash(Object thisArray);
   }
 
 //  public static void main(String[] args) throws NoSuchFieldException, IllegalAccessException {

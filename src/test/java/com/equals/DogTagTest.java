@@ -1,6 +1,7 @@
 package com.equals;
 
 import java.awt.geom.Point2D;
+import java.util.Arrays;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
@@ -8,8 +9,8 @@ import static org.junit.Assert.*;
 @SuppressWarnings({"HardCodedStringLiteral", "MagicNumber", "MagicCharacter"})
 public class DogTagTest {
 
-  public static final int[] EMPTY_INT_ARRAY = new int[0];
-  public static final String[] EMPTY_STRING_ARRAY = new String[0];
+//  private static final int[] EMPTY_INT_ARRAY = new int[0];
+//  private static final String[] EMPTY_STRING_ARRAY = new String[0];
 
   @Test
   public void testEquals() {
@@ -59,6 +60,18 @@ public class DogTagTest {
     assertFalse(dogTagWithTransients.doEqualsTest(mid1, mid2));
     mid2.setGolfIntTr(mid1.getGolfIntTr());
     assertTrue(dogTagWithTransients.doEqualsTest(mid1, mid2));
+
+    DogTagTestTail tail1 = new DogTagTestTail();
+    DogTagTestTail tail2 = new DogTagTestTail();
+
+    DogTag<DogTagTestTail> dogTagTail = DogTag.create(DogTagTestTail.class)
+        .withReflectUpTo(DogTagTestMid.class)
+        .withTransients(true)
+        .build();
+    tail1.setGolfIntTr(-10);
+    tail2.setGolfIntTr(43);
+    assertFalse(dogTagTail.doEqualsTest(tail1, tail2));
+
   }
 
   @Test
@@ -108,6 +121,74 @@ public class DogTagTest {
       throw e;
     }
   }
+
+  @Test
+  public void floatTest() {
+    // All these values are Not a Number or NaN. (See Float#intBitsToFloat)
+    // When tested with ==, all NaN values will return false, even if they're the same NaN value.
+    // When tested with Float.equals(), they all return true, even if they're different NaN values.
+    float notA = Float.NaN;
+    float notB = -Float.NaN;
+    float notC = Float.intBitsToFloat(0x7f900000);
+    float notD = Float.intBitsToFloat(0x7fA00000);
+    float notE = Float.intBitsToFloat(0xff900000);
+    float notF = Float.intBitsToFloat(0xffa00000);
+    float[] notNumbers = { notA, notB, notC, notD, notE, notF };
+
+    DogTagTestTail tail1 = new DogTagTestTail();
+    DogTagTestTail tail2 = tail1.duplicate();
+    DogTag<DogTagTestTail> dogTag = DogTag.create(DogTagTestTail.class)
+        .withExcludedFields("novemberIntArray", "operaStringArray")
+        .build();
+    for (float f1: notNumbers) {
+      for (float f2: notNumbers) {
+        tail1.setMikeFloat(f1);
+        tail2.setMikeFloat(f2);
+        testForMatch(dogTag, tail1, tail2);
+      }
+    }
+  }
+
+  @Test
+  public void doubleTest() {
+    // All these values are Not a Number, or NaN. (See Double#longBitsToDouble)
+    // When tested with ==, all NaN values will return false, even if they're the same NaN value.
+    // When tested with Double.equals(), they all return true, even if they're different NaN values.
+    double notA = Double.NaN;
+    double notB = -Double.NaN;
+    double notC = Double.longBitsToDouble(0x7ff9000000000000L);
+    double notD = Double.longBitsToDouble(0x7ffA000000000000L);
+    double notE = Double.longBitsToDouble(0xfff9000000000000L);
+    double notF = Double.longBitsToDouble(0xfffa000000000000L);
+    double[] notNumbers = { notA, notB, notC, notD, notE, notF };
+
+    DogTagTestTail tail1 = new DogTagTestTail();
+    DogTagTestTail tail2 = tail1.duplicate();
+    DogTag<DogTagTestTail> dogTag = DogTag.create(DogTagTestTail.class)
+        .withExcludedFields("novemberIntArray", "operaStringArray")
+        .build();
+    for (double f1: notNumbers) {
+      for (double f2: notNumbers) {
+        tail1.setLimaDouble(f1);
+        tail2.setLimaDouble(f2);
+        testForMatch(dogTag, tail1, tail2);
+      }
+    }
+  }
+
+  @Test
+  public void testIntArrays() {
+    DogTagTestTail tail1 = new DogTagTestTail();
+    DogTagTestTail tail2 = tail1.duplicate();
+    DogTag<DogTagTestTail> dogTag = DogTag.from(DogTagTestTail.class);
+
+    testForMatch(dogTag, tail1, tail2);
+
+    tail1.setNovemberIntArray(new int[] {1, 1, 2, 3, 5});
+    assertFalse(dogTag.doEqualsTest(tail1, tail2));
+  }
+
+  //////////////////////
   
   private <T> void testForMatch(DogTag<T> dogTag, T t1, T t2) {
     assertTrue(dogTag.doEqualsTest(t1, t2));
@@ -115,6 +196,7 @@ public class DogTagTest {
   }
 
   // Things to test:
+  // (fix) hash of null values.
   // arrays of all types
   // different length arrays
   // different value arrays
@@ -128,7 +210,7 @@ public class DogTagTest {
   // overridden getters!.
   // custom hash methods
 
-  @SuppressWarnings({"unused", "AssignmentOrReturnOfFieldWithMutableType", "EqualsWhichDoesntCheckParameterClass", 
+  @SuppressWarnings({"unused", "AssignmentOrReturnOfFieldWithMutableType",
       "WeakerAccess", "PublicConstructorInNonPublicClass"})
   private static class DogTagTestBase {
     private final int alphaInt;
@@ -247,25 +329,28 @@ public class DogTagTest {
     }
   }
 
-  @SuppressWarnings("AssignmentOrReturnOfFieldWithMutableType")
+  @SuppressWarnings({"AssignmentOrReturnOfFieldWithMutableType", "WeakerAccess"})
   private static class DogTagTestTail extends DogTagTestMid {
 
     DogTagTestTail(int alphaInt, String bravoString, int charlieInt, long deltaLong, String echoString, 
                           Point2D foxtrotPoint, int golfIntTr, byte hotelByte, char indigoChar,
-                          boolean julietBoolean, short kiloShort, double limaDouble, float mikeFloat) {
+                          boolean julietBoolean, short kiloShort, double limaDouble, float mikeFloat,
+                          int[] novemberIntArray, String[] operaStringArray) {
       super(alphaInt, bravoString, charlieInt, deltaLong, echoString, foxtrotPoint, golfIntTr, hotelByte, indigoChar);
       this.julietBoolean = julietBoolean;
       this.kiloShort = kiloShort;
       this.limaDouble = limaDouble;
       this.mikeFloat = mikeFloat;
-
-      novemberIntArray = new int[] { 11, 12, 13 };
-      operaStringArray = new String[] { "papa", "quebec", "romeo", "sierra", "tango" };
+      this.novemberIntArray = novemberIntArray;
+      this.operaStringArray = operaStringArray;
     }
 
     DogTagTestTail() {
       super(1, "bravo", 3, 4L, "echo",
           new Point2D.Double(6.54, 4.56), 7, (byte)8, 'I');
+      novemberIntArray = new int[] { 11, 12, 13 };
+      operaStringArray = new String[] { "papa", "quebec", "romeo", "sierra", "tango" };
+      // todo: Add more fields!
     }
 
     private boolean julietBoolean;
@@ -273,8 +358,8 @@ public class DogTagTest {
     private double limaDouble;
     private float mikeFloat;
 
-    private int[] novemberIntArray = EMPTY_INT_ARRAY;
-    private String[] operaStringArray = EMPTY_STRING_ARRAY;
+    private int[] novemberIntArray; // = EMPTY_INT_ARRAY;
+    private String[] operaStringArray; // = EMPTY_STRING_ARRAY;
 
     public int[] getNovemberIntArray() {
       return novemberIntArray;
@@ -326,8 +411,14 @@ public class DogTagTest {
     
     @Override
     public DogTagTestTail duplicate() {
-      return new DogTagTestTail(getAlphaInt(), getBravoString(), getCharlieInt(), getDeltaLong(), getEchoString(), getFoxtrotPoint(), getGolfIntTr(), getHotelByte(), 
-          getIndigoChar(), isJulietBoolean(), getKiloShort(), getLimaDouble(), getMikeFloat());
+      DogTagTestTail tail = new DogTagTestTail(getAlphaInt(), getBravoString(), getCharlieInt(), getDeltaLong(), getEchoString(),
+          getFoxtrotPoint(), getGolfIntTr(), getHotelByte(), getIndigoChar(), isJulietBoolean(), getKiloShort(),
+          getLimaDouble(), getMikeFloat(), getNovemberIntArray(), getOperaStringArray());
+      int[] n = getNovemberIntArray();
+      tail.setNovemberIntArray(Arrays.copyOf(n, n.length));
+      String[] osa = getOperaStringArray();
+      tail.setOperaStringArray(Arrays.copyOf(osa, osa.length));
+      return tail;
     }
 
 //    private static final DogTag<DogTagTestBase> dogTag = DogTag.create(DogTagTestBase.class)
