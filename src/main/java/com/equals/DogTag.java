@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -211,11 +212,7 @@ public class DogTag<T> {
   private static <T> FieldProcessor<T> getProcessorForArray(Field arrayField, Class<?> fieldType) {
     Class<?> componentType = fieldType.getComponentType();
     if (componentType == Integer.TYPE) {
-      ArrayEquals intEquals = (thisOne, thatOne) -> {
-        int[] thisOne1 = (int[]) thisOne;
-        int[] thatOne1 = (int[]) thatOne;
-        return Arrays.equals(thisOne1, thatOne1);
-      };
+      ArrayEquals intEquals = (thisOne, thatOne) -> Arrays.equals((int[]) thisOne, (int[]) thatOne);
       ArrayHash intHash = (array) -> Arrays.hashCode((int[]) array);
       return new ArrayProcessor<>(arrayField, intEquals, intHash);
     }
@@ -348,6 +345,8 @@ public class DogTag<T> {
     int getHashValue(T thisOne) throws IllegalAccessException;
   }
 
+  // TODO: Do we want to have a separate FieldProcessor for primitive values? That way, we could avoid
+  // todo  wrapping them in wrapper classes just to get their hashCode. 
   private static class SingleFieldProcessor<T> implements FieldProcessor<T> {
     private final ThrowingFunction<T, ?> getter;
     SingleFieldProcessor(Field field) {
@@ -355,13 +354,16 @@ public class DogTag<T> {
     }
     @Override
     public boolean testForEquals(T thisOne, T thatOne) throws IllegalAccessException {
-      //noinspection EqualsReplaceableByObjectsCall
-      return getter.get(thisOne).equals(getter.get(thatOne));
+      return Objects.equals(getter.get(thisOne), getter.get(thatOne));
     }
 
     @Override
     public int getHashValue(T thisOne) throws IllegalAccessException {
-      return getter.get(thisOne).hashCode();
+      final Object member = getter.get(thisOne);
+      if (member == null) {
+        return 0;
+      }
+      return member.hashCode();
     }
   }
 

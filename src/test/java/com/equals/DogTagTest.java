@@ -71,7 +71,6 @@ public class DogTagTest {
     tail1.setGolfIntTr(-10);
     tail2.setGolfIntTr(43);
     assertFalse(dogTagTail.doEqualsTest(tail1, tail2));
-
   }
 
   @Test
@@ -186,6 +185,21 @@ public class DogTagTest {
 
     tail1.setNovemberIntArray(new int[] {1, 1, 2, 3, 5});
     assertFalse(dogTag.doEqualsTest(tail1, tail2));
+  }
+
+  @Test
+  public void testNull() {
+    DogTagTestTail tail1 = new DogTagTestTail();
+    DogTagTestTail tail2 = new DogTagTestTail();
+    tail2.setFoxtrotPoint(null);
+    
+    DogTag<DogTagTestTail> dogTag = DogTag.create(DogTagTestTail.class)
+        .withReflectUpTo(DogTagTestBase.class)
+        .build();
+    assertFalse(dogTag.doEqualsTest(tail1, tail2));
+    assertFalse(dogTag.doEqualsTest(tail2, tail1));
+    
+    dogTag.doHashCode(tail2); // just make sure we can get a hashCode with that null member.
   }
 
   //////////////////////
