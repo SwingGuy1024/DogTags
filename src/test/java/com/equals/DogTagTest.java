@@ -7,7 +7,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.*;
 
-@SuppressWarnings({"HardCodedStringLiteral", "MagicNumber", "MagicCharacter"})
+@SuppressWarnings({"HardCodedStringLiteral", "MagicNumber", "MagicCharacter", "ImplicitNumericConversion", "UseOfClone"})
 public class DogTagTest {
   private static final String CHARLIE_INT = "charlieInt";
 
@@ -76,6 +76,61 @@ public class DogTagTest {
     tail2.setCharlieInt(1024); // Shouldn't affect equality. In super.super, but not in super.
     tail2.setDeltaLong(65537L*65537L);
     verifyMatch(dogTagTail, tail1, tail2);
+  }
+  
+  @Test
+  public void testFinalOnly() {
+    DogTagTestBase base1 = new DogTagTestBase(1, "bravo", 2, 3L);
+    DogTagTestBase base2 = new DogTagTestBase(1, "bravo", 22, 4L);
+    DogTagTestBase base3 = new DogTagTestBase(2, "bravo", 2, 3);
+    DogTagTestBase base4 = new DogTagTestBase(1, "Boo!", 22, 4L);
+    DogTagTestBase base5 = new DogTagTestBase(1, "bravo", 2, 3L);
+    
+    DogTag<DogTagTestBase> dogTag = DogTag.create(DogTagTestBase.class)
+        .withFinalFieldsOnly(true)
+        .build();
+    
+    verifyMatch(dogTag, base1, base2);
+    verifyNoMatch(dogTag, base1, base3);
+    verifyNoMatch(dogTag, base1, base4);
+    verifyMatch(dogTag, base1, base5);
+    verifyNoMatch(dogTag, base2, base3);
+    verifyNoMatch(dogTag, base2, base4);
+    verifyMatch(dogTag, base2, base5);    // transitivity test
+    verifyNoMatch(dogTag, base3, base4);
+    verifyNoMatch(dogTag, base3, base5);
+    verifyNoMatch(dogTag, base4, base5);
+    
+    DogTag<DogTagTestBase> dogTag2 = DogTag.create(DogTagTestBase.class)
+        .withExcludedFields("bravoString")
+        .build();
+
+    verifyNoMatch(dogTag2, base1, base2);
+    verifyNoMatch(dogTag2, base1, base3);
+    verifyNoMatch(dogTag2, base1, base4);
+    verifyMatch(dogTag2, base1, base5);
+    verifyNoMatch(dogTag2, base2, base3);
+    verifyMatch(dogTag2, base2, base4);
+    verifyNoMatch(dogTag2, base2, base5);
+    verifyNoMatch(dogTag2, base3, base4);
+    verifyNoMatch(dogTag2, base3, base5);
+    verifyNoMatch(dogTag2, base4, base5);
+    
+    DogTag<DogTagTestBase> dogTag3 = DogTag.create(DogTagTestBase.class)
+        .withFinalFieldsOnly(true)
+        .withExcludedFields("alphaInt")
+        .build();
+
+    verifyMatch(dogTag3, base1, base2);
+    verifyMatch(dogTag3, base1, base3);
+    verifyNoMatch(dogTag3, base1, base4);
+    verifyMatch(dogTag3, base1, base5);
+    verifyMatch(dogTag3, base2, base3);    // transitivity test
+    verifyNoMatch(dogTag3, base2, base4);
+    verifyMatch(dogTag3, base2, base5);    // transitivity test
+    verifyNoMatch(dogTag3, base3, base4);
+    verifyMatch(dogTag3, base3, base5);    // transitivity test
+    verifyNoMatch(dogTag3, base4, base5);
   }
 
   @Test
@@ -326,7 +381,7 @@ public class DogTagTest {
     tail2 = tail1.duplicate();
     tail2.setUniformFloatArray(new float[] { 1.1f, 2.22f, 3.333f, 4.4444f }); // different length
     verifyNoMatch(dogTag, tail1, tail2);
-    tail2.setUniformFloatArray(new float[] { 10F, 20F, 30F, 40F, 50F, 60F, 70F, 80F, 90F }); // Same length
+    tail2.setUniformFloatArray(new float[] {10.0F, 20.0F, 30.0F, 40.0F, 50.0F, 60.0F, 70.0F, 80.0F, 90.0F}); // Same length
     verifyNoMatch(dogTag, tail1, tail2);
     tail2.setUniformFloatArray(null);
     verifyNoMatch(dogTag, tail1, tail2);
@@ -390,7 +445,7 @@ public class DogTagTest {
     assertFalse(dogTag.doEqualsTest(t2, t1)); // symmetry test
     assertTrue(dogTag.doEqualsTest(t1, t1));  // reflexive test
     assertTrue(dogTag.doEqualsTest(t2, t2));  // reflexive test
-    assertNotEquals(dogTag.doHashCode(t1), dogTag.doHashCode(t2));
+    assertNotEquals(dogTag.doHashCode(t1), dogTag.doHashCode(t2)); // not strictly required, but it's a good test
     assertFalse(dogTag.doEqualsTest(t1, null));
     assertFalse(dogTag.doEqualsTest(t2, null));
   }
@@ -448,7 +503,7 @@ public class DogTagTest {
     }
   }
 
-  @SuppressWarnings("WeakerAccess")
+  @SuppressWarnings({"WeakerAccess", "UseOfClone"})
   private static class DogTagTestMid extends DogTagTestBase {
     private String echoString;
     private Point2D foxtrotPoint;
@@ -549,8 +604,8 @@ public class DogTagTest {
     private byte[] romeoByteArray = { 127, 63, 31, 15, 7, 3, 1, 2, 3 };
     private char[] sierraCharArray = "charArray".toCharArray();
     private boolean[] tangoBooleanArray = { false, true, true, false, true, false, false, true, true, false };
-    private float[] uniformFloatArray = { 1.4F, 2.0F, 2.8F, 4.0F, 5.6F, 8.0F, 11F, 16F, 22F };
-    private double[] victorDoubleArray = { 0.1, 0.02, 0.003, 0.0004, 0.00005, .000006, .0000007, .00000008, 9.0 };
+    private float[] uniformFloatArray = { 1.4F, 2.0F, 2.8F, 4.0F, 5.6F, 8.0F, 11.0F, 16.0F, 22.0F};
+    private double[] victorDoubleArray = { 0.1, 0.02, 0.003, 0.0004, 0.00005, 0.000006, 0.0000007, 0.00000008, 9.0 };
     private Object[] whiskeyObjectArray = { new Point2D.Float(1.2f, 2.4f), "string", new HashSet() };
 
     public int[] getNovemberIntArray() {

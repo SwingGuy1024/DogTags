@@ -83,8 +83,8 @@ import java.util.function.Function;
 public final class DogTag<T> {
   // Todo: Add business key support, using annotations
   // Todo: Add exclusion support using annotations.
-  // Todo: Add use-only-final-fields option
   // Todo: Specify field order by annotations?
+  // Todo: new additive create() class that includes nothing by default.
   private final Class<T> targetClass;
   private final List<FieldProcessor<T>> fieldProcessors;
   private final int startingHash;
@@ -139,9 +139,10 @@ public final class DogTag<T> {
     private Class<? super T> lastSuperClass;
     private boolean testTransients = false;
     private String[] excludedFieldNames = EMPTY_STRING_ARRAY;
-    private int priorHash = 1;
+    private int startingHash = 1;
+    private boolean finalFieldsOnly = false;
     @SuppressWarnings("MagicNumber")
-    private static final HashBuilder defaultHashBuilder = (int i, Object o) -> (i * 39) + o.hashCode(); // Same as Objects.class
+    private static final HashBuilder defaultHashBuilder = (int i, Object o) -> (i * 31) + o.hashCode(); // Same as Objects.class
     private HashBuilder hashBuilder = defaultHashBuilder; // Reuse the same HashBuilder
 
     private DogTagBuilder(Class<T> theClass) {
@@ -150,7 +151,9 @@ public final class DogTag<T> {
     }
 
     /**
-     * Set the Transient option, before building the DogTag. Defaults to false.
+     * Set the Transient option, before building the DogTag. Defaults to false. When true, transient fields will be
+     * included, provided they meet all the other criteria. For example, if the finalFieldsOnly option is also true, 
+     * then only final and final transient fields are included.
      * @param useTransients true if you want transient fields included in the equals and hashCode methods
      * @return this, for method chaining
      */
@@ -216,13 +219,28 @@ public final class DogTag<T> {
       return this;
     }
 
+    /**
+     * Specify a custom formula for building a single hash value out of a series of hash values. The default
+     * formula matches the one used by java.util.Objects.hash(Object...)
+     * @param startingHash The starting value.
+     * @param hashBuilder The formula for adding additional hash values.
+     * @return this, for method chaining
+     * @see HashBuilder
+     */
     public DogTagBuilder<T> withHashBuilder(int startingHash, HashBuilder hashBuilder) {
-      if (startingHash == 0) {
-        this.priorHash = 1;
-      } else {
-        this.priorHash = startingHash;
-      }
+      this.startingHash = startingHash;
       this.hashBuilder = hashBuilder;
+      return this;
+    }
+
+    /**
+     * Set the finalFieldsOnly option, before building the DogTag. Defaults to false.
+     * @param finalFieldsOnly true if you want to limit fields to only those that are declared final. If the transient
+     *                        option is also true, then only final and final transient fields are included.
+     * @return this, for method chaining
+     */
+    public DogTagBuilder<T> withFinalFieldsOnly(boolean finalFieldsOnly) {
+      this.finalFieldsOnly = finalFieldsOnly;
       return this;
     }
 
@@ -231,7 +249,7 @@ public final class DogTag<T> {
      * @return A {@code DogTag<T>} that uses the specified options.
      */
     public DogTag<T> build() {
-      return new DogTag<>(targetClass, makeGetterList(), priorHash, hashBuilder);
+      return new DogTag<>(targetClass, makeGetterList(), startingHash, hashBuilder);
     }
 
     private List<FieldProcessor<T>> makeGetterList() {
@@ -254,6 +272,7 @@ public final class DogTag<T> {
           //noinspection MagicCharacter
           if (!Modifier.isStatic(modifiers)
               && (testTransients || !Modifier.isTransient(modifiers))
+              && (!finalFieldsOnly || Modifier.isFinal(modifiers))
               && !excludedFields.contains(field)
               && (field.getName().indexOf('$') < 0)
           ) {
@@ -407,9 +426,17 @@ public final class DogTag<T> {
   /**
    * You are free to install your own hash builder by implementing this interface. For each object used in the hash
    * code calculation, this method calculates a new value from the current hashCode in progress, and the hash code of
-   * the next object in the chain. The default implementation multiplies previousHash by 39, then adds
-   * {@code nextObject.hashCode()}. (This is the same calculation performed by the
-   * {@code java.util.Objects.hash(Object...)} method.)
+   * the next object in the chain.
+   * <p>
+   *   Strictly speaking, for a series of hash values, H<sub>n</sub>, the formula combines them into a single hash
+   *   value by processing each value in turn, according to this formula: <p>
+   *     &nbsp;&nbsp;V<sub>n</sub> = newHash(V<sub>n-1</sub>, H<sub>n</sub>)<p>
+   *   where V<sub>n</sub> is the new hash value, V<sub>n-1</sub> is the result from the previous iteration, and 
+   *   newHash() is the implemented method. For the first iteration, the calling method must specify a starting value
+   *   for V<sub>n-1</sub>, which is usually one or zero. The final value of V<sub>n</sub> is returned. 
+   *   The default implementation uses this formula:<p>
+   *     &nbsp;&nbsp;V<sub>n</sub> = (31 * V<sub>n-1</sub>) + H<sub>n</sub><p>
+   *   This is the same calculation performed by the {@code java.util.Objects.hash(Object...)} method.
    */
   @FunctionalInterface
   public interface HashBuilder {
