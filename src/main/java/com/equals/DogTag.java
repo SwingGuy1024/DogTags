@@ -10,12 +10,13 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * Fast equals() and hashCode() methods to use Reflection to easily get all the desired fields, and produce an equals()
- * method and a HashCode method that are guaranteed to be consistent with each other.
+ * Fast {@code equals()} and {@code hashCode()} methods that use Reflection to easily get all the desired fields,
+ * and produce an {@code equals()} method and a {@code hashCode()} method that are guaranteed to be consistent with
+ * each other.
  * <p>
- * Unlike Apache's EqualsBuilder, most of the slow reflective calls are not done at runtime, but at class-load time, 
- * so they are only done once for each class. This gives us a big improvement in performance.
- * <p>
+ * Unlike Apache's EqualsBuilder, most of the slow reflective calls are not done when {@code equals()} is called,
+ * but at class-load time, so they are only done once for each class. This gives us a big improvement in performance.
+ * </p><p>
  * Example usage:
  * <pre>
  *   public class MyClass {
@@ -33,11 +34,11 @@ import java.util.Set;
  *     }
  *   }
  * </pre>
- * <p>
+ * </p><p>
  * The equals comparison is done according to the guidelines set down in EffectiveJava by Joshua Bloch. The hashCode
  * is generated using the same calculations done with {@code java.lang.Objects.hash(Object...)}, although you are free
- * to provide a different hash calculator. Floats and Doubles are done to avoid problems with comparing Nan values.
- * <p>
+ * to provide a different hash calculator. Floats and Doubles will treat all NaN values as equal.
+ * </p><p>
  * Options include testing transient fields, excluding fields, and specifying a superclass to include in the 
  * reflective process. These options are invoked by using the DogTagBuilder class.
  * <pre>
@@ -47,7 +48,7 @@ import java.util.Set;
  *     private static final{@literal DogTag<MyClass>} dogTag = DogTag.create(MyClass.class)
  *       .withTransients(true)                // defaults to false
  *       .withExcludedFields("size", "date")  // defaults to all non-transient and non-static fields
- *       .withReflectUpTo(MyBaseClass.class)  // defaults to no superclasses included
+ *       .withReflectUpTo(MyBaseClass.class)  // defaults to the type parameter, which is MyClass in this example
  *       .build();
  *
  *    {@literal @Override}
@@ -60,12 +61,25 @@ import java.util.Set;
  *     }
  *   }
  * </pre>
- * @param <T>
+ * </p><p>
+ * <strong>Notes:</strong><p>
+ *   The DogTag instance should always be declared static, or performance will suffer. It's prudent to also declare it
+ *   final, since you shouldn't ever need to change its value.
+ * </p><p>
+ *   The DogTag methods {@code equals()} and {@code hashCode()} are disabled, to prevent their accidental use instead
+ *   of {@code doEqualsTest()} and {@code doHashCode()} The two correct methods both start with "do" to avoid
+ *   confusion. If you accidentally call either of the disabled methods, they will throw an {@code AssertionError}.
+ * </p><p>
+ *   You should always pass {@code this} as the first parameter of {@code doEqualsTest()} and as the parameter of
+ *   {@code doHashCode()}.
+ * </p><p>
+ *   Static fields are never used.
+ * </p>
+ * @param <T> Type using a DogTag equals and hashCode method
+ * @author Miguel Muñoz
  */
 @SuppressWarnings("WeakerAccess")
-public class DogTag<T> {
-  // Todo: Add a withValidatedExcludedFields()? 
-  // Todo: Add a field validator assertion?
+public final class DogTag<T> {
   // Todo: Add business key support, using annotations
   // Todo: Add exclusion support using annotations.
   // Todo: Add use-only-final-fields option
@@ -76,10 +90,35 @@ public class DogTag<T> {
   private final int startingHash;
   private final HashBuilder hashBuilder;
 
+  /**
+   * Instantiate a DogTag for class T, using default options. The default options are: No transient fields,
+   * all other non-static fields are included, and no superclass fields are included.
+   * @param theClass The instance of {@literal Class<T>} for type T
+   * @param <T> The type of class using equals() and hashCode()
+   * @return An instance of {@literal DogTag<T>}
+   */
   public static <T> DogTag<T> from(Class<T> theClass) {
     return new DogTagBuilder<>(theClass).build();
   }
 
+  /**
+   * Instantiate a builder, allowing you to create a DogTag for class T with custom options specified. Form this buider,
+   * you should call the build() method to generate the dogTag.
+   * <p>
+   *   For example:
+   *   <pre>
+   *     {@literal DogTag<MyClass>} dogTag = DogTag.create(MyClass.class)
+   *         .withTransients(true) // options are specified here
+   *         .build();
+   *   </pre>
+   * </p>
+   * <p>
+   *   Options may be specified in any order.
+   * </p>
+   * @param theClass The instance of {@literal Class<T>} for type T
+   * @param <T> The type of class using equals() and hashCode()
+   * @return A builder for a {@literal DogTag<T>}, which can build your DogTag, once the options are specified.
+   */
   public static <T> DogTagBuilder<T> create(Class<T> theClass) {
     return new DogTagBuilder<>(theClass);
   }
@@ -97,10 +136,11 @@ public class DogTag<T> {
   }
 
   public static final class DogTagBuilder<T> {
+    public static final String[] EMPTY_STRING_ARRAY = new String[0];
     private final Class<T> dogTagClass;
     private Class<? super T> lastSuperClass;
     private boolean testTransients = false;
-    private Set<Field> excludedFields = new HashSet<>();
+    private String[] excludedFieldNames = EMPTY_STRING_ARRAY;
     private int priorHash = 1;
     @SuppressWarnings("MagicNumber")
     private static final HashBuilder defaultHashBuilder = (int i, Object o) -> (i * 39) + o.hashCode(); // Same as Objects.class
@@ -111,16 +151,28 @@ public class DogTag<T> {
       lastSuperClass = dogTagClass;
     }
 
+    /**
+     * Set the Transient option, before building the DogTag. Defaults to false.
+     * @param useTransients true if you want transient fields included in the equals and hashCode methods
+     * @return this, for method chaining
+     */
     @SuppressWarnings("BooleanParameter")
     public DogTagBuilder<T> withTransients(boolean useTransients) {
       testTransients = useTransients;
       return this;
     }
 
+    /**
+     * Specify the optional excluded fields, before building the DogTag.
+     * The fields must be in the class specified by the type parameter for the DogTag, or any superclass included by
+     * the {@code withReflectUpTo()} option. Defaults to an empty array.
+     * <strong>Note:</strong> If you are also using the reflectUpTo option, this option must be specified afterwards.
+     * @param excludedFieldNames The names of fields to exclude from the equals and hashCode calculations.
+     *                           Invalid field names will throw an IllegalArgumentException.
+     * @return this, for method chaining
+     */
     public DogTagBuilder<T> withExcludedFields(String... excludedFieldNames) {
-      for (String fieldName : excludedFieldNames) {
-        excludedFields.add(getFieldFromName(fieldName));
-      }
+      this.excludedFieldNames = excludedFieldNames;
       return this;
     }
 
@@ -128,7 +180,6 @@ public class DogTag<T> {
      * Search through classes starting with dogTagClass, up to and including lastSuperClass, for a field with the
      * specified name.
      * Can this be defeated by clashing private fields?
-     * Should we filter out ineligible fields, like static fields?
      * @param fieldName The Field name
      * @return A Field, from one of the classes in the range from dogTagClass to lastSuperClass.
      */
@@ -154,6 +205,13 @@ public class DogTag<T> {
       throw new IllegalArgumentException(String.format("Field '%s' not found from class %s to superClass %s", fieldName, dogTagClass, lastSuperClass));
     }
 
+    /**
+     * Specify the superclass of the DogTag Type parameter class to include in the equals and hash code calculations.
+     * The classes inspected for fields to use are those of the type class, the specified superclass, and any
+     * class that is a superclass of the type class and a subclass of the specified superclass.
+     * @param reflectUpTo The superclass, up to which are inspected for fields to include.
+     * @return this, for method chaining
+     */
     public DogTagBuilder<T> withReflectUpTo(Class<? super T> reflectUpTo) {
       lastSuperClass = reflectUpTo;
       return this;
@@ -168,12 +226,21 @@ public class DogTag<T> {
       this.hashBuilder = hashBuilder;
       return this;
     }
-    
+
+    /**
+     * Once options are specified, build the DogTag instance for the Type. Options may be specified in any order.
+     * @return A {@code DogTag<T>} that uses the specifed options.
+     */
     public DogTag<T> build() {
       return new DogTag<>(dogTagClass, makeGetterList(), priorHash, hashBuilder);
     }
 
-    List<FieldProcessor<T>> makeGetterList() {
+    private List<FieldProcessor<T>> makeGetterList() {
+      Set<Field> excludedFields = new HashSet<>();
+      for (String fieldName : excludedFieldNames) {
+        excludedFields.add(getFieldFromName(fieldName));
+      }
+
       List<FieldProcessor<T>> fieldProcessorList = new LinkedList<>();
       Class<? super T> theClass = dogTagClass;
 
@@ -211,49 +278,40 @@ public class DogTag<T> {
 
   private static <T> FieldProcessor<T> getProcessorForArray(Field arrayField, Class<?> fieldType) {
     Class<?> componentType = fieldType.getComponentType();
+    ArrayEquals arrayEquals;
+    ArrayHash arrayHash;
     if (componentType == Integer.TYPE) {
-      ArrayEquals intEquals = (thisOne, thatOne) -> Arrays.equals((int[]) thisOne, (int[]) thatOne);
-      ArrayHash intHash = (array) -> Arrays.hashCode((int[]) array);
-      return new ArrayProcessor<>(arrayField, intEquals, intHash);
+      arrayEquals = (thisOne, thatOne) -> Arrays.equals((int[]) thisOne, (int[]) thatOne);
+      arrayHash = (array) -> Arrays.hashCode((int[]) array);
+    } else if (componentType == Long.TYPE) {
+      arrayEquals = (thisOne, thatOne) -> Arrays.equals((long[]) thisOne, (long[]) thatOne);
+      arrayHash = (array) -> Arrays.hashCode((long[]) array);
+    } else if (componentType == Short.TYPE) {
+      arrayEquals = (thisOne, thatOne) -> Arrays.equals((short[]) thisOne, (short[]) thatOne);
+      arrayHash = (array) -> Arrays.hashCode((short[]) array);
+    } else if (componentType == Character.TYPE) {
+      arrayEquals = (thisOne, thatOne) -> Arrays.equals((char[]) thisOne, (char[]) thatOne);
+      arrayHash = (array) -> Arrays.hashCode((char[]) array);
+    } else if (componentType == Byte.TYPE) {
+      arrayEquals = (thisOne, thatOne) -> Arrays.equals((byte[]) thisOne, (byte[]) thatOne);
+      arrayHash = (array) -> Arrays.hashCode((byte[]) array);
+    } else if (componentType == Double.TYPE) {
+      arrayEquals = (thisOne, thatOne) -> Arrays.equals((double[]) thisOne, (double[]) thatOne);
+      arrayHash = (array) -> Arrays.hashCode((double[]) array);
+    } else if (componentType == Float.TYPE) {
+      arrayEquals = (thisOne, thatOne) -> Arrays.equals((float[]) thisOne, (float[]) thatOne);
+      arrayHash = (array) -> Arrays.hashCode((float[]) array);
+    } else if (componentType == Boolean.TYPE) {
+      arrayEquals = (thisOne, thatOne) -> Arrays.equals((boolean[]) thisOne, (boolean[]) thatOne);
+      arrayHash = (array) -> Arrays.hashCode((boolean[]) array);
+    } else {
+      // componentType is some Object.class or some subclass of it. It is not a primitive. It may be an array, if the
+      // field is a multi-dimensional array.
+      assert !componentType.isPrimitive() : componentType;
+      arrayEquals = (thisOne, thatOne) -> Arrays.equals((Object[]) thisOne, (Object[]) thatOne);
+      arrayHash = (array) -> Arrays.hashCode((Object[]) array);
     }
-    if (componentType == Long.TYPE) {
-      ArrayEquals longEquals = (thisOne, thatOne) -> Arrays.equals((long[]) thisOne, (long[]) thatOne);
-      ArrayHash longHash = (array) -> Arrays.hashCode((long[]) array);
-      return new ArrayProcessor<>(arrayField, longEquals, longHash);
-    }
-    if (componentType == Short.TYPE) {
-      ArrayEquals shortEquals = (thisOne, thatOne) -> Arrays.equals((short[]) thisOne, (short[]) thatOne);
-      ArrayHash shortHash = (array) -> Arrays.hashCode((short[]) array);
-      return new ArrayProcessor<>(arrayField, shortEquals, shortHash);
-    }
-    if (componentType == Character.TYPE) {
-      ArrayEquals charEquals = (thisOne, thatOne) -> Arrays.equals((char[]) thisOne, (char[]) thatOne);
-      ArrayHash charHash = (array) -> Arrays.hashCode((char[]) array);
-      return new ArrayProcessor<>(arrayField, charEquals, charHash);
-    }
-    if (componentType == Byte.TYPE) {
-      ArrayEquals byteEquals = (thisOne, thatOne) -> Arrays.equals((byte[]) thisOne, (byte[]) thatOne);
-      ArrayHash byteHash = (array) -> Arrays.hashCode((byte[]) array);
-      return new ArrayProcessor<>(arrayField, byteEquals, byteHash);
-    }
-    if (componentType == Double.TYPE) {
-      ArrayEquals doubleEquals = (thisOne, thatOne) -> Arrays.equals((double[]) thisOne, (double[]) thatOne);
-      ArrayHash doubleHash = (array) -> Arrays.hashCode((double[]) array);
-      return new ArrayProcessor<>(arrayField, doubleEquals, doubleHash);
-    }
-    if (componentType == Float.TYPE) {
-      ArrayEquals floatEquals = (thisOne, thatOne) -> Arrays.equals((float[]) thisOne, (float[]) thatOne);
-      ArrayHash floatHash = (array) -> Arrays.hashCode((float[]) array);
-      return new ArrayProcessor<>(arrayField, floatEquals, floatHash);
-    }
-    if (componentType == Boolean.TYPE) {
-      ArrayEquals booleanEquals = (thisOne, thatOne) -> Arrays.equals((boolean[]) thisOne, (boolean[]) thatOne);
-      ArrayHash booleanHash = (array) -> Arrays.hashCode((boolean[]) array);
-      return new ArrayProcessor<>(arrayField, booleanEquals, booleanHash);
-    }
-    ArrayEquals objectEquals = (thisOne, thatOne) -> Arrays.equals((Object[]) thisOne, (Object[]) thatOne);
-    ArrayHash objectHash = (array) -> Arrays.hashCode((Object[]) array);
-    return new ArrayProcessor<>(arrayField, objectEquals, objectHash);
+    return new ArrayProcessor<>(arrayField, arrayEquals, arrayHash);
   }
 
   /**
@@ -346,7 +404,7 @@ public class DogTag<T> {
   }
 
   // TODO: Do we want to have a separate FieldProcessor for primitive values? That way, we could avoid
-  // todo  wrapping them in wrapper classes just to get their hashCode. 
+  // todo  wrapping them in wrapper classes just to get their hashCode.
   private static class SingleFieldProcessor<T> implements FieldProcessor<T> {
     private final ThrowingFunction<T, ?> getter;
     SingleFieldProcessor(Field field) {
