@@ -83,7 +83,6 @@ public final class DogTag<T> {
   // Todo: Add business key support, using annotations
   // Todo: Add exclusion support using annotations.
   // Todo: Add use-only-final-fields option
-  // Todo: Add assertion for static dogTag class?
   // Todo: Specify field order by annotations?
   private final Class<T> dogTagClass;
   private final List<FieldProcessor<T>> fieldProcessors;
@@ -102,8 +101,8 @@ public final class DogTag<T> {
   }
 
   /**
-   * Instantiate a builder, allowing you to create a DogTag for class T with custom options specified. Form this buider,
-   * you should call the build() method to generate the dogTag.
+   * Instantiate a builder, allowing you to create a DogTag for class T with custom options specified. From this
+   * builder, you should call the build() method to generate the dogTag.
    * <p>
    *   For example:
    *   <pre>
@@ -136,7 +135,7 @@ public final class DogTag<T> {
   }
 
   public static final class DogTagBuilder<T> {
-    public static final String[] EMPTY_STRING_ARRAY = new String[0];
+    private static final String[] EMPTY_STRING_ARRAY = new String[0];
     private final Class<T> dogTagClass;
     private Class<? super T> lastSuperClass;
     private boolean testTransients = false;
@@ -229,7 +228,7 @@ public final class DogTag<T> {
 
     /**
      * Once options are specified, build the DogTag instance for the Type. Options may be specified in any order.
-     * @return A {@code DogTag<T>} that uses the specifed options.
+     * @return A {@code DogTag<T>} that uses the specified options.
      */
     public DogTag<T> build() {
       return new DogTag<>(dogTagClass, makeGetterList(), priorHash, hashBuilder);
@@ -249,7 +248,9 @@ public final class DogTag<T> {
         Field[] declaredFields = theClass.getDeclaredFields();
         for (Field field : declaredFields) {
           int modifiers = field.getModifiers();
-          //noinspection MagicCharacter
+          if (field.getType() == DogTag.class && !Modifier.isStatic(modifiers)) {
+            throw new AssertionError("Your DogTag instance must be static. Private and final are also suggested.");
+          }
           if (!Modifier.isStatic(modifiers)
               && (testTransients || !Modifier.isTransient(modifiers))
               && !excludedFields.contains(field)
@@ -259,11 +260,8 @@ public final class DogTag<T> {
             Class<?> fieldType = field.getType();
             if (fieldType.isArray()) {
               fieldProcessorList.add(getProcessorForArray(field, fieldType));
-//            } else if (fieldType == Double.TYPE || fieldType == Float.TYPE) {
-//              fieldProcessorList.add(new FloatFieldProcessor<>(field));
             } else {
               fieldProcessorList.add(new SingleFieldProcessor<>(field));
-//              getterList.add(obj -> field.get(obj));
             }
           }
         }
@@ -305,7 +303,7 @@ public final class DogTag<T> {
       arrayEquals = (thisOne, thatOne) -> Arrays.equals((boolean[]) thisOne, (boolean[]) thatOne);
       arrayHash = (array) -> Arrays.hashCode((boolean[]) array);
     } else {
-      // componentType is some Object.class or some subclass of it. It is not a primitive. It may be an array, if the
+      // componentType is Object.class or some subclass of it. It is not a primitive. It may be an array, if the
       // field is a multi-dimensional array.
       assert !componentType.isPrimitive() : componentType;
       arrayEquals = (thisOne, thatOne) -> Arrays.equals((Object[]) thisOne, (Object[]) thatOne);
@@ -353,7 +351,7 @@ public final class DogTag<T> {
   }
 
   /**
-   * Get the hashCode from an instance of the containing class, consistent with {@code equals()}
+   * Get the hash code from an instance of the containing class, consistent with {@code equals()}
    * For example:
    * <pre>
    *  {@literal @Override}
@@ -365,7 +363,7 @@ public final class DogTag<T> {
    * @return The hashCode
    */
   int doHashCode(T thisOne) {
-    assert thisOne != null : "Always pass 'this' to this method!";
+    assert thisOne != null : "Always pass 'this' to this method! That guarantees it won't be null.";
     int hash = startingHash;
     for (FieldProcessor<T> f : fieldProcessors) {
       try {
@@ -377,12 +375,23 @@ public final class DogTag<T> {
     return hash;
   }
 
+  /**
+   * This method is disabled, to avoid confusion with the {@code doEqualsTest()} method. You should never need this
+   * anyway. Calling this method will throw an AssertionError.
+   * @param obj Unused
+   * @return never returns
+   */
   @Override
   public boolean equals(Object obj) {
     throw new AssertionError("Never call dogTag.equals(). To test if your object is equal to another," +
         "call dogTag.doEqualsTest(this, other)");
   }
 
+  /**
+   * This method is disabled, to avoid confusion with the doHashCode() method. You should never need this anyway.
+   * Calling this method will throw an AssertionError.
+   * @return never returns
+   */
   @Override
   public int hashCode() {
     throw new AssertionError("Never call hashCode(). To get the hashCode of your object, call doHashCode(this)");
@@ -393,30 +402,46 @@ public final class DogTag<T> {
     R get(T object) throws IllegalAccessException;
   }
 
+  /**
+   * You are free to install your own hash builder by implementing this interface. For each object used in the hash
+   * code calculation, this method calculates a new value from the current hashCode in progress, and the hash code of
+   * the next object in the chain. The default implementation multiplies previousHash by 39, then adds
+   * {@code nextObject.hashCode()}. (This is the same calculation performed by the
+   * {@code java.util.Objects.hash(Object...)} method.)
+   */
   @FunctionalInterface
   public interface HashBuilder {
     int newHash(int previousHash, Object nextObject);
   }
 
-  private interface FieldProcessor<T> {
-    boolean testForEquals(T thisOne, T thatOne) throws IllegalAccessException;
-    int getHashValue(T thisOne) throws IllegalAccessException;
+  /**
+   * Every object used by equals and hash code calculations is either a single value or an array. Arrays must be
+   * handled differently from single values. So this interface has two separate implementations. During the reflective
+   * phase of the DogTag construction, each field is examined, and a custom fieldProcessor for it is built and
+   * added to the List of Field Processors.
+   * @param <F> The field type
+   */
+  private interface FieldProcessor<F> {
+    boolean testForEquals(F thisOne, F thatOne) throws IllegalAccessException;
+    int getHashValue(F thisOne) throws IllegalAccessException;
   }
 
-  // TODO: Do we want to have a separate FieldProcessor for primitive values? That way, we could avoid
-  // todo  wrapping them in wrapper classes just to get their hashCode.
-  private static class SingleFieldProcessor<T> implements FieldProcessor<T> {
-    private final ThrowingFunction<T, ?> getter;
+  /**
+   * Field processor for single-value fields
+   * @param <F> The field type
+   */
+  private static class SingleFieldProcessor<F> implements FieldProcessor<F> {
+    private final ThrowingFunction<F, ?> getter;
     SingleFieldProcessor(Field field) {
       getter = field::get;
     }
     @Override
-    public boolean testForEquals(T thisOne, T thatOne) throws IllegalAccessException {
+    public boolean testForEquals(F thisOne, F thatOne) throws IllegalAccessException {
       return Objects.equals(getter.get(thisOne), getter.get(thatOne));
     }
 
     @Override
-    public int getHashValue(T thisOne) throws IllegalAccessException {
+    public int getHashValue(F thisOne) throws IllegalAccessException {
       final Object member = getter.get(thisOne);
       if (member == null) {
         return 0;
@@ -425,24 +450,12 @@ public final class DogTag<T> {
     }
   }
 
-//  private static final class FloatFieldProcessor<T> implements FieldProcessor<T> {
-//    private final ThrowingFunction<T, ?> getter;
-//    FloatFieldProcessor(Field field) {
-//      getter = field::get;
-//    }
-//    @Override
-//    public boolean testForEquals(T thisOne, T thatOne) throws IllegalAccessException {
-//      return getter.get(thisOne).equals(getter.get(thatOne));
-//    }
-//
-//    @Override
-//    public int getHashValue(T thisOne) throws IllegalAccessException {
-//      return getter.get(thisOne).hashCode();
-//    }
-//  }
-
-  private static class ArrayProcessor<T> implements FieldProcessor<T> {
-    private final ThrowingFunction<T, ?> getter;
+  /**
+   * Field processor for arrays
+   * @param <F> The array type
+   */
+  private static class ArrayProcessor<F> implements FieldProcessor<F> {
+    private final ThrowingFunction<F, ?> getter;
     private final ArrayEquals arrayEquals;
     private final ArrayHash arrayHash;
     ArrayProcessor(Field arrayField, ArrayEquals arrayEquals, ArrayHash arrayHash) {
@@ -452,31 +465,31 @@ public final class DogTag<T> {
     }
 
     @Override
-    public boolean testForEquals(T thisOne, T thatOne) throws IllegalAccessException {
+    public boolean testForEquals(F thisOne, F thatOne) throws IllegalAccessException {
       return arrayEquals.isEqual(getter.get(thisOne), getter.get(thatOne));
     }
 
     @Override
-    public int getHashValue(T thisOne) throws IllegalAccessException {
+    public int getHashValue(F thisOne) throws IllegalAccessException {
       return arrayHash.hash(getter.get(thisOne));
     }
   }
 
+  /**
+   * This is used by FieldProcessors to determine if two fields are equal. This is determined differently for
+   * single-value fields and arrays.
+   */
   @FunctionalInterface
   private interface ArrayEquals {
     boolean isEqual(Object thisOne, Object thatOne);
   }
 
+  /**
+   * This is used by FieldProcessors to get the hash code of a field. This is determined differently for
+   * single-value fields and arrays.
+   */
   @FunctionalInterface
   private interface ArrayHash {
     int hash(Object thisArray);
   }
-
-//  public static void main(String[] args) throws NoSuchFieldException, IllegalAccessException {
-//    Field field = DogTag.class.getField("dValue");
-//    double d = (double) field.get(null);
-//    System.out.println(d);
-//  }
-//
-//  public static double dValue = 5.4;
 }

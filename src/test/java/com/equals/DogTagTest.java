@@ -9,10 +9,7 @@ import static org.junit.Assert.*;
 
 @SuppressWarnings({"HardCodedStringLiteral", "MagicNumber", "MagicCharacter"})
 public class DogTagTest {
-  public static final String CHARLIE_INT = "charlieInt";
-
-//  private static final int[] EMPTY_INT_ARRAY = new int[0];
-//  private static final String[] EMPTY_STRING_ARRAY = new String[0];
+  private static final String CHARLIE_INT = "charlieInt";
 
   @Test
   public void testEquals() {
@@ -24,25 +21,25 @@ public class DogTagTest {
         .withExcludedFields(CHARLIE_INT)
         .build();
 
-    testForMatch(excludeC, baseTest1, baseTest2);
+    verifyMatch(excludeC, baseTest1, baseTest2);
 
     DogTag<DogTagTestBase> includeBaseOnly = DogTag.from(DogTagTestBase.class);
-    testMisMatch(includeBaseOnly, baseTest1, baseTest2);
+    verifyNoMatch(includeBaseOnly, baseTest1, baseTest2);
     assertFalse(includeBaseOnly.doEqualsTest(baseTest1, "String"));
 
     baseTest1.setCharlieInt(12);
-    testForMatch(includeBaseOnly, baseTest1, baseTest2);
+    verifyMatch(includeBaseOnly, baseTest1, baseTest2);
 
     DogTagTestMid midTest = new DogTagTestMid(5, "bravo", 7, 5L, "echo", 
         new Point2D.Double(14.2, 2.14), 44, (byte)12, 'I');
     DogTagTestMid midTest2 = midTest.duplicate();
-    testForMatch(includeBaseOnly, midTest, midTest2);
+    verifyMatch(includeBaseOnly, midTest, midTest2);
     midTest2.setIndigoChar('J');
     midTest2.setHotelByte((byte) 99);
     midTest2.setGolfIntTr(77);
     midTest2.setFoxtrotPoint(new Point2D.Double(88.8, 22.2));
     midTest2.setEchoString("Could you repeat that?");
-    testForMatch(includeBaseOnly, midTest, midTest2); // should still match,
+    verifyMatch(includeBaseOnly, midTest, midTest2); // should still match,
   }
 
   @Test
@@ -51,18 +48,18 @@ public class DogTagTest {
     DogTagTestMid mid1 = new DogTagTestMid(12, "bravo", 3, 4L, "echo", new Point2D.Double(14.2, 2.14), 7, (byte)8, 'I');
     DogTagTestMid mid2 = mid1.duplicate();
     mid2.setGolfIntTr(77); // transient value
-    testForMatch(defaultDogTag, mid1, mid2);
+    verifyMatch(defaultDogTag, mid1, mid2);
     
     mid2.setFoxtrotPoint(new Point2D.Double(3.3, 4.4));
-    testMisMatch(defaultDogTag, mid1, mid2);
+    verifyNoMatch(defaultDogTag, mid1, mid2);
 
     DogTag<DogTagTestMid> dogTagWithTransients = DogTag.create(DogTagTestMid.class)
         .withTransients(true)
         .build();
     mid2.setFoxtrotPoint((Point2D) mid1.getFoxtrotPoint().clone()); // reset Point2D
-    testMisMatch(dogTagWithTransients, mid1, mid2);
+    verifyNoMatch(dogTagWithTransients, mid1, mid2);
     mid2.setGolfIntTr(mid1.getGolfIntTr());
-    testForMatch(dogTagWithTransients, mid1, mid2);
+    verifyMatch(dogTagWithTransients, mid1, mid2);
 
     DogTagTestTail tail1 = new DogTagTestTail();
     DogTagTestTail tail2 = new DogTagTestTail();
@@ -73,12 +70,12 @@ public class DogTagTest {
         .build();
     tail1.setGolfIntTr(-10);
     tail2.setGolfIntTr(43);
-    testMisMatch(dogTagTail, tail1, tail2);
+    verifyNoMatch(dogTagTail, tail1, tail2);
 
     tail2.setGolfIntTr(-10); // tail2 now matches tail1 in this field
     tail2.setCharlieInt(1024); // Shouldn't affect equality. In super.super, but not in super.
     tail2.setDeltaLong(65537L*65537L);
-    testForMatch(dogTagTail, tail1, tail2);
+    verifyMatch(dogTagTail, tail1, tail2);
   }
 
   @Test
@@ -93,7 +90,7 @@ public class DogTagTest {
         .withExcludedFields("kiloShort", "julietBoolean")
         .build();
 
-    testForMatch(dogTag, tail1, tail2);
+    verifyMatch(dogTag, tail1, tail2);
 
     tail2.setIndigoChar('X');
     tail2.setHotelByte((byte) 126);
@@ -102,7 +99,7 @@ public class DogTagTest {
         .withReflectUpTo(DogTagTestMid.class)
         .withExcludedFields("kiloShort", "julietBoolean", "hotelByte", "indigoChar")
         .build();
-    testForMatch(dogTagSuper, tail1, tail2);
+    verifyMatch(dogTagSuper, tail1, tail2);
 
     // The withExcludedFields() and reflectUpTo() methods are the only options that interact with each other.
     // Here, we verify that the two methods may be called in either order.
@@ -110,7 +107,7 @@ public class DogTagTest {
         .withExcludedFields("kiloShort", "julietBoolean", "hotelByte", "indigoChar")
         .withReflectUpTo(DogTagTestMid.class)
         .build();
-    testForMatch(reversedDogTag, tail1, tail2);
+    verifyMatch(reversedDogTag, tail1, tail2);
   }
 
   @Test
@@ -122,9 +119,9 @@ public class DogTagTest {
     DogTagTestBase base2 = base1.duplicate();
     base2.setCharlieInt(12);
 
-    testForMatch(dogTag, base1, base2);
+    verifyMatch(dogTag, base1, base2);
     base2.setDeltaLong(88L);
-    testMisMatch(dogTag, base1, base2);
+    verifyNoMatch(dogTag, base1, base2);
   }
 
   @Test(expected=IllegalArgumentException.class)
@@ -170,7 +167,7 @@ public class DogTagTest {
    * @see Float#intBitsToFloat(int)
    */
   @Test
-  public void floatTest() {
+  public void testFloat() {
     // All these values are Not a Number or NaN. (See Float#intBitsToFloat)
     // When tested with ==, all NaN values will return false, even if they're the same NaN value.
     // When tested with Float.equals(), they all return true, even if they're different NaN values.
@@ -191,7 +188,7 @@ public class DogTagTest {
       for (float f2: notNumbers) {
         tail1.setMikeFloat(f1);
         tail2.setMikeFloat(f2);
-        testForMatch(dogTag, tail1, tail2);
+        verifyMatch(dogTag, tail1, tail2);
       }
     }
   }
@@ -203,7 +200,7 @@ public class DogTagTest {
    * @see Double#longBitsToDouble(long)
    */
   @Test
-  public void doubleTest() {
+  public void TestDouble() {
     // All these values are Not a Number, or NaN. (See Double#longBitsToDouble)
     // When tested with ==, all NaN values will return false, even if they're the same NaN value.
     // When tested with Double.equals(), they all return true, even if they're different NaN values.
@@ -224,7 +221,7 @@ public class DogTagTest {
       for (double f2: notNumbers) {
         tail1.setLimaDouble(f1);
         tail2.setLimaDouble(f2);
-        testForMatch(dogTag, tail1, tail2);
+        verifyMatch(dogTag, tail1, tail2);
       }
     }
   }
@@ -235,10 +232,10 @@ public class DogTagTest {
     DogTagTestTail tail2 = tail1.duplicate();
     DogTag<DogTagTestTail> dogTag = DogTag.from(DogTagTestTail.class);
 
-    testForMatch(dogTag, tail1, tail2);
+    verifyMatch(dogTag, tail1, tail2);
 
     tail1.setNovemberIntArray(new int[] {1, 1, 2, 3, 5});
-    testMisMatch(dogTag, tail1, tail2);
+    verifyNoMatch(dogTag, tail1, tail2);
   }
 
   @Test
@@ -250,7 +247,7 @@ public class DogTagTest {
     DogTag<DogTagTestTail> dogTag = DogTag.create(DogTagTestTail.class)
         .withReflectUpTo(DogTagTestBase.class)
         .build();
-    testMisMatch(dogTag, tail1, tail2);
+    verifyNoMatch(dogTag, tail1, tail2);
 
     dogTag.doHashCode(tail2); // just make sure we can get a hashCode with that null member.
   }
@@ -262,112 +259,123 @@ public class DogTagTest {
     // ints
     DogTagTestTail tail1 = new DogTagTestTail();
     DogTagTestTail tail2 = tail1.duplicate();
-    testForMatch(dogTag, tail1, tail2);
+    verifyMatch(dogTag, tail1, tail2);
     tail2.setNovemberIntArray(new int[] {3, 2, 1}); // different length
-    testMisMatch(dogTag, tail1, tail2);
+    verifyNoMatch(dogTag, tail1, tail2);
     tail2.setNovemberIntArray(new int[] { 9, 8, 7, 6, 5, 4, 3, 2, 1 }); // same length
-    testMisMatch(dogTag, tail1, tail2);
+    verifyNoMatch(dogTag, tail1, tail2);
     tail2.setNovemberIntArray(null);
-    testMisMatch(dogTag, tail1, tail2);
+    verifyNoMatch(dogTag, tail1, tail2);
 
     // Strings:
     tail2 = tail1.duplicate();
     tail2.setOperaStringArray(new String[] { "Whiskey", "Tango", "Foxtrot" }); // different length
-    testMisMatch(dogTag, tail1, tail2);
+    verifyNoMatch(dogTag, tail1, tail2);
     tail2.setOperaStringArray(new String[] { "Mercury", "Venus", "Earth", "Mars", "Jupiter",
         "Saturn", "Uranus", "Neptune", "Oort Cloud" }); // same length
-    testMisMatch(dogTag, tail1, tail2);
+    verifyNoMatch(dogTag, tail1, tail2);
     tail2.setOperaStringArray(null);
-    testMisMatch(dogTag, tail1, tail2);
+    verifyNoMatch(dogTag, tail1, tail2);
 
     // longs:
     tail2 = tail1.duplicate();
     tail2.setPapaLongArray(new long[] { 999999999999L, 888888888888L, 777777777777L }); // different length
-    testMisMatch(dogTag, tail1, tail2);
+    verifyNoMatch(dogTag, tail1, tail2);
     tail2.setPapaLongArray(new long[] { 9L, 8L, 7L, 6L, 5L, 4L, 3L, 2L, 1L }); // Same length
-    testMisMatch(dogTag, tail1, tail2);
+    verifyNoMatch(dogTag, tail1, tail2);
     tail2.setPapaLongArray(null);
-    testMisMatch(dogTag, tail1, tail2);
+    verifyNoMatch(dogTag, tail1, tail2);
 
     // shorts:
     tail2 = tail1.duplicate();
     tail2.setQuebecShortArray(new short[] {100, 200, 300}); // different length
-    testMisMatch(dogTag, tail1, tail2);
+    verifyNoMatch(dogTag, tail1, tail2);
     tail2.setQuebecShortArray(new short[] { 100, 200, 300, 400, 500, 600, 700, 800, 900 }); // Same length
-    testMisMatch(dogTag, tail1, tail2);
+    verifyNoMatch(dogTag, tail1, tail2);
     tail2.setQuebecShortArray(null);
-    testMisMatch(dogTag, tail1, tail2);
+    verifyNoMatch(dogTag, tail1, tail2);
 
     // bytes:
     tail2 = tail1.duplicate();
     tail2.setRomeoByteArray(new byte[] { 1, 3, 5, 7, 9 }); // different length
-    testMisMatch(dogTag, tail1, tail2);
+    verifyNoMatch(dogTag, tail1, tail2);
     tail2.setRomeoByteArray(new byte[] { 8, 7, 6, 5, 4, 3, 2, 1, 0 }); // Same length
-    testMisMatch(dogTag, tail1, tail2);
+    verifyNoMatch(dogTag, tail1, tail2);
     tail2.setRomeoByteArray(null);
-    testMisMatch(dogTag, tail1, tail2);
+    verifyNoMatch(dogTag, tail1, tail2);
 
     // chars:
     tail2 = tail1.duplicate();
     tail2.setSierraCharArray("duplicate".toCharArray()); // different length
-    testMisMatch(dogTag, tail1, tail2);
-    tail2.setSierraCharArray("sameLengt".toCharArray());
-    testMisMatch(dogTag, tail1, tail2);
+    verifyNoMatch(dogTag, tail1, tail2);
+    tail2.setSierraCharArray("same size".toCharArray());
+    verifyNoMatch(dogTag, tail1, tail2);
     tail2.setSierraCharArray(null);
-    testMisMatch(dogTag, tail1, tail2);
+    verifyNoMatch(dogTag, tail1, tail2);
 
     // booleans:
     tail2 = tail1.duplicate();
     tail2.setTangoBooleanArray(new boolean[] { true, true, true, false, false, false }); // different length
-    testMisMatch(dogTag, tail1, tail2);
+    verifyNoMatch(dogTag, tail1, tail2);
     tail2.setTangoBooleanArray(new boolean[] { true, true, true, true, true, false, true, true, false }); // Same length
-    testMisMatch(dogTag, tail1, tail2);
+    verifyNoMatch(dogTag, tail1, tail2);
     tail2.setTangoBooleanArray(null);
-    testMisMatch(dogTag, tail1, tail2);
+    verifyNoMatch(dogTag, tail1, tail2);
 
     // floats:
     tail2 = tail1.duplicate();
     tail2.setUniformFloatArray(new float[] { 1.1f, 2.22f, 3.333f, 4.4444f }); // different length
-    testMisMatch(dogTag, tail1, tail2);
+    verifyNoMatch(dogTag, tail1, tail2);
     tail2.setUniformFloatArray(new float[] { 10F, 20F, 30F, 40F, 50F, 60F, 70F, 80F, 90F }); // Same length
-    testMisMatch(dogTag, tail1, tail2);
+    verifyNoMatch(dogTag, tail1, tail2);
     tail2.setUniformFloatArray(null);
-    testMisMatch(dogTag, tail1, tail2);
+    verifyNoMatch(dogTag, tail1, tail2);
 
     // doubles:
     tail2 = tail1.duplicate();
     tail2.setVictorDoubleArray(new double[] { 4.4444, 3.333, 2.22, 1.11 }); // different length
-    testMisMatch(dogTag, tail1, tail2);
+    verifyNoMatch(dogTag, tail1, tail2);
     tail2.setVictorDoubleArray(new double[] { 9.9, 8.8, 7.7, 6.6, 5.5, 4.4, 3.3, 2.2, 1.1 });
-    testMisMatch(dogTag, tail1, tail2);
+    verifyNoMatch(dogTag, tail1, tail2);
     tail2.setWhiskeyObjectArray(null);
-    testMisMatch(dogTag, tail1, tail2);
+    verifyNoMatch(dogTag, tail1, tail2);
 
     // Objects:
     tail2 = tail1.duplicate();
     tail2.setWhiskeyObjectArray(new Object[] { "String", Double.valueOf("3.14159") }); // different length
-    testMisMatch(dogTag, tail1, tail2);
+    verifyNoMatch(dogTag, tail1, tail2);
     tail2.setWhiskeyObjectArray(new Object[] { Float.MAX_VALUE, "Not a Number", Double.NEGATIVE_INFINITY } ); // same length
-    testMisMatch(dogTag, tail1, tail2);
+    verifyNoMatch(dogTag, tail1, tail2);
     tail2.setWhiskeyObjectArray(null);
-    testMisMatch(dogTag, tail1, tail2);
+    verifyNoMatch(dogTag, tail1, tail2);
 
     // MultiDimensions
     int[][] twoDInt = { {1, 2}, {3, 4}, {5, 6} };
     tail1.setWhiskeyObjectArray(twoDInt);
     tail2.setWhiskeyObjectArray(twoDInt);
-    testForMatch(dogTag, tail1, tail2);
+    verifyMatch(dogTag, tail1, tail2);
     int[][] twoDIntB = { {1, 2}, {3, 4}, {50, 60} };
     tail2.setWhiskeyObjectArray(twoDIntB);
-    testMisMatch(dogTag, tail1, tail2);
+    verifyNoMatch(dogTag, tail1, tail2);
     int[][][] threeDArray = { { { 1, 2 }, { 3, 4 }, { 5, 6 } } };
     tail2.setWhiskeyObjectArray(threeDArray);
-    testMisMatch(dogTag, tail1, tail2);
+    verifyNoMatch(dogTag, tail1, tail2);
+  }
+
+  @Test(expected = AssertionError.class)
+  public void testBadClass() {
+    // Test for case where dogTag is not static. This would seriously slow down the equals and hashCode methods, since
+    // the reflection would happen whenever the class is instantiated instead of once when it's loaded. But it won't
+    // even work, because it would get included in the list of fields, so equals() and hashCode() methods will throw
+    // an AssertionError! So we throw an exception when the dogTag is constructed. We test that exception here.
+
+    //noinspection ResultOfObjectAllocationIgnored
+    new BadClass();
   }
 
   //////////////////////
   
-  private <T> void testForMatch(DogTag<T> dogTag, T t1, T t2) {
+  private <T> void verifyMatch(DogTag<T> dogTag, T t1, T t2) {
     assertTrue(dogTag.doEqualsTest(t1, t2));  // equality test
     assertTrue(dogTag.doEqualsTest(t2, t1));  // symmetry test
     assertTrue(dogTag.doEqualsTest(t1, t1));  // reflexive test
@@ -377,7 +385,7 @@ public class DogTagTest {
     assertEquals(dogTag.doHashCode(t1), dogTag.doHashCode(t2)); // hash code consistency test
   }
 
-  private <T> void testMisMatch(DogTag<T> dogTag, T t1, T t2) {
+  private <T> void verifyNoMatch(DogTag<T> dogTag, T t1, T t2) {
     assertFalse(dogTag.doEqualsTest(t1, t2)); // equality test
     assertFalse(dogTag.doEqualsTest(t2, t1)); // symmetry test
     assertTrue(dogTag.doEqualsTest(t1, t1));  // reflexive test
@@ -386,21 +394,6 @@ public class DogTagTest {
     assertFalse(dogTag.doEqualsTest(t1, null));
     assertFalse(dogTag.doEqualsTest(t2, null));
   }
-
-  // Things to test:
-  // (fix) hash of null values. Done
-  // arrays of all types Done
-  // different length arrays Done
-  // different value arrays Done
-  // mismatching Nan for floats and doubles Done
-  // superclasses Done
-  // transients Done
-  // excluded fields Done
-  // excluded fields in superclasses Done
-  // illegal superclass
-  // illegal field name Done
-  // overridden getters!.
-  // custom hash methods
 
   @SuppressWarnings({"unused", "AssignmentOrReturnOfFieldWithMutableType",
       "WeakerAccess", "PublicConstructorInNonPublicClass"})
@@ -542,7 +535,6 @@ public class DogTagTest {
           new Point2D.Double(6.54, 4.56), 7, (byte)8, 'I');
       novemberIntArray = new int[] { 11, 12, 13 };
       operaStringArray = new String[] { "papa", "quebec", "romeo", "sierra", "tango" };
-      // todo: Add more fields!
     }
 
     private boolean julietBoolean;
@@ -550,8 +542,8 @@ public class DogTagTest {
     private double limaDouble;
     private float mikeFloat;
 
-    private int[] novemberIntArray; // = EMPTY_INT_ARRAY;
-    private String[] operaStringArray; // = EMPTY_STRING_ARRAY;
+    private int[] novemberIntArray;
+    private String[] operaStringArray;
     private long[] papaLongArray = { 1L, 3L, 6L, 10L, 15L, 21L, 28L, 36L, 45L };
     private short[] quebecShortArray = { 0, 1, 4, 9, 16, 25, 36, 49, 64, 81 };
     private byte[] romeoByteArray = { 127, 63, 31, 15, 7, 3, 1, 2, 3 };
@@ -700,22 +692,11 @@ public class DogTagTest {
       tail.setWhiskeyObjectArray(woa);
       return tail;
     }
-
-//    private static final DogTag<DogTagTestBase> dogTag = DogTag.create(DogTagTestBase.class)
-//        .withTransients(true)
-//        .withExcludedFields("charlieInt", "bravoString")
-//        .build();
-//
-//    @Override
-//    public int hashCode() {
-//      return dogTag.doHashCode(this);
-//    }
-//
-//    @Override
-//    public boolean equals(final Object obj) {
-//      return dogTag.doEqualsTest(this, obj);
-//    }
   }
 
+  private static class BadClass {
+    @SuppressWarnings("unused")
+    private final DogTag<BadClass> dogTag = DogTag.from(BadClass.class); // NOT STATIC! Should throw an AssertionError.
+  }
 
 }
