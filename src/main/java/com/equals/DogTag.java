@@ -8,6 +8,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 /**
  * Fast {@code equals()} and {@code hashCode()} methods that use Reflection to easily get all the desired fields,
@@ -16,7 +18,7 @@ import java.util.Set;
  * <p>
  * Unlike Apache's EqualsBuilder, most of the slow reflective calls are not done when {@code equals()} is called,
  * but at class-load time, so they are only done once for each class. This gives us a big improvement in performance.
- * </p><p>
+ * <p>
  * Example usage:
  * <pre>
  *   public class MyClass {
@@ -34,11 +36,11 @@ import java.util.Set;
  *     }
  *   }
  * </pre>
- * </p><p>
+ * <p>
  * The equals comparison is done according to the guidelines set down in EffectiveJava by Joshua Bloch. The hashCode
  * is generated using the same calculations done with {@code java.lang.Objects.hash(Object...)}, although you are free
  * to provide a different hash calculator. Floats and Doubles will treat all NaN values as equal.
- * </p><p>
+ * <p>
  * Options include testing transient fields, excluding fields, and specifying a superclass to include in the 
  * reflective process. These options are invoked by using the DogTagBuilder class.
  * <pre>
@@ -61,20 +63,19 @@ import java.util.Set;
  *     }
  *   }
  * </pre>
- * </p><p>
+ * <p>
  * <strong>Notes:</strong><p>
  *   The DogTag instance should always be declared static, or performance will suffer. It's prudent to also declare it
  *   final, since you shouldn't ever need to change its value.
- * </p><p>
+ * <p>
  *   The DogTag methods {@code equals()} and {@code hashCode()} are disabled, to prevent their accidental use instead
  *   of {@code doEqualsTest()} and {@code doHashCode()} The two correct methods both start with "do" to avoid
  *   confusion. If you accidentally call either of the disabled methods, they will throw an {@code AssertionError}.
- * </p><p>
+ * <p>
  *   You should always pass {@code this} as the first parameter of {@code doEqualsTest()} and as the parameter of
  *   {@code doHashCode()}.
- * </p><p>
+ * <p>
  *   Static fields are never used.
- * </p>
  * @param <T> Type using a DogTag equals and hashCode method
  * @author Miguel Muñoz
  */
@@ -84,7 +85,7 @@ public final class DogTag<T> {
   // Todo: Add exclusion support using annotations.
   // Todo: Add use-only-final-fields option
   // Todo: Specify field order by annotations?
-  private final Class<T> dogTagClass;
+  private final Class<T> targetClass;
   private final List<FieldProcessor<T>> fieldProcessors;
   private final int startingHash;
   private final HashBuilder hashBuilder;
@@ -110,10 +111,8 @@ public final class DogTag<T> {
    *         .withTransients(true) // options are specified here
    *         .build();
    *   </pre>
-   * </p>
    * <p>
    *   Options may be specified in any order.
-   * </p>
    * @param theClass The instance of {@literal Class<T>} for type T
    * @param <T> The type of class using equals() and hashCode()
    * @return A builder for a {@literal DogTag<T>}, which can build your DogTag, once the options are specified.
@@ -128,7 +127,7 @@ public final class DogTag<T> {
       int startingHash,
       HashBuilder hashBuilder
   ) {
-    dogTagClass = theClass;
+    targetClass = theClass;
     fieldProcessors = getters;
     this.startingHash = startingHash;
     this.hashBuilder = hashBuilder;
@@ -136,7 +135,7 @@ public final class DogTag<T> {
 
   public static final class DogTagBuilder<T> {
     private static final String[] EMPTY_STRING_ARRAY = new String[0];
-    private final Class<T> dogTagClass;
+    private final Class<T> targetClass;
     private Class<? super T> lastSuperClass;
     private boolean testTransients = false;
     private String[] excludedFieldNames = EMPTY_STRING_ARRAY;
@@ -146,8 +145,8 @@ public final class DogTag<T> {
     private HashBuilder hashBuilder = defaultHashBuilder; // Reuse the same HashBuilder
 
     private DogTagBuilder(Class<T> theClass) {
-      dogTagClass = theClass;
-      lastSuperClass = dogTagClass;
+      targetClass = theClass;
+      lastSuperClass = targetClass;
     }
 
     /**
@@ -171,6 +170,7 @@ public final class DogTag<T> {
      * @return this, for method chaining
      */
     public DogTagBuilder<T> withExcludedFields(String... excludedFieldNames) {
+      //noinspection AssignmentOrReturnOfFieldWithMutableType
       this.excludedFieldNames = excludedFieldNames;
       return this;
     }
@@ -183,11 +183,11 @@ public final class DogTag<T> {
      * @return A Field, from one of the classes in the range from dogTagClass to lastSuperClass.
      */
     private Field getFieldFromName(String fieldName) {
-      Class<?> theClass = dogTagClass;
-      boolean lastSuperClassReached = false;
-      while (!lastSuperClassReached) {
+      Class<?> theClass = targetClass;
+      boolean inProgress = true;
+      while (inProgress) {
         if (theClass == lastSuperClass) {
-          lastSuperClassReached = true;
+          inProgress = false;
         }
         try {
           return theClass.getDeclaredField(fieldName);
@@ -197,11 +197,11 @@ public final class DogTag<T> {
       }
 
       // If we only searched through one class...
-      if (dogTagClass == lastSuperClass) {
+      if (targetClass == lastSuperClass) {
         // ... we send a simpler error message.
-        throw new IllegalArgumentException(String.format("Field %s not found in class %s", fieldName, dogTagClass));
+        throw new IllegalArgumentException(String.format("Field %s not found in class %s", fieldName, targetClass));
       }
-      throw new IllegalArgumentException(String.format("Field '%s' not found from class %s to superClass %s", fieldName, dogTagClass, lastSuperClass));
+      throw new IllegalArgumentException(String.format("Field '%s' not found from class %s to superClass %s", fieldName, targetClass, lastSuperClass));
     }
 
     /**
@@ -231,7 +231,7 @@ public final class DogTag<T> {
      * @return A {@code DogTag<T>} that uses the specified options.
      */
     public DogTag<T> build() {
-      return new DogTag<>(dogTagClass, makeGetterList(), priorHash, hashBuilder);
+      return new DogTag<>(targetClass, makeGetterList(), priorHash, hashBuilder);
     }
 
     private List<FieldProcessor<T>> makeGetterList() {
@@ -241,16 +241,17 @@ public final class DogTag<T> {
       }
 
       List<FieldProcessor<T>> fieldProcessorList = new LinkedList<>();
-      Class<? super T> theClass = dogTagClass;
+      Class<? super T> theClass = targetClass;
 
       // We shouldn't ever reach Object.class unless someone specifies it as the reflect-up-to superclass.
       while (theClass != Object.class) {
         Field[] declaredFields = theClass.getDeclaredFields();
         for (Field field : declaredFields) {
           int modifiers = field.getModifiers();
-          if (field.getType() == DogTag.class && !Modifier.isStatic(modifiers)) {
+          if ((field.getType() == DogTag.class) && !Modifier.isStatic(modifiers)) {
             throw new AssertionError("Your DogTag instance must be static. Private and final are also suggested.");
           }
+          //noinspection MagicCharacter
           if (!Modifier.isStatic(modifiers)
               && (testTransients || !Modifier.isTransient(modifiers))
               && !excludedFields.contains(field)
@@ -261,7 +262,7 @@ public final class DogTag<T> {
             if (fieldType.isArray()) {
               fieldProcessorList.add(getProcessorForArray(field, fieldType));
             } else {
-              fieldProcessorList.add(new SingleFieldProcessor<>(field));
+              fieldProcessorList.add(new FieldProcessor<>(field, Objects::equals, Objects::hashCode));
             }
           }
         }
@@ -276,8 +277,8 @@ public final class DogTag<T> {
 
   private static <T> FieldProcessor<T> getProcessorForArray(Field arrayField, Class<?> fieldType) {
     Class<?> componentType = fieldType.getComponentType();
-    ArrayEquals arrayEquals;
-    ArrayHash arrayHash;
+    BiFunction<Object, Object, Boolean> arrayEquals;
+    Function<Object, Integer> arrayHash;
     if (componentType == Integer.TYPE) {
       arrayEquals = (thisOne, thatOne) -> Arrays.equals((int[]) thisOne, (int[]) thatOne);
       arrayHash = (array) -> Arrays.hashCode((int[]) array);
@@ -309,7 +310,7 @@ public final class DogTag<T> {
       arrayEquals = (thisOne, thatOne) -> Arrays.equals((Object[]) thisOne, (Object[]) thatOne);
       arrayHash = (array) -> Arrays.hashCode((Object[]) array);
     }
-    return new ArrayProcessor<>(arrayField, arrayEquals, arrayHash);
+    return new FieldProcessor<>(arrayField, arrayEquals, arrayHash);
   }
 
   /**
@@ -332,7 +333,7 @@ public final class DogTag<T> {
       return true;
     }
     // Includes an implicit test for null
-    if (!dogTagClass.isInstance(thatOneNullable)) {
+    if (!targetClass.isInstance(thatOneNullable)) {
       return false;
     }
     @SuppressWarnings("unchecked")
@@ -346,7 +347,7 @@ public final class DogTag<T> {
       return true;
     } catch (IllegalAccessException e) {
       // Shouldn't happen, since accessible has been set to true.
-      throw new AssertionError("Illegal Access Should not happen", e);
+      throw new AssertionError("Illegal Access should not happen", e);
     }
   }
 
@@ -365,12 +366,13 @@ public final class DogTag<T> {
   int doHashCode(T thisOne) {
     assert thisOne != null : "Always pass 'this' to this method! That guarantees it won't be null.";
     int hash = startingHash;
-    for (FieldProcessor<T> f : fieldProcessors) {
-      try {
+    try {
+      for (FieldProcessor<T> f : fieldProcessors) {
         hash = hashBuilder.newHash(hash, f.getHashValue(thisOne));
-      } catch (IllegalAccessException e) {
-        e.printStackTrace();
       }
+    } catch (IllegalAccessException e) {
+      // Shouldn't happen, because accessible has been set to true.
+      throw new AssertionError("Illegal Access shouldn't happen", e);
     }
     return hash;
   }
@@ -415,81 +417,30 @@ public final class DogTag<T> {
   }
 
   /**
+   * This class knows how to extract a value from a field, determine if two fields are equal, and get the hash code. 
    * Every object used by equals and hash code calculations is either a single value or an array. Arrays must be
-   * handled differently from single values. So this interface has two separate implementations. During the reflective
-   * phase of the DogTag construction, each field is examined, and a custom fieldProcessor for it is built and
-   * added to the List of Field Processors.
+   * handled differently from single values. This class holds the getter for a field, and the methods for equals and
+   * hash code. The getter varies according to the field type, but the equals() and hashCode() vary based on whether 
+   * the field is single-value or an array. The appropriate methods are passed in to the constructor.
    * @param <F> The field type
    */
-  private interface FieldProcessor<F> {
-    boolean testForEquals(F thisOne, F thatOne) throws IllegalAccessException;
-    int getHashValue(F thisOne) throws IllegalAccessException;
-  }
-
-  /**
-   * Field processor for single-value fields
-   * @param <F> The field type
-   */
-  private static class SingleFieldProcessor<F> implements FieldProcessor<F> {
+  private static class FieldProcessor<F> {
     private final ThrowingFunction<F, ?> getter;
-    SingleFieldProcessor(Field field) {
-      getter = field::get;
+    private final BiFunction<Object, Object, Boolean> equalMethod; // This will either from Arrays, or Objects::equals 
+    private final Function<Object, Integer> hashMethod; // This will be either from Arrays, or Objects::hashCode
+    
+    FieldProcessor(Field field, BiFunction<Object, Object, Boolean> equalMethod, Function<Object, Integer> hashMethod) {
+      this.getter = field::get;
+      this.equalMethod = equalMethod;
+      this.hashMethod = hashMethod;
     }
-    @Override
+    
     public boolean testForEquals(F thisOne, F thatOne) throws IllegalAccessException {
-      return Objects.equals(getter.get(thisOne), getter.get(thatOne));
+      return equalMethod.apply(getter.get(thisOne), getter.get(thatOne));
     }
-
-    @Override
+    
     public int getHashValue(F thisOne) throws IllegalAccessException {
-      final Object member = getter.get(thisOne);
-      if (member == null) {
-        return 0;
-      }
-      return member.hashCode();
+      return hashMethod.apply(getter.get(thisOne));
     }
-  }
-
-  /**
-   * Field processor for arrays
-   * @param <F> The array type
-   */
-  private static class ArrayProcessor<F> implements FieldProcessor<F> {
-    private final ThrowingFunction<F, ?> getter;
-    private final ArrayEquals arrayEquals;
-    private final ArrayHash arrayHash;
-    ArrayProcessor(Field arrayField, ArrayEquals arrayEquals, ArrayHash arrayHash) {
-      getter = arrayField::get;
-      this.arrayEquals = arrayEquals;
-      this.arrayHash = arrayHash;
-    }
-
-    @Override
-    public boolean testForEquals(F thisOne, F thatOne) throws IllegalAccessException {
-      return arrayEquals.isEqual(getter.get(thisOne), getter.get(thatOne));
-    }
-
-    @Override
-    public int getHashValue(F thisOne) throws IllegalAccessException {
-      return arrayHash.hash(getter.get(thisOne));
-    }
-  }
-
-  /**
-   * This is used by FieldProcessors to determine if two fields are equal. This is determined differently for
-   * single-value fields and arrays.
-   */
-  @FunctionalInterface
-  private interface ArrayEquals {
-    boolean isEqual(Object thisOne, Object thatOne);
-  }
-
-  /**
-   * This is used by FieldProcessors to get the hash code of a field. This is determined differently for
-   * single-value fields and arrays.
-   */
-  @FunctionalInterface
-  private interface ArrayHash {
-    int hash(Object thisArray);
   }
 }
