@@ -142,7 +142,7 @@ public final class DogTag<T> {
     private int startingHash = 1;
     private boolean finalFieldsOnly = false;
     @SuppressWarnings("MagicNumber")
-    private static final HashBuilder defaultHashBuilder = (int i, Object o) -> (i * 31) + o.hashCode(); // Same as Objects.class
+    private static final HashBuilder defaultHashBuilder = (int h, Object o) -> (h * 31) + o.hashCode(); // Same as Objects.class
     private HashBuilder hashBuilder = defaultHashBuilder; // Reuse the same HashBuilder
 
     private DogTagBuilder(Class<T> theClass) {
@@ -286,50 +286,50 @@ public final class DogTag<T> {
           }
         }
         if (theClass == lastSuperClass) {
-          return fieldProcessorList;
+          break;
         }
         theClass = theClass.getSuperclass();
       }
       return fieldProcessorList;
     }
-  }
 
-  private static <T> FieldProcessor<T> getProcessorForArray(Field arrayField, Class<?> fieldType) {
-    Class<?> componentType = fieldType.getComponentType();
-    BiFunction<Object, Object, Boolean> arrayEquals;
-    Function<Object, Integer> arrayHash;
-    if (componentType == Integer.TYPE) {
-      arrayEquals = (thisOne, thatOne) -> Arrays.equals((int[]) thisOne, (int[]) thatOne);
-      arrayHash = (array) -> Arrays.hashCode((int[]) array);
-    } else if (componentType == Long.TYPE) {
-      arrayEquals = (thisOne, thatOne) -> Arrays.equals((long[]) thisOne, (long[]) thatOne);
-      arrayHash = (array) -> Arrays.hashCode((long[]) array);
-    } else if (componentType == Short.TYPE) {
-      arrayEquals = (thisOne, thatOne) -> Arrays.equals((short[]) thisOne, (short[]) thatOne);
-      arrayHash = (array) -> Arrays.hashCode((short[]) array);
-    } else if (componentType == Character.TYPE) {
-      arrayEquals = (thisOne, thatOne) -> Arrays.equals((char[]) thisOne, (char[]) thatOne);
-      arrayHash = (array) -> Arrays.hashCode((char[]) array);
-    } else if (componentType == Byte.TYPE) {
-      arrayEquals = (thisOne, thatOne) -> Arrays.equals((byte[]) thisOne, (byte[]) thatOne);
-      arrayHash = (array) -> Arrays.hashCode((byte[]) array);
-    } else if (componentType == Double.TYPE) {
-      arrayEquals = (thisOne, thatOne) -> Arrays.equals((double[]) thisOne, (double[]) thatOne);
-      arrayHash = (array) -> Arrays.hashCode((double[]) array);
-    } else if (componentType == Float.TYPE) {
-      arrayEquals = (thisOne, thatOne) -> Arrays.equals((float[]) thisOne, (float[]) thatOne);
-      arrayHash = (array) -> Arrays.hashCode((float[]) array);
-    } else if (componentType == Boolean.TYPE) {
-      arrayEquals = (thisOne, thatOne) -> Arrays.equals((boolean[]) thisOne, (boolean[]) thatOne);
-      arrayHash = (array) -> Arrays.hashCode((boolean[]) array);
-    } else {
-      // componentType is Object.class or some subclass of it. It is not a primitive. It may be an array, if the
-      // field is a multi-dimensional array.
-      assert !componentType.isPrimitive() : componentType;
-      arrayEquals = (thisOne, thatOne) -> Arrays.equals((Object[]) thisOne, (Object[]) thatOne);
-      arrayHash = (array) -> Arrays.hashCode((Object[]) array);
+    private static <T> FieldProcessor<T> getProcessorForArray(Field arrayField, Class<?> fieldType) {
+      Class<?> componentType = fieldType.getComponentType();
+      BiFunction<Object, Object, Boolean> arrayEquals;
+      Function<Object, Integer> arrayHash;
+      if (componentType == Integer.TYPE) {
+        arrayEquals = (thisOne, thatOne) -> Arrays.equals((int[]) thisOne, (int[]) thatOne);
+        arrayHash = (array) -> Arrays.hashCode((int[]) array);
+      } else if (componentType == Long.TYPE) {
+        arrayEquals = (thisOne, thatOne) -> Arrays.equals((long[]) thisOne, (long[]) thatOne);
+        arrayHash = (array) -> Arrays.hashCode((long[]) array);
+      } else if (componentType == Short.TYPE) {
+        arrayEquals = (thisOne, thatOne) -> Arrays.equals((short[]) thisOne, (short[]) thatOne);
+        arrayHash = (array) -> Arrays.hashCode((short[]) array);
+      } else if (componentType == Character.TYPE) {
+        arrayEquals = (thisOne, thatOne) -> Arrays.equals((char[]) thisOne, (char[]) thatOne);
+        arrayHash = (array) -> Arrays.hashCode((char[]) array);
+      } else if (componentType == Byte.TYPE) {
+        arrayEquals = (thisOne, thatOne) -> Arrays.equals((byte[]) thisOne, (byte[]) thatOne);
+        arrayHash = (array) -> Arrays.hashCode((byte[]) array);
+      } else if (componentType == Double.TYPE) {
+        arrayEquals = (thisOne, thatOne) -> Arrays.equals((double[]) thisOne, (double[]) thatOne);
+        arrayHash = (array) -> Arrays.hashCode((double[]) array);
+      } else if (componentType == Float.TYPE) {
+        arrayEquals = (thisOne, thatOne) -> Arrays.equals((float[]) thisOne, (float[]) thatOne);
+        arrayHash = (array) -> Arrays.hashCode((float[]) array);
+      } else if (componentType == Boolean.TYPE) {
+        arrayEquals = (thisOne, thatOne) -> Arrays.equals((boolean[]) thisOne, (boolean[]) thatOne);
+        arrayHash = (array) -> Arrays.hashCode((boolean[]) array);
+      } else {
+        // componentType is Object.class or some subclass of it. It is not a primitive. It may be an array, if the
+        // field is a multi-dimensional array.
+        assert !componentType.isPrimitive() : componentType;
+        arrayEquals = (thisOne, thatOne) -> Arrays.equals((Object[]) thisOne, (Object[]) thatOne);
+        arrayHash = (array) -> Arrays.hashCode((Object[]) array);
+      }
+      return new FieldProcessor<>(arrayField, arrayEquals, arrayHash);
     }
-    return new FieldProcessor<>(arrayField, arrayEquals, arrayHash);
   }
 
   /**
@@ -345,16 +345,18 @@ public final class DogTag<T> {
    * @param thatOneNullable {@code 'other'} in the equals() method
    * @return true if the objects are equal, false otherwise
    */
-  boolean doEqualsTest(T thisOneNeverNull, Object thatOneNullable) {
+  public boolean doEqualsTest(T thisOneNeverNull, Object thatOneNullable) {
     assert thisOneNeverNull != null : "Always pass 'this' to the first parameter of this method!";
     //noinspection ObjectEquality
     if (thisOneNeverNull == thatOneNullable) {
       return true;
     }
+
     // Includes an implicit test for null
     if (!targetClass.isInstance(thatOneNullable)) {
       return false;
     }
+
     @SuppressWarnings("unchecked")
     T thatOneNeverNull = (T) thatOneNullable;
     try {
@@ -365,6 +367,7 @@ public final class DogTag<T> {
       }
       return true;
     } catch (IllegalAccessException e) {
+
       // Shouldn't happen, since accessible has been set to true.
       throw new AssertionError("Illegal Access should not happen", e);
     }
@@ -382,14 +385,16 @@ public final class DogTag<T> {
    * @param thisOne Pass 'this' to this parameter
    * @return The hashCode
    */
-  int doHashCode(T thisOne) {
+  public int doHashCode(T thisOne) {
     assert thisOne != null : "Always pass 'this' to this method! That guarantees it won't be null.";
     int hash = startingHash;
+
     try {
       for (FieldProcessor<T> f : fieldProcessors) {
         hash = hashBuilder.newHash(hash, f.getHashValue(thisOne));
       }
     } catch (IllegalAccessException e) {
+
       // Shouldn't happen, because accessible has been set to true.
       throw new AssertionError("Illegal Access shouldn't happen", e);
     }

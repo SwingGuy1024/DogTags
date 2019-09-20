@@ -255,7 +255,7 @@ public class DogTagTest {
    * @see Double#longBitsToDouble(long)
    */
   @Test
-  public void TestDouble() {
+  public void testDouble() {
     // All these values are Not a Number, or NaN. (See Double#longBitsToDouble)
     // When tested with ==, all NaN values will return false, even if they're the same NaN value.
     // When tested with Double.equals(), they all return true, even if they're different NaN values.
@@ -305,6 +305,20 @@ public class DogTagTest {
     verifyNoMatch(dogTag, tail1, tail2);
 
     dogTag.doHashCode(tail2); // just make sure we can get a hashCode with that null member.
+  }
+
+  @Test(expected = AssertionError.class)
+  public void testDisabledEqualsMethod() {
+    DogTag<DogTagTestBase> dogTag = DogTag.from(DogTagTestBase.class);
+    //noinspection EqualsReplaceableByObjectsCall,EqualsBetweenInconvertibleTypes,ResultOfMethodCallIgnored,LiteralAsArgToStringEquals
+    dogTag.equals("xx");
+  }
+
+  @Test(expected = AssertionError.class)
+  public void testDisabledHashCodeMethod() {
+    DogTag<DogTagTestBase> dogTag = DogTag.from(DogTagTestBase.class);
+    //noinspection ResultOfMethodCallIgnored
+    dogTag.hashCode();
   }
 
   @Test
@@ -494,7 +508,7 @@ public class DogTagTest {
       return new DogTagTestBase(getAlphaInt(), getBravoString(), getCharlieInt(), getDeltaLong());
     }
 
-    public void setStaticInt(int i) {
+    public static void setStaticInt(int i) {
       staticInt = i;
     }
 
