@@ -4,7 +4,6 @@ import java.awt.geom.Point2D;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.function.BiFunction;
-import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.junit.Ignore;
 import org.junit.Test;
 

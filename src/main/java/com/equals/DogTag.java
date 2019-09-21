@@ -24,6 +24,7 @@ import java.util.function.Function;
  *   public class MyClass {
  *     // Define various fields, getters, and methods here.
  *     
+ *     // fields are examined by reflection here, when the class is loaded.
  *     private static final{@literal DogTag<MyClass>} dogTag = DogTag.from(MyClass.class);
  *     
  *    {@literal @Override}
@@ -37,20 +38,20 @@ import java.util.function.Function;
  *   }
  * </pre>
  * <p>
- * The equals comparison is done according to the guidelines set down in EffectiveJava by Joshua Bloch. The hashCode
- * is generated using the same calculations done with {@code java.lang.Objects.hash(Object...)}, although you are free
- * to provide a different hash calculator. Floats and Doubles will treat all NaN values as equal.
+ * The equals comparison is implemented according to the guidelines set down in <strong>EffectiveJava</strong> by Joshua 
+ * Bloch. The hashCode is generated using the same formula used as {@code java.lang.Objects.hash(Object...)}, 
+ * although you are free to provide a different hash calculator. Floats and Doubles set to NaN are all treated as equal.
  * <p>
- * Options include testing transient fields, excluding fields, and specifying a superclass to include in the 
- * reflective process. These options are invoked by using the DogTagBuilder class.
+ * Options include testing transient fields, excluding fields, using a cached hash code, and specifying a superclass to
+ * include in the reflective process. These options are invoked by using the DogTagBuilder class.
  * <pre>
  *   public class MyClass extends MyBaseClass {
  *     // Define various fields, getters, and methods here.
  *
  *     private static final{@literal DogTag<MyClass>} dogTag = DogTag.create(MyClass.class)
  *       .withTransients(true)                // defaults to false
- *       .withExcludedFields("size", "date")  // defaults to all non-transient and non-static fields
- *       .withReflectUpTo(MyBaseClass.class)  // defaults to the type parameter, which is MyClass in this example
+ *       .withExcludedFields("size", "date")  // defaults to non-transient, non-static fields
+ *       .withReflectUpTo(MyBaseClass.class)  // defaults to no superclasses
  *       .build();
  *
  *    {@literal @Override}
@@ -63,20 +64,52 @@ import java.util.function.Function;
  *     }
  *   }
  * </pre>
+ * When relying only on final fields, the hash code may be cached by enabling the withCachedHash option, and
+ * using a {@code CachedHash}. To use a cached hash code, {@code the hashCode()} method must be implemented this way:
+ * <pre>
+ *   private static final {@literal DogTag<MyClass>} dogTag = DogTag.create() // must be static!
+ *       .withCachedHash(true)
+ *       // other options specified here
+ *       .build();
+ *
+ *   private final CachedHash cachedHash = dogTag.makeCachedHash(); // must NOT be static!
+ *
+ *  {@literal @Override}
+ *   public int doHashCode() {
+ *     return doHashCode(this, cachedHash);
+ *   }
+ *
+ *   // Your equals() method does not change.
+ *  {@literal @Override}
+ *   public boolean equals(Object that) { return dogTag.doEqualsTest(this, that); }
+ * </pre>
+ * <strong>Warning</strong> Simply using final fields in your DogTag isn't sufficient to implement a properly written
+ * cached hash code. All your final fields must themselves be primitives or immutable classes, or they must be classes
+ * that also rely only on final fields of immutable values to generate their hash code. While you may use a CachedHash
+ * with a DogTag generated with only final fields, you are not required to do so.
  * <p>
  * <strong>Notes:</strong><p>
- *   The DogTag instance should always be declared static, or performance will suffer. It's prudent to also declare it
- *   final, since you shouldn't ever need to change its value.
+ *   The following mistakes will generate AssertionErrors:
+ *    <ul>
+ *     <li>Failing to declaring a DogTag static</li>
+ *     <li>Declaring a CachedHash static</li>
+ *     <li>Enabling the CachedHash option while using a non-final field</li>
+ *     <li>Trying to get a CachedHash from a DogTag that was not built with the CachedHash option enabled</li>
+ *     <li>Calling either DogTag.equals() or DogTag.hashCode().</li>
+ *    </ul>
+ *   The DogTag instance needs to be static or performance will suffer. It's prudent to also declare it
+ *   private and final, since you shouldn't ever need to change its value.
  * <p>
- *   The DogTag methods {@code equals()} and {@code hashCode()} are disabled, to prevent their accidental use instead
+ *   The CashedHash instance can't be static or all instances will share the same hash code.
+ * <p>
+ *   The DogTag methods {@code equals()} and {@code hashCode()} are disabled to prevent their accidental use instead
  *   of {@code doEqualsTest()} and {@code doHashCode()} The two correct methods both start with "do" to avoid
- *   confusion. If you accidentally call either of the disabled methods, they will throw an {@code AssertionError}.
+ *   confusion.
  * <p>
- *   You should always pass {@code this} as the first parameter of {@code doEqualsTest()} and as the parameter of
- *   {@code doHashCode()}.
+ *   You should always pass {@code this} as the first parameter of {@code doEqualsTest()} and {@code doHashCode()}.
  * <p>
  *   Static fields are never used.
- * @param <T> Type using a DogTag equals and hashCode method
+ * @param <T> Type that uses a DogTag equals and hashCode method
  * @author Miguel Muñoz
  */
 @SuppressWarnings("WeakerAccess")
@@ -84,8 +117,7 @@ public final class DogTag<T> {
   // Todo: Add business key support, using annotations
   // Todo: Add exclusion support using annotations.
   // Todo: Specify field order by annotations?
-  // Todo: new additive create() class that includes nothing by default.
-  // Todo: Add cached hash?
+  // Todo: new additive create() class that includes nothing by default?
   private final Class<T> targetClass;
   private final List<FieldProcessor<T>> fieldProcessors;
   private final int startingHash;
@@ -239,13 +271,17 @@ public final class DogTag<T> {
     }
 
     /**
-     * Set the finalFieldsOnly option, before building the DogTag. Defaults to false.
+     * Set the finalFieldsOnly option, before building the DogTag. Defaults to false. Setting this to true also
+     * sets use CachedHash to true.
      * @param finalFieldsOnly true if you want to limit fields to only those that are declared final. If the transient
      *                        option is also true, then only final and final transient fields are included.
      * @return this, for method chaining
      */
     public DogTagBuilder<T> withFinalFieldsOnly(boolean finalFieldsOnly) {
       this.finalFieldsOnly = finalFieldsOnly;
+      if (finalFieldsOnly) {
+        useCachedHash = true;
+      }
       return this;
     }
 
@@ -525,22 +561,22 @@ public final class DogTag<T> {
    * the field is single-value or an array. The appropriate methods are passed in to the constructor.
    * @param <F> The field type
    */
-  private static class FieldProcessor<F> {
+  private static final class FieldProcessor<F> {
     private final ThrowingFunction<F, ?> getter;
     private final BiFunction<Object, Object, Boolean> equalMethod; // This will either from Arrays, or Objects::equals 
     private final Function<Object, Integer> hashMethod; // This will be either from Arrays, or Objects::hashCode
     
-    FieldProcessor(Field field, BiFunction<Object, Object, Boolean> equalMethod, Function<Object, Integer> hashMethod) {
+    private FieldProcessor(Field field, BiFunction<Object, Object, Boolean> equalMethod, Function<Object, Integer> hashMethod) {
       this.getter = field::get;
       this.equalMethod = equalMethod;
       this.hashMethod = hashMethod;
     }
     
-    public boolean testForEquals(F thisOne, F thatOne) throws IllegalAccessException {
+    private boolean testForEquals(F thisOne, F thatOne) throws IllegalAccessException {
       return equalMethod.apply(getter.get(thisOne), getter.get(thatOne));
     }
     
-    public int getHashValue(F thisOne) throws IllegalAccessException {
+    private int getHashValue(F thisOne) throws IllegalAccessException {
       return hashMethod.apply(getter.get(thisOne));
     }
   }
