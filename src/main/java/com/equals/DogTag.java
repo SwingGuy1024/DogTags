@@ -85,10 +85,12 @@ public final class DogTag<T> {
   // Todo: Add exclusion support using annotations.
   // Todo: Specify field order by annotations?
   // Todo: new additive create() class that includes nothing by default.
+  // Todo: Add cached hash?
   private final Class<T> targetClass;
   private final List<FieldProcessor<T>> fieldProcessors;
   private final int startingHash;
   private final HashBuilder hashBuilder;
+  private final boolean useCache;
 
   /**
    * Instantiate a DogTag for class T, using default options. The default options are: No transient fields,
@@ -125,12 +127,14 @@ public final class DogTag<T> {
       Class<T> theClass,
       List<FieldProcessor<T>> getters,
       int startingHash,
-      HashBuilder hashBuilder
+      HashBuilder hashBuilder,
+      boolean useCache
   ) {
     targetClass = theClass;
     fieldProcessors = getters;
     this.startingHash = startingHash;
     this.hashBuilder = hashBuilder;
+    this.useCache = useCache;
   }
 
   public static final class DogTagBuilder<T> {
@@ -142,6 +146,7 @@ public final class DogTag<T> {
     private int startingHash = 1;
     private boolean finalFieldsOnly = false;
     @SuppressWarnings("MagicNumber")
+    private boolean useCachedHash = false;
     private static final HashBuilder defaultHashBuilder = (int h, Object o) -> (h * 31) + o.hashCode(); // Same as Objects.class
     private HashBuilder hashBuilder = defaultHashBuilder; // Reuse the same HashBuilder
 
@@ -245,11 +250,19 @@ public final class DogTag<T> {
     }
 
     /**
+     *
+     */
+    public DogTagBuilder<T> withCachedHash(boolean useCachedHash) {
+      this.useCachedHash = useCachedHash;
+      return this;
+    }
+
+    /**
      * Once options are specified, build the DogTag instance for the Type. Options may be specified in any order.
      * @return A {@code DogTag<T>} that uses the specified options.
      */
     public DogTag<T> build() {
-      return new DogTag<>(targetClass, makeGetterList(), startingHash, hashBuilder);
+      return new DogTag<>(targetClass, makeGetterList(), startingHash, hashBuilder, useCachedHash);
     }
 
     private List<FieldProcessor<T>> makeGetterList() {
@@ -266,22 +279,35 @@ public final class DogTag<T> {
         Field[] declaredFields = theClass.getDeclaredFields();
         for (Field field : declaredFields) {
           int modifiers = field.getModifiers();
-          if ((field.getType() == DogTag.class) && !Modifier.isStatic(modifiers)) {
-            throw new AssertionError("Your DogTag instance must be static. Private and final are also suggested.");
+          boolean isCache = field.getType() == CachedHash.class;
+          final boolean isStatic = Modifier.isStatic(modifiers);
+          final boolean fieldIsFinal = Modifier.isFinal(modifiers);
+          if ((field.getType() == DogTag.class) && !isStatic) {
+            throw new AssertionError("Your DogTag instance must be static. Private and final are recommended.");
           }
           //noinspection MagicCharacter
-          if (!Modifier.isStatic(modifiers)
+          if (!isStatic
+              && !isCache
               && (testTransients || !Modifier.isTransient(modifiers))
-              && (!finalFieldsOnly || Modifier.isFinal(modifiers))
+              && (!finalFieldsOnly || fieldIsFinal)
               && !excludedFields.contains(field)
               && (field.getName().indexOf('$') < 0)
           ) {
+            if (useCachedHash && !fieldIsFinal) {
+              throw new AssertionError(
+                  String.format("The 'withCachedHash' option may not be used with non-final field %s.", field.getName())
+              );
+            }
             field.setAccessible(true);
             Class<?> fieldType = field.getType();
             if (fieldType.isArray()) {
               fieldProcessorList.add(getProcessorForArray(field, fieldType));
             } else {
               fieldProcessorList.add(new FieldProcessor<>(field, Objects::equals, Objects::hashCode));
+            }
+          } else {
+            if (isCache && isStatic) {
+              throw new AssertionError("Your CachedHash instance cannot be static. Private and final are recommended");
             }
           }
         }
@@ -337,6 +363,8 @@ public final class DogTag<T> {
    * equals method should look like this:
    * <pre>
    *   private static final{@literal DogTag<YourClass>} dogTag = DogTag.from(YourClass.class); // Or built from the builder
+   *
+   *  {@literal @Override}
    *   public boolean equals(Object that) {
    *     return dogTag.doEqualsTest(this, that);
    *   }
@@ -399,6 +427,47 @@ public final class DogTag<T> {
       throw new AssertionError("Illegal Access shouldn't happen", e);
     }
     return hash;
+  }
+  
+  public int doHashCode(T thisOne, CachedHash cachedHash) {
+    if (!cachedHash.isSet()) {
+      cachedHash.setHash(doHashCode(thisOne));
+    }
+    return cachedHash.getHash();
+  }
+
+  /**
+   * Make a HashedCache instance for each instance of your class. This should only be called if you built your DogTag
+   * using the 'withCachedHash' option set to true. CachedHashes only work if all the specified fields are final. You
+   * do not need to specify the withFinalFieldsOnly option to use a CachedHash as long as all the fields you include
+   * are final. A CachedHash will always work when the withFinalFieldsOnly option is true.
+   * <p>
+   * To use a CachedHash, your hash code method should be implemented like this:
+   * <pre>
+   *   private static final {@literal DogTag<MyClass>} dogTag = DogTag.create() // must be static!
+   *       .withCachedHash(true)
+   *       // other options specified here
+   *       .build();
+   *       
+   *   private final CachedHash cachedHash = dogTag.makeCachedHash(); // must NOT be static!
+   *
+   *  {@literal @Override}
+   *   public int doHashCode() {
+   *     return doHashCode(this, cachedHash);
+   *   }
+   * 
+   *   // Your equals() method does not change.
+   *  {@literal @Override}
+   *   public boolean equals(Object that) { return dogTag.doEqualsTest(this, that); } 
+   * </pre>
+   * For simplicity, the CachedHash class does not have a public API.
+   * @return A CachedHash to cache the hash value for improved performance.
+   */
+  public CachedHash makeCachedHash() {
+    if (useCache) {
+      return new CachedHash();
+    }
+    throw new AssertionError("A CachedHash can only be used if the 'withCachedHash' option is true");
   }
 
   /**
