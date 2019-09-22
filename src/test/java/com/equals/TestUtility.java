@@ -40,12 +40,14 @@ enum TestUtility {
     long drTime = time(directRunner, iterations);
 
     String label;
-    if (i > count) {
-      label = "Identity";
+    if (i == 0) {
+      label = "All are Equal:";
+    } else if (i > count) {
+      label = "Identity:";
     } else {
-      label = String.format("Iteration %2d", count-i);
+      label = String.format("Fields Tried %2d:", count-i);
     }
-    System.out.printf("%-12s:\t%5d\t%5d\t%5d%n", label, dtTime, ebTime, drTime); //NON-NLS
+    System.out.printf("%16s\t%5d\t%5d\t%5d%n", label, dtTime, ebTime, drTime); //NON-NLS
   }
   
   private static <T> Runnable makeRunner(T a, T b, BiFunction<T, T, Boolean> equal) {

@@ -86,7 +86,9 @@ public class DogTagTest {
     DogTagTestBase base3 = new DogTagTestBase(2, "bravo", 2, 3);
     DogTagTestBase base4 = new DogTagTestBase(1, "Boo!", 22, 4L);
     DogTagTestBase base5 = new DogTagTestBase(1, "bravo", 2, 3L);
-    
+    DogTagTestBase base6 = new DogTagTestBase(1, null, 2, 3L);
+    DogTagTestBase base7 = new DogTagTestBase(1, null, 2, 3L);
+
     DogTag<DogTagTestBase> dogTag = DogTag.create(DogTagTestBase.class)
         .withFinalFieldsOnly(true)
         .build();
@@ -95,12 +97,18 @@ public class DogTagTest {
     verifyNoMatch(dogTag, base1, base3);
     verifyNoMatch(dogTag, base1, base4);
     verifyMatch(dogTag, base1, base5);
+    verifyNoMatch(dogTag, base1, base6);
     verifyNoMatch(dogTag, base2, base3);
     verifyNoMatch(dogTag, base2, base4);
     verifyMatch(dogTag, base2, base5);    // transitivity test
+    verifyNoMatch(dogTag, base2, base6);
     verifyNoMatch(dogTag, base3, base4);
     verifyNoMatch(dogTag, base3, base5);
+    verifyNoMatch(dogTag, base3, base6);
     verifyNoMatch(dogTag, base4, base5);
+    verifyNoMatch(dogTag, base4, base6);
+    verifyNoMatch(dogTag, base5, base6);
+    verifyMatch(dogTag, base6, base7);
     
     DogTag<DogTagTestBase> dogTag2 = DogTag.create(DogTagTestBase.class)
         .withExcludedFields("bravoString")
@@ -110,12 +118,17 @@ public class DogTagTest {
     verifyNoMatch(dogTag2, base1, base3);
     verifyNoMatch(dogTag2, base1, base4);
     verifyMatch(dogTag2, base1, base5);
+    verifyMatch(dogTag2, base1, base6);
     verifyNoMatch(dogTag2, base2, base3);
     verifyMatch(dogTag2, base2, base4);
     verifyNoMatch(dogTag2, base2, base5);
+    verifyNoMatch(dogTag2, base2, base6);
     verifyNoMatch(dogTag2, base3, base4);
     verifyNoMatch(dogTag2, base3, base5);
+    verifyNoMatch(dogTag2, base3, base6);
     verifyNoMatch(dogTag2, base4, base5);
+    verifyNoMatch(dogTag2, base4, base6);
+    verifyMatch(dogTag2, base5, base6);
     
     DogTag<DogTagTestBase> dogTag3 = DogTag.create(DogTagTestBase.class)
         .withFinalFieldsOnly(true)
@@ -126,12 +139,17 @@ public class DogTagTest {
     verifyMatch(dogTag3, base1, base3);
     verifyNoMatch(dogTag3, base1, base4);
     verifyMatch(dogTag3, base1, base5);
+    verifyNoMatch(dogTag3, base1, base6);
     verifyMatch(dogTag3, base2, base3);    // transitivity test
     verifyNoMatch(dogTag3, base2, base4);
     verifyMatch(dogTag3, base2, base5);    // transitivity test
-    verifyNoMatch(dogTag3, base3, base4);
+    verifyNoMatch(dogTag3, base2, base4);
+    verifyNoMatch(dogTag3, base3, base6);
     verifyMatch(dogTag3, base3, base5);    // transitivity test
     verifyNoMatch(dogTag3, base4, base5);
+    verifyNoMatch(dogTag3, base4, base6);
+    verifyNoMatch(dogTag3, base5, base6);
+    verifyMatch(dogTag3, base6, base7);
   }
 
   @Test
