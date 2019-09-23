@@ -13,7 +13,7 @@ import org.junit.Test;
  * @author Miguel Mu\u00f1oz
  */
 @SuppressWarnings({"MagicNumber", "HardCodedStringLiteral", "MagicCharacter", "SameParameterValue"})
-public class PerformanceTestWrappers {
+public class PerformanceTestWithWrappers {
   private static final String[] EMPTY_STRING_ARRAY = new String[0];
   private DogTag<TestClass> dogTag = DogTag.from(TestClass.class);
 
@@ -75,7 +75,7 @@ public class PerformanceTestWrappers {
     TestClass[] instances = { t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, /* t14, t15, t16, t17, t18, t19, t20, t21, t22, t23, */ t0.duplicate() };
     TestUtility.reverse(instances);
 
-    final BiFunction<TestClass, TestClass, Boolean> directEqual = PerformanceTestWrappers::isEqual;
+    final BiFunction<TestClass, TestClass, Boolean> directEqual = PerformanceTestWithWrappers::isEqual;
     TestUtility.runTestCycles(dogTag, t0, instances, directEqual, EMPTY_STRING_ARRAY);
   }
 
@@ -369,6 +369,6 @@ public class PerformanceTestWrappers {
   }
 
   public static void main(String[] args) {
-    new PerformanceTestWrappers().timeTest();
+    new PerformanceTestWithWrappers().timeTest();
   }
 }

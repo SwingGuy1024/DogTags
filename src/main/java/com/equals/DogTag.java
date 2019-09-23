@@ -1,8 +1,10 @@
 package com.equals;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -10,6 +12,9 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+
+import static com.equals.FieldSelection.ExclusionMode;
+import static com.equals.FieldSelection.InclusionMode;
 
 /**
  * Fast {@code equals()} and {@code hashCode()} methods that use Reflection to easily get all the desired fields,
@@ -109,6 +114,11 @@ import java.util.function.Function;
  *   You should always pass {@code this} as the first parameter of {@code doEqualsTest()} and {@code doHashCode()}.
  * <p>
  *   Static fields are never used.
+ * <p>
+ * Still to test:
+ * Exclusion annotations
+ * Inclusion Mode
+ * 
  * @param <T> Type that uses a DogTag equals and hashCode method
  * @author Miguel Muñoz
  */
@@ -171,16 +181,22 @@ public final class DogTag<T> {
 
   public static final class DogTagBuilder<T> {
     private static final String[] EMPTY_STRING_ARRAY = new String[0];
+    private FieldSelection selectionMode = ExclusionMode;
     private final Class<T> targetClass;
     private Class<? super T> lastSuperClass;
     private boolean testTransients = false;
     private String[] excludedFieldNames = EMPTY_STRING_ARRAY;
+    private String[] includedFieldNames = EMPTY_STRING_ARRAY;
     private int startingHash = 1;
     private boolean finalFieldsOnly = false;
     @SuppressWarnings("MagicNumber")
     private boolean useCachedHash = false;
     private static final HashBuilder defaultHashBuilder = (int h, Object o) -> (h * 31) + o.hashCode(); // Same as Objects.class
     private HashBuilder hashBuilder = defaultHashBuilder; // Reuse the same HashBuilder
+    private List<Class<? extends Annotation>> flaggedExclusionList = new LinkedList<>(Collections.singleton(DogTagExclude.class));
+    private List<Class<? extends Annotation>> flaggedInclusionList = new LinkedList<>(Collections.singleton(DogTagInclude.class));
+    private Set<Field> excludedFields = new HashSet<>();
+    private Set<Field> includedFields = new HashSet<>();
 
     private DogTagBuilder(Class<T> theClass) {
       targetClass = theClass;
@@ -212,6 +228,12 @@ public final class DogTag<T> {
     public DogTagBuilder<T> withExcludedFields(String... excludedFieldNames) {
       //noinspection AssignmentOrReturnOfFieldWithMutableType
       this.excludedFieldNames = excludedFieldNames;
+      return this;
+    }
+    
+    public DogTagBuilder<T> withIncludedFields(String... includedFieldNames) {
+      //noinspection AssignmentOrReturnOfFieldWithMutableType
+      this.includedFieldNames = includedFieldNames;
       return this;
     }
 
@@ -272,7 +294,8 @@ public final class DogTag<T> {
 
     /**
      * Set the finalFieldsOnly option, before building the DogTag. Defaults to false. Setting this to true also
-     * sets use CachedHash to true.
+     * sets use CachedHash to true. Enabling this option also enables the useCachedHash option, although the use of
+     * a cached hash code remains optional.
      * @param finalFieldsOnly true if you want to limit fields to only those that are declared final. If the transient
      *                        option is also true, then only final and final transient fields are included.
      * @return this, for method chaining
@@ -286,10 +309,43 @@ public final class DogTag<T> {
     }
 
     /**
-     *
+     * Use a CachedHash to cache the hash value when only final fields are used to build the DogTag. Enabling the  
+     * finalFieldsOnly option automatically enables this option, but you may use this method to set it manually.
+     * @see CachedHash
      */
     public DogTagBuilder<T> withCachedHash(boolean useCachedHash) {
       this.useCachedHash = useCachedHash;
+      return this;
+    }
+
+    /**
+     * Add the specified annotation to the list of annotations that may be used to exclude fields. By default, the
+     * DogTagExclude annotation may be applied to any fields, to exclude it from the equals and hash code calculations.
+     * This is an alternative to specifying the field name using the excludedFields options. This method allows you
+     * to use a different annotation, to support your own custom annotations for compatibility with other tools.
+     * @param annotationClass The annotation class used to exclude fields
+     * @return this, for method chaining
+     */
+    public DogTagBuilder<T> withExclusionByAnnotation(Class<? extends Annotation> annotationClass) {
+      selectionMode = ExclusionMode;
+      flaggedExclusionList.add(annotationClass);
+      return this;
+    }
+    
+    public DogTagBuilder<T> withInclusionMode(FieldSelection mode) {
+      selectionMode = mode;
+      return this;
+    }
+    
+    public DogTagBuilder<T> withInclusionMode(FieldSelection mode, Class<? extends Annotation> annotationClass) {
+      selectionMode = mode;
+      flaggedInclusionList.add(annotationClass);
+      return this;
+    }
+    
+    public DogTagBuilder<T> withInclusionByAnnotation(Class<? extends Annotation> annotationClass) {
+      selectionMode = InclusionMode;
+      flaggedInclusionList.add(annotationClass);
       return this;
     }
 
@@ -302,9 +358,15 @@ public final class DogTag<T> {
     }
 
     private List<FieldProcessor<T>> makeGetterList() {
-      Set<Field> excludedFields = new HashSet<>();
-      for (String fieldName : excludedFieldNames) {
-        excludedFields.add(getFieldFromName(fieldName));
+      switch (selectionMode) {
+        case InclusionMode:
+          collectMatchingFields(includedFieldNames, includedFields);
+          break;
+        case ExclusionMode:
+          collectMatchingFields(excludedFieldNames, excludedFields);
+          break;
+        default:
+          throw new AssertionError("Unsupported Option: " + selectionMode);
       }
 
       List<FieldProcessor<T>> fieldProcessorList = new LinkedList<>();
@@ -321,12 +383,14 @@ public final class DogTag<T> {
           if ((field.getType() == DogTag.class) && !isStatic) {
             throw new AssertionError("Your DogTag instance must be static. Private and final are recommended.");
           }
+
+          // Test if the field should be included. This tests for inclusion, regardless of the selectionMode.
           //noinspection MagicCharacter
           if (!isStatic
               && !isCache
               && (testTransients || !Modifier.isTransient(modifiers))
               && (!finalFieldsOnly || fieldIsFinal)
-              && !excludedFields.contains(field)
+              && selectionMode.isFieldIncluded(field, this)
               && (field.getName().indexOf('$') < 0)
           ) {
             if (useCachedHash && !fieldIsFinal) {
@@ -353,6 +417,29 @@ public final class DogTag<T> {
         theClass = theClass.getSuperclass();
       }
       return fieldProcessorList;
+    }
+
+    private void collectMatchingFields(final String[] fieldNames, final Set<Field> searchField) {
+      for (String fieldName : fieldNames) {
+        searchField.add(getFieldFromName(fieldName));
+      }
+    }
+
+    boolean isUsedInExclusionMode(Field theField) {
+      return !excludedFields.contains(theField) && !isAnnotatedWith(theField, flaggedExclusionList);
+    }
+    
+    boolean isUsedInInclusionMode(Field theField) {
+      return includedFields.contains(theField) || isAnnotatedWith(theField, flaggedInclusionList);
+    }
+    
+    private boolean isAnnotatedWith(Field field, List<Class<? extends Annotation>> annotationList) {
+      for (Class<? extends Annotation> annotationClass : annotationList) {
+        if (field.isAnnotationPresent(annotationClass)) {
+          return true;
+        }
+      }
+      return false;
     }
 
     private static <T> FieldProcessor<T> getProcessorForArray(Field arrayField, Class<?> fieldType) {
@@ -464,7 +551,14 @@ public final class DogTag<T> {
     }
     return hash;
   }
-  
+
+  /** get the hashCode from the cache if it has already been calculated, or if it hasn't, calculate it and store it
+   * in the Cache. This should only be used with DogTags created with fields that can't change value.
+   * @see CachedHash
+   * @param thisOne The instance to hash
+   * @param cachedHash The cache that stores the previous value
+   * @return The hash code.
+   */
   public int doHashCode(T thisOne, CachedHash cachedHash) {
     if (!cachedHash.isSet()) {
       cachedHash.setHash(doHashCode(thisOne));

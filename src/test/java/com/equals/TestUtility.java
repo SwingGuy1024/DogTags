@@ -45,7 +45,7 @@ enum TestUtility {
     } else if (i > count) {
       label = "Identity:";
     } else {
-      label = String.format("Fields Tried %2d:", count-i);
+      label = String.format("Fields Tried %2d:", (count + 1) - i);
     }
     System.out.printf("%16s\t%5d\t%5d\t%5d%n", label, dtTime, ebTime, drTime); //NON-NLS
   }
