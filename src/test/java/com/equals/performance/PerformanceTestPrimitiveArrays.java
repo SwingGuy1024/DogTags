@@ -1,10 +1,10 @@
-package com.equals;
+package com.equals.performance;
 
 import java.awt.geom.Point2D;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.function.BiFunction;
+import com.equals.DogTag;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -14,11 +14,18 @@ import org.junit.Test;
  * <p>Time: 11:36 PM
  *
  * @author Miguel Mu\u00f1oz
+ * @noinspection MagicCharacter
  */
-@SuppressWarnings({"MagicNumber", "HardCodedStringLiteral", "MagicCharacter", "HardcodedLineSeparator", "UnnecessaryBoxing"})
-public class PerformanceTest {
+@SuppressWarnings({"MagicNumber", "HardCodedStringLiteral"})
+public class PerformanceTestPrimitiveArrays {
   private static final String[] EMPTY_STRING_ARRAY = new String[0];
-//  private static final DogTag<TestClass> dogTag = DogTag.from(TestClass.class);
+  private DogTag<TestClass> dogTag = DogTag.from(TestClass.class);
+
+  @SuppressWarnings("NumericCastThatLosesPrecision")
+  private static Short toShort(int i) { return (short) i;}
+
+  @SuppressWarnings("NumericCastThatLosesPrecision")
+  private static Byte toByte(int i) { return (byte) i; }
 
   @Ignore
   @Test
@@ -37,13 +44,13 @@ public class PerformanceTest {
     TestClass t7 = t0.duplicate();
     t7.setGolfInt(798);
     TestClass t8 = t0.duplicate();
-    t8.setHotelByte((byte) 34);
+    t8.setHotelByte( toByte(34));
     TestClass t9 = t0.duplicate();
     t9.setIndigoChar('P');
     TestClass t10 = t0.duplicate();
     t10.setJulietBoolean(true);
     TestClass t11 = t0.duplicate();
-    t11.setKiloShort((short) 79);
+    t11.setKiloShort(toShort(79));
     TestClass t12 = t0.duplicate();
     t12.setLimaDouble(798.23);
     TestClass t13 = t0.duplicate();
@@ -55,9 +62,9 @@ public class PerformanceTest {
     TestClass t16 = t0.duplicate();
     t16.setPapaLongArray(3L, 6L, 9L, 12L, 15L, 18L, 21L, 24L, 27L);
     TestClass t17 = t0.duplicate();
-    t17.setQuebecShortArray((short) 4, (short) 8, (short) 12, (short) 16, (short) 20, (short) 24, (short) 28, (short) 32, (short) 36);
+    t17.setQuebecShortArray(toShort(4), toShort(8), toShort(12), toShort(16), toShort(20), toShort(24), toShort(28), toShort(32), toShort(36));
     TestClass t18 = t0.duplicate();
-    t18.setRomeoByteArray((byte) 2, (byte) 4, (byte) 6, (byte) 8, (byte) 10, (byte) 12, (byte) 14, (byte) 16, (byte) 18);
+    t18.setRomeoByteArray(toByte(2), toByte(4), toByte(6), toByte(8), toByte(10), toByte(12), toByte(14), toByte(16), toByte(18));
     TestClass t19 = t0.duplicate();
     t19.setSierraCharArray("different".toCharArray());
     TestClass t20 = t0.duplicate();
@@ -69,23 +76,10 @@ public class PerformanceTest {
     TestClass t23 = t0.duplicate();
     t23.setWhiskeyObjectArray("Whiskey", 33.5F, Boolean.FALSE);
     TestClass[] instances = { t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16, t17, t18, t19, t20, t21, t22, t23, t0.duplicate() };
-    TestUtility.reverse(instances);
+    TimingUtility.reverse(instances);
 
-    final BiFunction<TestClass, TestClass, Boolean> directEqual = PerformanceTest::isEqual;
-//    TestUtility.runTestCycles(dogTag, t0, instances, directEqual, EMPTY_STRING_ARRAY);
-    
-    // Test 2: No Arrays
-//    final String[] excludedFields = {"novemberIntArray", "operaStringArray", "papaLongArray", "quebecShortArray",
-//        "romeoByteArray", "sierraCharArray", "tangoBooleanArray", "uniformFloatArray", "victorDoubleArray",
-//        "whiskeyObjectArray"};
-//    DogTag<SingleValueTestClass> dogTagNoArrays = DogTag.create(SingleValueTestClass.class)
-//        .withExcludedFields(excludedFields)
-//        .build();
-    DogTag<SingleValueTestClass> dogTagNoArrays = DogTag.from(SingleValueTestClass.class);
-
-    TestClass[] pInstances = { t0.duplicate(), t13, t12, t11, t10, t9, t8, t7, t6, t5, t4, t3, t2, t1, t0 };
-    
-    TestUtility.runTestCycles(dogTagNoArrays, t0, pInstances, PerformanceTest::singleValueDirectEqual, EMPTY_STRING_ARRAY);
+    final BiFunction<TestClass, TestClass, Boolean> directEqual = PerformanceTestPrimitiveArrays::isEqual;
+    TimingUtility.runTestCycles(dogTag, t0, instances, directEqual, EMPTY_STRING_ARRAY);
   }
 
   @SuppressWarnings("EqualsReplaceableByObjectsCall")
@@ -94,17 +88,17 @@ public class PerformanceTest {
     if (t1 == t2) {
       return true;
     }
-    return (t1.getAlphaInt() == t2.getAlphaInt())
+    return (t1.getAlphaInt().equals(t2.getAlphaInt()))
         && t1.getBravoString().equals(t2.getBravoString())
-        && (t1.getCharlieInt() == t2.getCharlieInt())
-        && (t1.getDeltaLong() == t2.getDeltaLong())
+        && (t1.getCharlieInt().equals(t2.getCharlieInt()))
+        && (t1.getDeltaLong().equals(t2.getDeltaLong()))
         && t1.getEchoString().equals(t2.getEchoString())
         && t1.getFoxtrotPoint().equals(t2.getFoxtrotPoint())
-        && (t1.getHotelByte() == t2.getHotelByte())
-        && (t1.isJulietBoolean() == t2.isJulietBoolean())
-        && (t1.getKiloShort() == t2.getKiloShort())
-        && Double.valueOf(t1.getLimaDouble()).equals(t2.getLimaDouble())
-        && Float.valueOf(t1.getMikeFloat()).equals(t2.getMikeFloat())
+        && (t1.getHotelByte().equals(t2.getHotelByte()))
+        && (t1.isJulietBoolean().equals(t2.isJulietBoolean()))
+        && (t1.getKiloShort().equals(t2.getKiloShort()))
+        && t1.getLimaDouble().equals(t2.getLimaDouble())
+        && t1.getMikeFloat().equals(t2.getMikeFloat())
         && Arrays.equals(t1.getNovemberIntArray(), t2.getNovemberIntArray())
         && Arrays.equals(t1.getOperaStringArray(), t2.getOperaStringArray())
         && Arrays.equals(t1.getPapaLongArray(), t2.getPapaLongArray())
@@ -117,55 +111,35 @@ public class PerformanceTest {
         && Arrays.equals(t1.getWhiskeyObjectArray(), t2.getWhiskeyObjectArray());
   }
   
-  private static boolean singleValueDirectEqual(SingleValueTestClass t1, SingleValueTestClass t2) {
-    //noinspection ObjectEquality
-    if (t1 == t2) {
-      return true;
-    }
-    return (t1.getAlphaInt() == t2.getAlphaInt())
-        && Objects.equals(t1.getBravoString(), t2.getBravoString())
-        && (t1.getCharlieInt() == t2.getCharlieInt())
-        && (t1.getDeltaLong() == t2.getDeltaLong())
-        && Objects.equals(t1.getEchoString(), t2.getEchoString())
-        && Objects.equals(t1.getFoxtrotPoint(), t2.getFoxtrotPoint())
-        && (t1.getHotelByte() == t2.getHotelByte())
-        && (t1.isJulietBoolean() == t2.isJulietBoolean())
-        && (t1.getKiloShort() == t2.getKiloShort())
-        // Use boxing to avoid caching, for a proper test.
-        && Objects.equals(Double.valueOf(t1.getLimaDouble()), t2.getLimaDouble())
-        && Objects.equals(Float.valueOf(t1.getMikeFloat()), t2.getMikeFloat());
-  }
-
-
- 
-  private static String dup(String s) {
-    String s2 = '1' + s;
-    return s2.substring(1);
-  }
   
-  private static String[] dupArray(String[] array) {
-    String[] dup = new String[array.length];
-    int i=0;
-    for (String s: array) {
-      dup[i++] = dup(s);
-    }
-    return dup;
-  }
-
-  /** @noinspection CachedNumberConstructorCall, deprecation */
   @SuppressWarnings({"AssignmentOrReturnOfFieldWithMutableType", "WeakerAccess", "MagicCharacter", "MagicNumber", "HardCodedStringLiteral", "ImplicitNumericConversion"})
-  private static class TestClass extends SingleValueTestClass {
+  private static class TestClass {
 
     TestClass() {
       this(1, "bravo");
     }
-
-    TestClass(int alpha, String bravo) {
-      super(alpha, bravo);
+    
+    TestClass(Integer alpha, String bravo) {
+      alphaInt = alpha;
+      bravoString = bravo;
     }
 
-    private int[] novemberIntArray = {11, 12, 13};
-    private String[] operaStringArray = {"papa", "quebec", "romeo", "sierra", "tango"};
+    private static int staticInt = 5;
+    private final Integer alphaInt;
+    private final String bravoString;
+    private Integer charlieInt = 3;
+    private Long deltaLong = 4L;
+    private String echoString = "echo";
+    private Point2D foxtrotPoint = new Point2D.Double(6.54, 4.56);
+    private Integer golfInt = 7;
+    private Byte hotelByte = toByte(8);
+    private Character indigoChar = 'I';
+    private Boolean julietBoolean = false;
+    private Short kiloShort = 11;
+    private Double limaDouble = 12.0;
+    private Float mikeFloat = 13.13F;
+    private int[] novemberIntArray = { 11, 12, 13 };
+    private String[] operaStringArray = { "papa", "quebec", "romeo", "sierra", "tango" };
     private long[] papaLongArray = {1L, 3L, 6L, 10L, 15L, 21L, 28L, 36L, 45L};
     private short[] quebecShortArray = {0, 1, 4, 9, 16, 25, 36, 49, 64, 81};
     private byte[] romeoByteArray = {127, 63, 31, 15, 7, 3, 1, 2, 3};
@@ -174,6 +148,102 @@ public class PerformanceTest {
     private float[] uniformFloatArray = {1.4F, 2.0F, 2.8F, 4.0F, 5.6F, 8.0F, 11.0F, 16.0F, 22.0F};
     private double[] victorDoubleArray = {0.1, 0.02, 0.003, 0.0004, 0.00005, 0.000006, 0.0000007, 0.00000008, 9.0};
     private Object[] whiskeyObjectArray = {new Point2D.Float(1.2f, 2.4f), "string", new HashSet()};
+
+    public Integer getAlphaInt() {
+      return alphaInt;
+    }
+
+    public String getBravoString() {
+      return bravoString;
+    }
+
+    public Integer getCharlieInt() {
+      return charlieInt;
+    }
+
+    public void setCharlieInt(Integer charlieInt) {
+      this.charlieInt = charlieInt;
+    }
+
+    public Long getDeltaLong() {
+      return deltaLong;
+    }
+
+    public void setDeltaLong(Long deltaLong) {
+      this.deltaLong = deltaLong;
+    }
+
+    public String getEchoString() {
+      return echoString;
+    }
+
+    public void setEchoString(String echoString) {
+      this.echoString = echoString;
+    }
+
+    public Point2D getFoxtrotPoint() {
+      return foxtrotPoint;
+    }
+
+    public void setFoxtrotPoint(Point2D foxtrotPoint) {
+      this.foxtrotPoint = foxtrotPoint;
+    }
+
+    public Integer getGolfInt() {
+      return golfInt;
+    }
+
+    public void setGolfInt(Integer golfInt) {
+      this.golfInt = golfInt;
+    }
+
+    public Byte getHotelByte() {
+      return hotelByte;
+    }
+
+    public void setHotelByte(Byte hotelByte) {
+      this.hotelByte = hotelByte;
+    }
+
+    public Character getIndigoChar() {
+      return indigoChar;
+    }
+
+    public void setIndigoChar(Character indigoChar) {
+      this.indigoChar = indigoChar;
+    }
+
+    public Boolean isJulietBoolean() {
+      return julietBoolean;
+    }
+
+    public void setJulietBoolean(Boolean julietBoolean) {
+      this.julietBoolean = julietBoolean;
+    }
+
+    public Short getKiloShort() {
+      return kiloShort;
+    }
+
+    public void setKiloShort(Short kiloShort) {
+      this.kiloShort = kiloShort;
+    }
+
+    public Double getLimaDouble() {
+      return limaDouble;
+    }
+
+    public void setLimaDouble(Double limaDouble) {
+      this.limaDouble = limaDouble;
+    }
+
+    public Float getMikeFloat() {
+      return mikeFloat;
+    }
+
+    public void setMikeFloat(Float mikeFloat) {
+      this.mikeFloat = mikeFloat;
+    }
 
     public int[] getNovemberIntArray() {
       return novemberIntArray;
@@ -255,20 +325,18 @@ public class PerformanceTest {
       this.whiskeyObjectArray = whiskeyObjectArray;
     }
 
-    @Override
     public TestClass duplicate() {
       return duplicate(getAlphaInt(), getBravoString());
     }
-
-    @Override
-    public TestClass duplicate(int alpha, String bravo) {
+    
+    public TestClass duplicate(Integer alpha, String bravo) {
       TestClass tail = new TestClass(alpha, bravo);
       tail.setCharlieInt(getCharlieInt());
       tail.setDeltaLong(getDeltaLong());
       tail.setEchoString(dup(getEchoString()));
       tail.setFoxtrotPoint(new Point2D.Double(getFoxtrotPoint().getX(), getFoxtrotPoint().getY()));
       tail.setGolfInt(getGolfInt());
-      tail.setHotelByte(new Byte(getHotelByte())); // To avoid identity test
+      tail.setHotelByte(getHotelByte());
       tail.setIndigoChar(getIndigoChar());
       tail.setJulietBoolean(isJulietBoolean());
       tail.setKiloShort(getKiloShort());
@@ -287,148 +355,19 @@ public class PerformanceTest {
       return tail;
     }
   }
-
-  /** @noinspection CachedNumberConstructorCall*/
-  @SuppressWarnings("WeakerAccess")
-  private static class SingleValueTestClass {
-    SingleValueTestClass() {
-      this(1, "bravo");
-    }
-
-    SingleValueTestClass(int alpha, String bravo) {
-      alphaInt = alpha;
-      bravoString = bravo;
-    }
-
-    private final int alphaInt;
-    private final String bravoString;
-    private int charlieInt = 3;
-    private long deltaLong = 4L;
-    private String echoString = "echo";
-    private Point2D foxtrotPoint = new Point2D.Double(6.54, 4.56);
-    private int golfInt = 7;
-    private byte hotelByte = 8;
-    private char indigoChar = 'I';
-    private boolean julietBoolean = false;
-    private short kiloShort = 11;
-    private double limaDouble = 12.0;
-    private float mikeFloat = 13.13F;
-
-    public int getAlphaInt() {
-      return alphaInt;
-    }
-
-    public String getBravoString() {
-      return bravoString;
-    }
-
-    public int getCharlieInt() {
-      return charlieInt;
-    }
-
-    public void setCharlieInt(int charlieInt) {
-      this.charlieInt = charlieInt;
-    }
-
-    public long getDeltaLong() {
-      return deltaLong;
-    }
-
-    public void setDeltaLong(long deltaLong) {
-      this.deltaLong = deltaLong;
-    }
-
-    public String getEchoString() {
-      return echoString;
-    }
-
-    public void setEchoString(String echoString) {
-      this.echoString = echoString;
-    }
-
-    public Point2D getFoxtrotPoint() {
-      return foxtrotPoint;
-    }
-
-    public void setFoxtrotPoint(Point2D foxtrotPoint) {
-      this.foxtrotPoint = foxtrotPoint;
-    }
-
-    public int getGolfInt() {
-      return golfInt;
-    }
-
-    public void setGolfInt(int golfInt) {
-      this.golfInt = golfInt;
-    }
-
-    public byte getHotelByte() {
-      return hotelByte;
-    }
-
-    public void setHotelByte(byte hotelByte) {
-      this.hotelByte = hotelByte;
-    }
-
-    public char getIndigoChar() {
-      return indigoChar;
-    }
-
-    public void setIndigoChar(char indigoChar) {
-      this.indigoChar = indigoChar;
-    }
-
-    public boolean isJulietBoolean() {
-      return julietBoolean;
-    }
-
-    public void setJulietBoolean(boolean julietBoolean) {
-      this.julietBoolean = julietBoolean;
-    }
-
-    public short getKiloShort() {
-      return kiloShort;
-    }
-
-    public void setKiloShort(short kiloShort) {
-      this.kiloShort = kiloShort;
-    }
-
-    public double getLimaDouble() {
-      return limaDouble;
-    }
-
-    public void setLimaDouble(double limaDouble) {
-      this.limaDouble = limaDouble;
-    }
-
-    public float getMikeFloat() {
-      return mikeFloat;
-    }
-
-    public void setMikeFloat(float mikeFloat) {
-      this.mikeFloat = mikeFloat;
-    }
-    public SingleValueTestClass duplicate() {
-      return duplicate(getAlphaInt(), getBravoString());
-    }
-
-    /** @noinspection deprecation*/
-    public SingleValueTestClass duplicate(int alpha, String bravo) {
-      SingleValueTestClass tail = new SingleValueTestClass(alpha, bravo);
-      tail.setCharlieInt(getCharlieInt());
-      tail.setDeltaLong(getDeltaLong());
-      tail.setEchoString(dup(getEchoString()));
-      tail.setFoxtrotPoint(new Point2D.Double(getFoxtrotPoint().getX(), getFoxtrotPoint().getY()));
-      tail.setGolfInt(getGolfInt());
-      tail.setHotelByte(new Byte(getHotelByte())); // To avoid identity test
-      tail.setIndigoChar(getIndigoChar());
-      tail.setJulietBoolean(isJulietBoolean());
-      tail.setKiloShort(getKiloShort());
-      tail.setLimaDouble(getLimaDouble());
-      tail.setMikeFloat(getMikeFloat());
-      return tail;
-    }
-
+  
+  private static String dup(String s) {
+    String s2 = '1' + s;
+    return s2.substring(1);
   }
+  
+  private static String[] dupArray(String[] array) {
+    String[] dup = new String[array.length];
+    int i=0;
+    for (String s: array) {
+      dup[i++] = dup(s);
+    }
+    return dup;
+  }
+
 }

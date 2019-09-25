@@ -1,7 +1,8 @@
-package com.equals;
+package com.equals.performance;
 
 import java.awt.geom.Point2D;
 import java.util.function.BiFunction;
+import com.equals.DogTag;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -73,10 +74,10 @@ public class PerformanceTestWithWrappers {
 //    TestClass t23 = t0.duplicate();
 //    t23.setWhiskeyObjectArray("Whiskey", 33.5F, Boolean.FALSE);
     TestClass[] instances = { t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, /* t14, t15, t16, t17, t18, t19, t20, t21, t22, t23, */ t0.duplicate() };
-    TestUtility.reverse(instances);
+    TimingUtility.reverse(instances);
 
     final BiFunction<TestClass, TestClass, Boolean> directEqual = PerformanceTestWithWrappers::isEqual;
-    TestUtility.runTestCycles(dogTag, t0, instances, directEqual, EMPTY_STRING_ARRAY);
+    TimingUtility.runTestCycles(dogTag, t0, instances, directEqual, EMPTY_STRING_ARRAY);
   }
 
   @SuppressWarnings("EqualsReplaceableByObjectsCall")

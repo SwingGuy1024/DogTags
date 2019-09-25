@@ -7,6 +7,9 @@ import java.lang.annotation.Target;
 
 /**
  * Annotate fields to mark them for inclusion from use by DogTags, when using inclusion mode.
+ * @see com.equals.DogTag.DogTagInclusionBuilder
+ * @see DogTag#createForInclusion(Class, String...) 
+ * @see DogTag#createForInclusion(Class, Class) 
  * <p>Created by IntelliJ IDEA.
  * <p>Date: 9/22/19
  * <p>Time: 9:53 PM

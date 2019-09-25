@@ -2,7 +2,7 @@ package com.equals;
 
 import java.lang.reflect.Field;
 
-import static com.equals.TestUtility.*; // verifyMatch() and verifyNoMatch()
+import static com.equals.TestUtility.*; // verifyMatch__() and verifyNoMatch()
 import static org.junit.Assert.*;
 
 import org.junit.Test;
@@ -24,8 +24,7 @@ public class DogTagHashTest {
   
   @Test
   public void testCache() throws NoSuchFieldException, IllegalAccessException {
-    DogTag<TestClassWithCache> dogTagFinal = DogTag.create(TestClassWithCache.class)
-        .withExcludedFields("foxTrot")
+    DogTag<TestClassWithCache> dogTagFinal = DogTag.create(TestClassWithCache.class, "foxTrot")
         .withCachedHash(true)
         .build();
     CachedHash cachedHash1 = dogTagFinal.makeCachedHash();
@@ -59,7 +58,7 @@ public class DogTagHashTest {
     assertFalse((Boolean) setField.get(cachedHash5));
 
     // These verify methods don't use the cached hash. We're just testing that we didn't break the equals() method.
-    verifyMatch(dogTagFinal, t1, t2);
+    verifyMatch__(dogTagFinal, t1, t2);
     verifyNoMatch(dogTagFinal, t1, t3);
     verifyNoMatch(dogTagFinal, t1, t4);
     verifyNoMatch(dogTagFinal, t1, t5);
@@ -68,7 +67,7 @@ public class DogTagHashTest {
     verifyNoMatch(dogTagFinal, t2, t5);
     verifyNoMatch(dogTagFinal, t3, t4);
     verifyNoMatch(dogTagFinal, t3, t5);
-    verifyMatch(dogTagFinal, t4, t5);
+    verifyMatch__(dogTagFinal, t4, t5);
 
 
     int h1 = dogTagFinal.doHashCode(t1, cachedHash1);
@@ -113,6 +112,8 @@ public class DogTagHashTest {
     assertEquals(t3.hashCode(), t3.hashCode());
     assertEquals(t4.hashCode(), t4.hashCode());
     assertEquals(t5.hashCode(), t5.hashCode());
+    
+    assertEquals(t1.toString(), String.valueOf(t1.hashCode()));
   }
 
   /**
@@ -212,6 +213,11 @@ public class DogTagHashTest {
     @Override
     public boolean equals(Object that) {
       return dogTag.doEqualsTest(this, that);
+    }
+
+    @Override
+    public String toString() {
+      return cachedHash.toString();
     }
   }
   
