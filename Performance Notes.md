@@ -8,7 +8,7 @@ When I made all my fields were wrapper classes like Integer, DogTags comparisons
     R get(T object)
 The type R can be an Integer, but it can't be an int. So if this method needs to return an int value, it will wrap it inside an Integer before returning, then unwrap it again afterwards. But if the class is an Integer, it doesn't need to do this. Of course, there are good reasons why returning wrapper classes are generally considered a poor practice over primitives. But Java's generic type mechanism doesn't handle primitive types very well.
 
-## 2 For speed, DogTags beat EqualsBuilder, but hand-coding beats DogTags.
+## 2 For speed, DogTags whips EqualsBuilder, but hand-coding whips DogTags.
 When I compare the speed difference of DogTags and EqualsBuilder, DogTags are anywhere from 1.5 times as fast to 20 times as fast, depending on how many fields are tested before a mismatch is found. If the mismatch is found early, DogTags can be about 20 times faster. But a hand-coded equals method is generally in the range of 25 times faster than a DogTag.
 
 ## 3 Functional Programming degrades performance.
@@ -26,8 +26,6 @@ Here's the final loop of the doTestForEqual(T, T) written an functional programm
 ## Results
 
 Here are the result s of a performance test comparing DogTags with EqualsBuilder:
-
-![Performance Results](https://github.com/SwingGuy1024/DogTags/blob/master/Performance.pdf)
 
 ![png](https://github.com/SwingGuy1024/DogTags/blob/master/Performance.png)
 
