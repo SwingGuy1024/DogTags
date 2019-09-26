@@ -22,3 +22,11 @@ Here's the final loop of the doTestForEqual(T, T) written an functional programm
         .allMatch(
             f -> f.testForEquals(thisOneNeverNull, thatOneNeverNull)
         ); 
+
+## Results
+
+Here are the result s of a performance test comparing DogTags with EqualsBuilder:
+
+[Performance Results](https://raw.githubusercontent.com/SwingGuy1024/DogTags/blob/master/Performance.pdf)
+
+[png](https://raw.githubusercontent.com/SwingGuy1024/DogTags/blob/master/Performance.png)
