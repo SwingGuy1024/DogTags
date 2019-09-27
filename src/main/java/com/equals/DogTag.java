@@ -112,9 +112,9 @@ import java.util.function.Function;
  * <p>
  *   Static fields are never used.
  * <p>
- * Still to test:
- * Exclusion annotations
- * Inclusion Mode
+ * TODO: Still to do:
+ * Add an option to specify case sensitivity.
+ * Add a way to specify the order of the fields
  * 
  * @param <T> Type that uses a DogTag equals and hashCode method
  * @author Miguel Muñoz
