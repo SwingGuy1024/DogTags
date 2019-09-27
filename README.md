@@ -33,7 +33,6 @@ I am considering rewriting the API to work a bit differently. Sample usage would
       // fields and methods
       
       private static final DogTagFactory<MyClass> dogTagFactory = DogTag.from(MyClass.class);
-      
       private final DogTag<MyClass> dogTag = dogTagFactory.makeDogTag(this);
       
       @Override
@@ -73,6 +72,50 @@ The 2 chief differences are:
     
 This combines the factory (`DogTag.from(myClass.class)`) and the object construction (`.makeDogTag()`) into a single line. This would mean the a new factory would get built with each new instance construction. This would still be faster than EqualsBuilder, but it would still be a huge performance hit.
   
-### Second Alternative
-
 It may be possible to combine both approaches in the same code base.
+
+## Second Alternative
+
+I could get rid of the public factory class by storing all factories in a Map with the Class instance as the map key. I'm not sure of the wisdom of this approach, but the sample usage would look like this:
+
+    public class MyClass {
+      // fields and methods
+      
+      private final DogTag<MyClass> dogTag = DogTag.from(MyClass.class, this);
+      
+      @Override
+      public boolean equals(Object other) {
+        return dogTag.doEqualsTest(other);
+      }
+      
+      @Override
+      public int hashCode() {
+        return dogTag.doHashCode();
+      }
+    }
+    
+Or, for more complex build situations:
+   
+    public class MyClass extends MyBaseClass {
+      // fields and methods
+      
+      private static final DogTag.Factory<MyClass> dtFactory = DogTag.create(MyClass.class)
+        .withAnnotation(MyExcludeField.class)
+        .withReflectUpTo(MyBaseClass.class)
+        .build();
+      private final DogTag<MyClass> dogTag = dtFactory.of(this);
+      
+      @Override
+      public boolean equals(Object other) {
+        return dogTag.doEqualsTest(other);
+      }
+      
+      @Override
+      public int hashCode() {
+        return dogTag.doHashCode();
+      }
+    }
+
+(This second idiom would not store anything in the map.)
+
+Keeping all the DogTag factories in a Map feels like a lot of overhead, but it really doesn't add much overhead, since all the factories would be constructed even without the map. These factories wouldn't hold any additional data than the static DogTag instances for each class in the first approach. This approach does have the advantage of having the cleanest public API.
