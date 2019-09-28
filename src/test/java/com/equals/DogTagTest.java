@@ -16,12 +16,30 @@ public class DogTagTest {
   public void testEquals() {
     DogTagTestBase baseTest1 = new DogTagTestBase(5, "bravo", 7, 5L);
     DogTagTestBase baseTest2 = baseTest1.duplicate();
+    DogTagTestBase baseTest3 = new DogTagTestBase(90, "bravo", 7, 5L);
+    DogTagTestBase baseTest4 = new DogTagTestBase(5, "bravissimo", 7, 5L);
+    DogTagTestBase baseTest5 = new DogTagTestBase(5, "bravo", 44, 5L);
+    DogTagTestBase baseTest6 = new DogTagTestBase(5, "bravo", 7, 17L);
     baseTest2.setCharlieInt(12);
     
     DogTag<DogTagTestBase> excludeC = DogTag.create(DogTagTestBase.class, CHARLIE_INT)
         .build();
 
     verifyMatch__(excludeC, baseTest1, baseTest2);
+    verifyNoMatch(excludeC, baseTest1, baseTest3);
+    verifyNoMatch(excludeC, baseTest1, baseTest4);
+    verifyMatch__(excludeC, baseTest1, baseTest5);
+    verifyNoMatch(excludeC, baseTest1, baseTest6);
+    verifyNoMatch(excludeC, baseTest2, baseTest3);
+    verifyNoMatch(excludeC, baseTest2, baseTest4);
+    verifyMatch__(excludeC, baseTest2, baseTest5);
+    verifyNoMatch(excludeC, baseTest2, baseTest6);
+    verifyNoMatch(excludeC, baseTest3, baseTest4);
+    verifyNoMatch(excludeC, baseTest3, baseTest5);
+    verifyNoMatch(excludeC, baseTest3, baseTest6);
+    verifyNoMatch(excludeC, baseTest4, baseTest5);
+    verifyNoMatch(excludeC, baseTest4, baseTest6);
+    verifyNoMatch(excludeC, baseTest5, baseTest6);
 
     DogTag<DogTagTestBase> includeBaseOnly = DogTag.from(DogTagTestBase.class);
     verifyNoMatch(includeBaseOnly, baseTest1, baseTest2);
@@ -40,6 +58,28 @@ public class DogTagTest {
     midTest2.setFoxtrotPoint(new Point2D.Double(88.8, 22.2));
     midTest2.setEchoString("Could you repeat that?");
     verifyMatch__(includeBaseOnly, midTest, midTest2); // should still match,
+    
+    DogTag<DogTagTestBase> includeAllButC = DogTag.createForInclusion(DogTagTestBase.class,
+            "alphaInt",
+            "bravoString",
+            "deltaLong"
+        )
+        .build();
+    verifyMatch__(includeAllButC, baseTest1, baseTest2);
+    verifyNoMatch(includeAllButC, baseTest1, baseTest3);
+    verifyNoMatch(includeAllButC, baseTest1, baseTest4);
+    verifyMatch__(includeAllButC, baseTest1, baseTest5);
+    verifyNoMatch(includeAllButC, baseTest1, baseTest6);
+    verifyNoMatch(includeAllButC, baseTest2, baseTest3);
+    verifyNoMatch(includeAllButC, baseTest2, baseTest4);
+    verifyMatch__(includeAllButC, baseTest2, baseTest5);
+    verifyNoMatch(includeAllButC, baseTest2, baseTest6);
+    verifyNoMatch(includeAllButC, baseTest3, baseTest4);
+    verifyNoMatch(includeAllButC, baseTest3, baseTest5);
+    verifyNoMatch(includeAllButC, baseTest3, baseTest6);
+    verifyNoMatch(includeAllButC, baseTest4, baseTest5);
+    verifyNoMatch(includeAllButC, baseTest4, baseTest6);
+    verifyNoMatch(includeAllButC, baseTest5, baseTest6);
   }
 
   @Test
