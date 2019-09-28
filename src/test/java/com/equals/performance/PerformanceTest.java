@@ -4,10 +4,11 @@ import java.awt.geom.Point2D;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Objects;
-import java.util.function.BiFunction;
 import com.equals.DogTag;
 import org.junit.Ignore;
 import org.junit.Test;
+
+import static com.equals.performance.TimingUtility.reverse;
 
 /**
  * <p>Created by IntelliJ IDEA.
@@ -15,8 +16,9 @@ import org.junit.Test;
  * <p>Time: 11:36 PM
  *
  * @author Miguel Mu\u00f1oz
+ * @noinspection EqualsReplaceableByObjectsCall, AccessingNonPublicFieldOfAnotherObject, UseOfClone
  */
-@SuppressWarnings({"MagicNumber", "HardCodedStringLiteral", "MagicCharacter", "HardcodedLineSeparator", "UnnecessaryBoxing"})
+@SuppressWarnings({"MagicNumber", "HardCodedStringLiteral", "MagicCharacter", "HardcodedLineSeparator", "UnnecessaryBoxing", "RedundantStringConstructorCall"})
 public class PerformanceTest {
   private static final String[] EMPTY_STRING_ARRAY = new String[0];
   // TODO: Use DogTagInclude & DogTagExclude somewhere in this file, to remove package-private warning
@@ -70,9 +72,9 @@ public class PerformanceTest {
     TestClass t23 = t0.duplicate();
     t23.setWhiskeyObjectArray("Whiskey", 33.5F, Boolean.FALSE);
     TestClass[] instances = { t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16, t17, t18, t19, t20, t21, t22, t23, t0.duplicate() };
-    TimingUtility.reverse(instances);
+    reverse(instances);
 
-    final BiFunction<TestClass, TestClass, Boolean> directEqual = PerformanceTest::isEqual;
+//    final BiFunction<TestClass, TestClass, Boolean> directEqual = PerformanceTest::isEqual;
 //    TimingUtility.runTestCycles(dogTag, t0, instances, directEqual, EMPTY_STRING_ARRAY);
     
     // Test 2: No Arrays
@@ -298,14 +300,16 @@ public class PerformanceTest {
 
     SingleValueTestClass(int alpha, String bravo) {
       alphaInt = alpha;
-      bravoString = bravo;
+      // I use new String(String) to avoid the identity check when comparing two identical Strings. 
+      bravoString = new String(bravo);
     }
 
     private final int alphaInt;
     private final String bravoString;
     private int charlieInt = 3;
     private long deltaLong = 4L;
-    private String echoString = "echo";
+    // I use new String(String) to avoid the identity check when comparing two identical Strings. 
+    private String echoString = new String("echo");
     private Point2D foxtrotPoint = new Point2D.Double(6.54, 4.56);
     private int golfInt = 7;
     private byte hotelByte = 8;
@@ -431,5 +435,169 @@ public class PerformanceTest {
       return tail;
     }
 
+  }
+  
+  private static class TwoStringClass {
+    private String alpha;
+    private String bravo;
+    
+    TwoStringClass(String a, String b) {
+      // I use new String(String) to avoid the identity check when comparing two identical Strings. 
+      alpha = new String(a);
+      bravo = new String(b);
+    }
+  }
+
+  private static boolean handCoded(TwoStringClass one, TwoStringClass two) {
+    return one.alpha.equals(two.alpha) && one.bravo.equals(two.bravo);
+  }
+
+  @Ignore
+  @Test
+  public void testTwoStrings() {
+    TwoStringClass t0 = new TwoStringClass("ALPHA", "BRAVO");
+    TwoStringClass t1 = new TwoStringClass("alpha", "BRAVO");
+    TwoStringClass t2 = new TwoStringClass("alpha", "bravo");
+    TwoStringClass t3 = new TwoStringClass("iALPHA".substring(1), "iBRAVO".substring(1));
+    
+    DogTag<TwoStringClass> dogTag = DogTag.from(TwoStringClass.class);
+    TwoStringClass[] array = { t3, t2, t1, t0};
+    TimingUtility.runTestCycles(dogTag, t0, array, PerformanceTest::handCoded, EMPTY_STRING_ARRAY);
+  }
+  
+  // todo: Add 26 strings
+  
+  /** @noinspection PackageVisibleField, UseOfClone */
+  private static class S26 implements Cloneable {
+    // I use new String(String) to avoid the identity check when comparing two identical Strings. 
+    String a = new String("alpha");
+    String b = new String("bravo");
+    String c = new String("Charlie");
+    String d = new String("delta");
+    String e = new String("echo");
+    String f = new String("foxtrot");
+    String g = new String("golf");
+    String h = new String("hotel");
+    String i = new String("indigo");
+    String j = new String("Juliet");
+    String k = new String("kilo");
+    String l = new String("lambda");
+    String m = new String("Mike");
+    String n = new String("November");
+    String o = new String("opera");
+    String p = new String("papa");
+    String q = new String("Quebec");
+    String r = new String("Romeo");
+    String s = new String("sierra");
+    String t = new String("tango");
+    String u = new String("uniform");
+    String v = new String("Victor");
+    String w = new String("whiskey");
+    String x = new String("x-ray");
+    String y = new String("yankee");
+    String z = new String("zulu");
+    
+    @Override
+    public S26 clone() throws CloneNotSupportedException {
+      return (S26) super.clone();
+    }
+  }
+  
+  private static boolean handCoded26(S26 a, S26 b) {
+    //noinspection EqualsReplaceableByObjectsCall
+    return a.a.equals(b.a)
+        && a.b.equals(b.b)
+        && a.c.equals(b.c)
+        && a.d.equals(b.d)
+        && a.e.equals(b.e)
+        && a.f.equals(b.f)
+        && a.g.equals(b.g)
+        && a.h.equals(b.h)
+        && a.i.equals(b.i)
+        && a.j.equals(b.j)
+        && a.k.equals(b.k)
+        && a.l.equals(b.l)
+        && a.m.equals(b.m)
+        && a.n.equals(b.n)
+        && a.o.equals(b.o)
+        && a.p.equals(b.p)
+        && a.q.equals(b.q)
+        && a.r.equals(b.r)
+        && a.s.equals(b.s)
+        && a.t.equals(b.t)
+        && a.u.equals(b.u)
+        && a.v.equals(b.v)
+        && a.w.equals(b.w)
+        && a.x.equals(b.x)
+        && a.y.equals(b.y)
+        && a.z.equals(b.z)
+        ;
+  }
+  
+  @Ignore
+  @Test
+  public void test26() throws CloneNotSupportedException {
+    S26 original = new S26();
+    S26 aa = new S26();
+    aa.a = "mismatch";
+    S26 bb = new S26();
+    bb.b = "mismatch";
+    S26 cc = new S26();
+    cc.c = "mismatch";
+    S26 dd = new S26();
+    dd.d = "mismatch";
+    S26 ee = new S26();
+    ee.e = "mismatch";
+    S26 ff = new S26();
+    ff.f = "mismatch";
+    S26 gg = new S26();
+    gg.g = "mismatch";
+    S26 hh = new S26();
+    hh.h = "mismatch";
+    S26 ii = new S26();
+    ii.i = "mismatch";
+    S26 jj = new S26();
+    jj.j = "mismatch";
+    S26 kk = new S26();
+    kk.k = "mismatch";
+    S26 ll = new S26();
+    ll.l = "mismatch";
+    S26 mm = new S26();
+    mm.m = "mismatch";
+    S26 nn = new S26();
+    nn.n = "mismatch";
+    S26 oo = new S26();
+    oo.o = "mismatch";
+    S26 pp = new S26();
+    pp.p = "mismatch";
+    S26 qq = new S26();
+    qq.q = "mismatch";
+    S26 rr = new S26();
+    rr.r = "mismatch";
+    S26 ss = new S26();
+    ss.s = "mismatch";
+    S26 tt = new S26();
+    tt.t = "mismatch";
+    S26 uu = new S26();
+    uu.u = "mismatch";
+    S26 vv = new S26();
+    vv.v = "mismatch";
+    S26 ww = new S26();
+    ww.w = "mismatch";
+    S26 xx = new S26();
+    xx.x = "mismatch";
+    S26 yy = new S26();
+    yy.y = "mismatch";
+    S26 zz = new S26();
+    zz.z = "mismatch";
+    
+    S26 clone = original.clone();
+    
+    DogTag<S26> dogTag = DogTag.from(S26.class);
+    
+    S26[] i = {original, aa, bb, cc, dd, ee, ff, gg, hh, ii, jj, kk, ll, mm, nn, oo, pp, qq, rr, ss, tt, uu, vv, ww, xx, yy, zz, clone };
+    reverse(i);
+
+    TimingUtility.runTestCycles(dogTag, original, i, PerformanceTest::handCoded26, EMPTY_STRING_ARRAY);
   }
 }

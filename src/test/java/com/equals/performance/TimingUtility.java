@@ -16,6 +16,20 @@ import org.apache.commons.lang3.builder.EqualsBuilder;
 enum TimingUtility {
   ;
 
+  /**
+   * Time the class, comparing DogTag, EqualsBuilder, and hand-coding. This tests a single item with an array of that 
+   * same kind of item. The array consists of a clone of t1, t1 itself, and a number of objects that differ from t1 by
+   * each possible field. The clone should be first, then t13 down to t1, the objects that differ, then t0, for the
+   * identity test last. t13 is the element where the difference will be in the field tested last, and t1, it will be
+   * tested first. 
+   * @param dogTag The DogTag instance
+   * @param t0 The instance of T which all the others will be compared against
+   * @param instances The array of other instances of T. This should start with a clone of t0, Then go for farthest to
+   *                  find a mismatch down to nearest field to find a mismatch, followed by t0 itself.
+   * @param directEqual The hand-coded equals method.
+   * @param excluded Excluded field names. Should match those specified by the DogTag
+   * @param <T> The type being tested
+   */
   static <T> void runTestCycles(DogTag<T> dogTag, final T t0, final T[] instances, final BiFunction<T, T, Boolean> directEqual, String[] excluded) {
     for (int i = 0; i < 4; ++i) {
       //noinspection StringConcatenation
@@ -46,7 +60,7 @@ enum TimingUtility {
     } else {
       label = String.format("Fields Tried %2d:", (count + 1) - i);
     }
-    System.out.printf("%16s\t%5d\t%5d\t%5d%n", label, dtTime, ebTime, drTime); //NON-NLS
+    System.out.printf("%16s\t%5d\t%5d\t%5d\t%8.3f%n", label, dtTime, ebTime, drTime, ((double)ebTime)/dtTime); //NON-NLS
   }
   
   private static <T> Runnable makeRunner(T a, T b, BiFunction<T, T, Boolean> equal) {

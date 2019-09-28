@@ -1,5 +1,6 @@
 # DogTags
-Java Utility to generate a faster ReflectionEquals package
+Java Utility to generate a fast equals and hash code generation using reflection.
+While this capability is covered by `org.apache.commons.lang3.builder.EqualsBuilder`, performance tests show that DogTags run anywhere from 1.5 to 20 times faster, depending on circumstances. The performance gains are greatest for objects with no similarities
 
 Sample usage:
 
@@ -23,9 +24,9 @@ Because the reflection is done when building the static DogTag instance, it is o
 
 The hash code is guaranteed to be consistent with equals(). The equals() method is written according to the guidelines given in **Effective Java**, by Joshua Bloch.
 
-Available options are including transient fields, limiting the reflection to final fields, excluding specific fields, using your own hash code generator, and including ancestor classes in the reflection.
+Available options are discussed below.
 
-## Alternative Approaches
+## Alternative Approaches 
 
 ### 1. Separate Factory
 
@@ -54,7 +55,7 @@ The 2 chief differences are:
 
 1. There is one more line of set-up code
 
-#### Advantages:
+#### Advantages
 
 1) There is less to go wrong in the equals and hashCode implementations.
 
@@ -130,11 +131,46 @@ Keeping all the DogTag factories in a Map feels like a lot of overhead, but it r
 
 This approach has the advantage of having the cleanest public API.
 
+## Building
+
+Build using Maven. DogTags src has no dependencies, and test depends on junit and commons.lang3 (for performance comparisons with EqualsBuilder).
+
+The project is in an experimental state. It's usable in this state, but the API may change.
+
+### Available options are:
+
+#####  Exclusion and Inclusion mode
+Defaults to exclusion mode, where all eligible fields are used unless explicity excluded.
+In inclusion mode, no fields are included unless explicitly included. Fields may be marked
+for inclusion or exclusion by specifying the field name or annotating the field. DogTags provides annotations for including/excluding, but allows you to use your preferred annotation for compatibility with other tools
+
+##### Transients *(exclusion mode only)*
+By default, transients are excluded unless using inclusion mode or enabling the *transients* option. (Transients need no special status in inclusion mode, since nothing is included automatically anyway.) 
+
+##### ReflectUpTo
+Allows you to specify an ancestor class to include ancestral fields. By defualt, only fields from the target class are used, but as many ancestors as you need may be included.
+
+##### HashBuilder
+By default, hash codes are calculated using the same formula as `Objects.hash()`. But you may provide your own hash calculator instead.
+
+##### FinalFieldsOnly  *(exclusion mode only)*
+Only final fields are included. This also allows you to cache the hashed value to improve hashing performance.
+
+##### CachedHash
+Cache the hash value for improved performance. This should be used with caution, and must be explicitly enabled. The current design requires your 'hashCode()' implementation to be written in a certain way, but the alternative approaches (below) will eliminate that requirement and encapsulate all the details of the hash cache.
+
+### Planned Options under Consideration
+##### Specifying Field Order *(inclusion mode only)*
+This will probably be done through the annotations, but could also be specified by the order of the listed properties in inclusion mode.
+
+##### Property Mode
+For situations where a security manager prevents you from using reflected fields, or when getting values by property is more appropriate.
+
 ## What DogTags Don't Do
 In the interest of speed and professional coding practices, there are some things DogTags do not do.
 
-1. They won't detect cyclic dependencies. It is the responsibility of the class designers to keep cyclic dependencies out of their code. Runtime detection only slows you down. This potential problem is better fixed in the code ahead of time, during your development phase.
+1. They don't detect cyclic dependencies. It is the responsibility of the class designers to keep cyclic dependencies out of their code. Runtime detection only slows down the code. This potential problem is better fixed in the code ahead of time, during your development phase.
 
-1. They won't recurse into member classes. Each class has the responsibility to implement its own `equals()` and `hashCode()` methods, and to make them consistent. DogTags assume that all members have fulfilled the method contracts. DogTags guarantee that its `equals()` and `hashCode()` methods will fulfill their contracts correctly, but it always defers the work of comparing two member objects or hashing their values to their own methods. If think you need it to recurse into a custom type, give that type it's own DogTag.
+1. They don't recurse into member classes. Each class has the responsibility to implement its own `equals()` and `hashCode()` methods, and to make them consistent. DogTags assume that all members have fulfilled the method contracts. DogTags guarantee that its `equals()` and `hashCode()` methods will fulfill their contracts correctly, but it always defers the work of comparing two member objects or hashing their values to their own methods. If think you need it to recurse into a custom type, give that type it's own DogTag.
 
-1. They don't eliminate the need for unit testing. Your `equals()` and `hashCode()` methods may not give you exactly what you want on the first try, so they still need to be unit tested. Many things can go wrong. You may be using an option incorrectly. You might have forgotten to include or exclude a certain field, or forgotten to include a needed super class. You may be caching a hashCode that can change value. Also, as your code will be subject to maintenance, bugs could creep in later, and your unit tests may help catch them. Test your code.
+1. They don't eliminate the need for unit testing. Your `equals()` and `hashCode()` methods may not give you exactly what you want on the first try, so they still need to be unit tested. Many things can go wrong. For example, you may be using an option incorrectly, or left out a needed option, or have a cyclic dependency. And since your code will be subject to maintenance, bugs could creep in later, and your unit tests may help catch them. Test your code.
