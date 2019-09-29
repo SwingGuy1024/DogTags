@@ -8,6 +8,8 @@ import org.junit.Test;
 import static com.equals.TestUtility.*; // for verifyMatch__() and verifyNoMatch()
 import static org.junit.Assert.*;
 
+// Todo: Write test of cached hash in inclusion mode
+
 @SuppressWarnings({"HardCodedStringLiteral", "MagicNumber", "MagicCharacter", "ImplicitNumericConversion", "UseOfClone"})
 public class DogTagTest {
   private static final String CHARLIE_INT = "charlieInt";
@@ -59,7 +61,7 @@ public class DogTagTest {
     midTest2.setEchoString("Could you repeat that?");
     verifyMatch__(includeBaseOnly, midTest, midTest2); // should still match,
     
-    DogTag<DogTagTestBase> includeAllButC = DogTag.createForInclusion(DogTagTestBase.class,
+    DogTag<DogTagTestBase> includeAllButC = DogTag.createByInclusion(DogTagTestBase.class,
             "alphaInt",
             "bravoString",
             "deltaLong"

@@ -21,7 +21,7 @@ package com.equals;
  * <p>Time: 9:53 AM
  *
  * @see DogTag#makeCachedHash
- * @see DogTag.DogTagBuilder#withFinalFieldsOnly(boolean) 
+ * @see DogTag.DogTagExclusionBuilder#withFinalFieldsOnly(boolean) 
  * @author Miguel Mu\u00f1oz
  */
 public class CachedHash {

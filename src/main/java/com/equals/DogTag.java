@@ -45,7 +45,7 @@ import java.util.function.Function;
  * although you are free to provide a different hash calculator. Floats and Doubles set to NaN are all treated as equal.
  * <p>
  * Options include testing transient fields, excluding fields, using a cached hash code, and specifying a superclass to
- * include in the reflective process. These options are invoked by using the DogTagBuilder class.
+ * include in the reflective process. These options are invoked by using one of the methods beginning with "create".
  * <pre>
  *   public class MyClass extends MyBaseClass {
  *     // Define various fields, getters, and methods here.
@@ -165,7 +165,7 @@ public final class DogTag<T> {
    * @param <T> The type of the enclosing class.
    * @return A builder for a {@literal DogTag<T>}, from which you can set options and build your DogTag.
    */
-  public static <T> DogTagBuilder<T> create(Class<T> theClass, String... excludedFieldNames) {
+  public static <T> DogTagExclusionBuilder<T> create(Class<T> theClass, String... excludedFieldNames) {
     return new DogTagExclusionBuilder<>(theClass, excludedFieldNames);
   }
 
@@ -191,7 +191,7 @@ public final class DogTag<T> {
    * @param <T>      The type of the enclosing class.
    * @return A builder for a {@literal DogTag<T>}, from which you can set options and build your DogTag.
    */
-  public static <T> DogTagBuilder<T> create(Class<T> theClass, Class<? extends Annotation> exclusionAnnotation) {
+  public static <T> DogTagExclusionBuilder<T> create(Class<T> theClass, Class<? extends Annotation> exclusionAnnotation) {
     return new DogTagExclusionBuilder<>(theClass, exclusionAnnotation);
   }
 
@@ -208,7 +208,7 @@ public final class DogTag<T> {
    * <p>
    * For example:
    * <pre>
-   *     {@literal DogTag<MyClass>} dogTag = DogTag.createForInclusion(MyClass.class, "name", "ssNumber", "email")
+   *     {@literal DogTag<MyClass>} dogTag = DogTag.createByInclusion(MyClass.class, "name", "ssNumber", "email")
    *         .withReflectUpTo(MyBaseClass.class) // options are specified here
    *         .build();
    * </pre>
@@ -220,7 +220,7 @@ public final class DogTag<T> {
    * @param <T>        The type of the enclosing class.
    * @return A builder for a {@literal DogTag<T>}, from which you can set options and build your DogTag.
    */
-  public static <T> DogTagBuilder<T> createForInclusion(Class<T> theClass, String... fieldNames) {
+  public static <T> DogTagInclusionBuilder<T> createByInclusion(Class<T> theClass, String... fieldNames) {
     return new DogTagInclusionBuilder<>(theClass, fieldNames);
   }
 
@@ -235,7 +235,7 @@ public final class DogTag<T> {
    * <p>
    * For example:
    * <pre>
-   *     {@literal DogTag<MyClass>} dogTag = DogTag.createForInclusion(MyClass.class, "name", "ssNumber", "email")
+   *     {@literal DogTag<MyClass>} dogTag = DogTag.createByInclusion(MyClass.class, "name", "ssNumber", "email")
    *         .withReflectUpTo(MyBaseClass.class) // options are specified here
    *         .build();
    * </pre>
@@ -247,7 +247,7 @@ public final class DogTag<T> {
    * @param <T>        The type of the enclosing class.
    * @return A builder for a {@literal DogTag<T>}, from which you can set options and build your DogTag.
    */
-  public static <T> DogTagBuilder<T> createForInclusion(Class<T> theClass, Class<? extends Annotation> inclusionAnnotation) {
+  public static <T> DogTagInclusionBuilder<T> createByInclusion(Class<T> theClass, Class<? extends Annotation> inclusionAnnotation) {
     return new DogTagInclusionBuilder<>(theClass, inclusionAnnotation);
   }
 
@@ -265,12 +265,35 @@ public final class DogTag<T> {
     this.useCache = useCache;
   }
   
-  static final class DogTagExclusionBuilder<T> extends DogTagBuilder<T> {
-
+//  static final class DogTagExclusionBuilder<T> extends DogTagExclusionBuilder<T> {
+//
+//    DogTagExclusionBuilder(Class<T> theClass, String... excludedFields) {
+//      this(theClass, null, excludedFields);
+//    }
+//
+//    DogTagExclusionBuilder(Class<T> theClass, Class<? extends Annotation> exclusionAnnotation) {
+//      this(theClass, exclusionAnnotation, EMPTY_STRING_ARRAY);
+//    }
+//
+//    DogTagExclusionBuilder(Class<T> theClass, Class<? extends Annotation> exclusionAnnotation, String... excludedFields) {
+//      super(theClass, false, DogTagExclude.class, excludedFields);
+//      if (exclusionAnnotation != null) {
+//        addSelectionAnnotation(exclusionAnnotation);
+//      }
+//    }
+//
+//    @Override
+//    protected boolean isFieldSelected(final Field theField) {
+//      return !isSelected(theField);
+//    }
+//  }
+//  
+  static final class DogTagExclusionBuilder<T> extends DogTagInclusionBuilder<T> {
+  
     DogTagExclusionBuilder(Class<T> theClass, String... excludedFields) {
       this(theClass, null, excludedFields);
     }
-
+  
     DogTagExclusionBuilder(Class<T> theClass, Class<? extends Annotation> exclusionAnnotation) {
       this(theClass, exclusionAnnotation, EMPTY_STRING_ARRAY);
     }
@@ -281,78 +304,105 @@ public final class DogTag<T> {
         addSelectionAnnotation(exclusionAnnotation);
       }
     }
+  
+    /**
+     * Set the Transient option, before building the DogTag. Defaults to false. This is used only in exclusion mode.
+     * When true, transient fields will be included, provided they meet all the other criteria. For example, if the
+     * finalFieldsOnly option is also true, then only final and final transient fields are included.
+     * <p>
+     * Calling this method when using inclusion mode will have no effect.
+     *
+     * @param useTransients true if you want transient fields included in the equals and hashCode methods
+     * @return this, for method chaining
+     */
+    @SuppressWarnings("BooleanParameter")
+    public DogTagExclusionBuilder<T> withTransients(boolean useTransients) {
+      testTransients = useTransients;
+      return this;
+    }
+  
+    /**
+     * Set the finalFieldsOnly option, before building the DogTag. Defaults to false. This option is only used in
+     * Exclusion mode. Enabling this option also enables the cachedHash option, although the use of a cached hash code
+     * remains optional.
+     * <p>
+     * Calling this method when using inclusion mode will have no effect.
+     *
+     * @param finalFieldsOnly true if you want to limit fields to only those that are declared final. If the transient
+     *                        option is also true, then only final and final transient fields are included.
+     * @return this, for method chaining
+     */
+    public DogTagExclusionBuilder<T> withFinalFieldsOnly(boolean finalFieldsOnly) {
+      this.finalFieldsOnly = finalFieldsOnly;
+      if (finalFieldsOnly) {
+        useCachedHash = true;
+      }
+      return this;
+    }
 
     @Override
     protected boolean isFieldSelected(final Field theField) {
       return !isSelected(theField);
     }
-  }
-  
-  /** @noinspection AssignmentToSuperclassField*/
-  static final class DogTagInclusionBuilder<T> extends DogTagBuilder<T> {
-    DogTagInclusionBuilder(Class<T> theClass, String... includedFields) {
-      this(theClass, null, includedFields);
-    }
-    
-    DogTagInclusionBuilder(Class<T> theClass, Class<? extends Annotation> inclusionAnnotation) {
-      this(theClass, inclusionAnnotation, EMPTY_STRING_ARRAY);
-    }
+  // All inherited "with<Option> methods must be overridden to return DogTagExclusionBuilder instead of the
+  // default DogTagInclusionBuilder:
 
-    DogTagInclusionBuilder(Class<T> theClass, Class<? extends Annotation> inclusionAnnotation, String... includedFields) {
-      super(theClass, true, DogTagInclude.class, includedFields);
-      if (inclusionAnnotation != null) {
-        addSelectionAnnotation(inclusionAnnotation);
-      }
+    @Override
+    public DogTagExclusionBuilder<T> withHashBuilder(final int startingHash, final HashBuilder hashBuilder) {
+      return (DogTagExclusionBuilder<T>) super.withHashBuilder(startingHash, hashBuilder);
     }
 
     @Override
-    protected boolean isFieldSelected(final Field theField) {
-      return isSelected(theField);
+    public DogTagExclusionBuilder<T> withReflectUpTo(final Class<? super T> reflectUpTo) {
+      return (DogTagExclusionBuilder<T>) super.withReflectUpTo(reflectUpTo);
+    }
+  
+    @Override
+    public DogTagExclusionBuilder<T> withCachedHash(final boolean useCachedHash) {
+      return (DogTagExclusionBuilder<T>) super.withCachedHash(useCachedHash);
     }
   }
 
-  abstract static class DogTagBuilder<T> {
-    static final String[] EMPTY_STRING_ARRAY = new String[0];
-    
-    // fields initialized in constructor
-    private final boolean useInclusionMode;
-    private final Class<T> targetClass;
-    private final String[] selectedFieldNames;
-    private Class<? super T> lastSuperClass;    // not final. May change with options.
-    
-    // pre-initialized fields
-    private boolean testTransients = false;
-    private int startingHash = 1;
-    private boolean finalFieldsOnly = false;
-    private boolean useCachedHash = false;
-    private static final HashBuilder defaultHashBuilder = (int h, Object o) -> (h * 31) + o.hashCode(); // Same as Objects.class
-    private HashBuilder hashBuilder = defaultHashBuilder; // Reuse the same HashBuilder
-    private final List<Class<? extends Annotation>> flaggedList;
-    private Set<Field> selectedFields = new HashSet<>();
+  /** @noinspection AssignmentToSuperclassField*/
+  static class DogTagInclusionBuilder<T> {
 
-    protected DogTagBuilder(Class<T> theClass, boolean inclusionMode, Class<? extends Annotation> defaultSelectionAnnotation, String[] selectedFieldNames) {
+    static final String[] EMPTY_STRING_ARRAY = new String[0];
+    // fields initialized in constructor
+    protected final boolean useInclusionMode;
+    protected final Class<T> targetClass;
+    protected final String[] selectedFieldNames;
+
+    protected Class<? super T> lastSuperClass;    // not final. May change with options.
+    // pre-initialized fields
+    protected int startingHash = 1;
+    protected boolean finalFieldsOnly = false;
+    protected boolean useCachedHash = false;
+    private static final HashBuilder defaultHashBuilder = (int h, Object o) -> (h * 31) + o.hashCode(); // Same as Objects.class
+    protected HashBuilder hashBuilder = defaultHashBuilder; // Reuse the same HashBuilder
+    private final List<Class<? extends Annotation>> flaggedList;
+    protected Set<Field> selectedFields = new HashSet<>();
+
+    protected boolean testTransients = false;
+
+    DogTagInclusionBuilder(Class<T> theClass, String... includedFields) {
+      this(theClass, true, DogTagInclude.class, includedFields);
+    }
+
+    DogTagInclusionBuilder(Class<T> theClass, Class<? extends Annotation> inclusionAnnotation) {
+      this(theClass, true, DogTagInclude.class, EMPTY_STRING_ARRAY);
+      addSelectionAnnotation(inclusionAnnotation);
+    }
+
+    protected DogTagInclusionBuilder(Class<T> theClass, boolean inclusionMode, Class<? extends Annotation> defaultSelectionAnnotation, String[] selectedFieldNames) {
       targetClass = theClass;
       lastSuperClass = targetClass;
       this.selectedFieldNames = Arrays.copyOf(selectedFieldNames, selectedFieldNames.length);
       flaggedList = new LinkedList<>(Collections.singleton(defaultSelectionAnnotation));
       useInclusionMode = inclusionMode;
     }
-    
+
     protected void addSelectionAnnotation(Class<? extends Annotation> selectionAnnotation) {
       flaggedList.add(selectionAnnotation);
-    }
-
-    /**
-     * Set the Transient option, before building the DogTag. Defaults to false. When true, transient fields will be
-     * included, provided they meet all the other criteria. For example, if the finalFieldsOnly option is also true, 
-     * then only final and final transient fields are included.
-     * @param useTransients true if you want transient fields included in the equals and hashCode methods
-     * @return this, for method chaining
-     */
-    @SuppressWarnings("BooleanParameter")
-    public DogTagBuilder<T> withTransients(boolean useTransients) {
-      testTransients = useTransients;
-      return this;
     }
 
     /**
@@ -388,10 +438,11 @@ public final class DogTag<T> {
      * Specify the superclass of the DogTag Type parameter class to include in the equals and hash code calculations.
      * The classes inspected for fields to use are those of the type class, the specified superclass, and any
      * class that is a superclass of the type class and a subclass of the specified superclass.
+     *
      * @param reflectUpTo The superclass, up to which are inspected for fields to include.
      * @return this, for method chaining
      */
-    public DogTagBuilder<T> withReflectUpTo(Class<? super T> reflectUpTo) {
+    public DogTagInclusionBuilder<T> withReflectUpTo(Class<? super T> reflectUpTo) {
       lastSuperClass = reflectUpTo;
       return this;
     }
@@ -399,45 +450,43 @@ public final class DogTag<T> {
     /**
      * Specify a custom formula for building a single hash value out of a series of hash values. The default
      * formula matches the one used by java.util.Objects.hash(Object...)
+     *
      * @param startingHash The starting value.
-     * @param hashBuilder The formula for adding additional hash values.
+     * @param hashBuilder  The formula for adding additional hash values.
      * @return this, for method chaining
      * @see HashBuilder
      */
-    public DogTagBuilder<T> withHashBuilder(int startingHash, HashBuilder hashBuilder) {
+    public DogTagInclusionBuilder<T> withHashBuilder(int startingHash, HashBuilder hashBuilder) {
       this.startingHash = startingHash;
       this.hashBuilder = hashBuilder;
       return this;
     }
 
     /**
-     * Set the finalFieldsOnly option, before building the DogTag. Defaults to false. Setting this to true also
-     * sets use CachedHash to true. Enabling this option also enables the useCachedHash option, although the use of
-     * a cached hash code remains optional.
-     * @param finalFieldsOnly true if you want to limit fields to only those that are declared final. If the transient
-     *                        option is also true, then only final and final transient fields are included.
-     * @return this, for method chaining
-     */
-    public DogTagBuilder<T> withFinalFieldsOnly(boolean finalFieldsOnly) {
-      this.finalFieldsOnly = finalFieldsOnly;
-      if (finalFieldsOnly) {
-        useCachedHash = true;
-      }
-      return this;
-    }
-
-    /**
-     * Use a CachedHash to cache the hash value when only final fields are used to build the DogTag. Enabling the  
+     * Use a CachedHash to cache the hash value when only final fields are used to build the DogTag. Enabling the
      * finalFieldsOnly option automatically enables this option, but you may use this method to set it manually.
+     * <p>
+     * This option should be used with extreme caution. Even if you specify only final fields, this will fail if, for
+     * example, the final fields are themselves mutable. For a hashCode to be eligible for the correct use of this
+     * option, the following two conditions must be true of every field you include in your DogTag:
+     * <br>
+     * 1. It must not be possible to change the value once the owning object has been constructed.<br>
+     * 2. If the field is an Object, All if its internal fields used in its hash code calculation must meet both of these conditions.
+     * <p>
+     * The second, of course, makes this recursive. In other words, if any field anywhere in the object tree of any
+     * field is used to calculate a hash code, that field cannot change value once the outermost element of the tree
+     * is constructed.
+     *
      * @see CachedHash
      */
-    public DogTagBuilder<T> withCachedHash(boolean useCachedHash) {
+    public DogTagInclusionBuilder<T> withCachedHash(boolean useCachedHash) {
       this.useCachedHash = useCachedHash;
       return this;
     }
 
     /**
      * Once options are specified, build the DogTag instance for the Type. Options may be specified in any order.
+     *
      * @return A {@code DogTag<T>} that uses the specified options.
      */
     public DogTag<T> build() {
@@ -468,7 +517,7 @@ public final class DogTag<T> {
               && !isCache
               // transients are tested only in exclusion mode
               && (testTransients || useInclusionMode || !Modifier.isTransient(modifiers))
-              && (!finalFieldsOnly || fieldIsFinal)
+              && (!finalFieldsOnly || useInclusionMode || fieldIsFinal)
               && isFieldSelected(field)
               && (field.getName().indexOf('$') < 0)
           ) {
@@ -503,12 +552,14 @@ public final class DogTag<T> {
         searchField.add(getFieldFromName(fieldName));
       }
     }
-    
+
     protected boolean isSelected(Field theField) {
       return selectedFields.contains(theField) || isAnnotatedWith(theField, flaggedList);
     }
-    
-    protected abstract boolean isFieldSelected(Field theField);
+
+    protected boolean isFieldSelected(final Field theField) {
+      return isSelected(theField);
+    }
 
     private boolean isAnnotatedWith(Field field, List<Class<? extends Annotation>> annotationList) {
       for (Class<? extends Annotation> annotationClass : annotationList) {

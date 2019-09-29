@@ -140,7 +140,7 @@ public class DogTagAnnotationTest {
 
     // Test Inclusion Mode.
     
-    DogTag<TestClassOne> dogTagInclude = DogTag.createForInclusion(TestClassOne.class) // include charlie
+    DogTag<TestClassOne> dogTagInclude = DogTag.createByInclusion(TestClassOne.class) // include charlie
         .build();
     verifyMatch__(dogTagInclude, t123, t153); // a, c match
     verifyNoMatch(dogTagInclude, t123, t124); // a, b
@@ -149,7 +149,7 @@ public class DogTagAnnotationTest {
     verifyNoMatch(dogTagInclude, t124, t623); // b
     verifyMatch__(dogTagInclude, t153, t623); // c
 
-    DogTag<TestClassOne> dogTagIncludeAnn = DogTag.createForInclusion(TestClassOne.class, TestInclude.class) // include alpha, charlie
+    DogTag<TestClassOne> dogTagIncludeAnn = DogTag.createByInclusion(TestClassOne.class, TestInclude.class) // include alpha, charlie
         .build();
     verifyMatch__(dogTagIncludeAnn, t123, t153); // a, c match
     verifyNoMatch(dogTagIncludeAnn, t123, t124); // a, b
@@ -158,7 +158,7 @@ public class DogTagAnnotationTest {
     verifyNoMatch(dogTagIncludeAnn, t124, t623); // b
     verifyNoMatch(dogTagIncludeAnn, t153, t623); // c
 
-    DogTag<TestClassTwo> dTI = DogTag.createForInclusion(TestClassTwo.class) // Include echo
+    DogTag<TestClassTwo> dTI = DogTag.createByInclusion(TestClassTwo.class) // Include echo
         .build();
     verifyMatch__(dTI, t123456, t173456); // b, f differ
     verifyMatch__(dTI, t123456, t723456); // a
@@ -174,7 +174,7 @@ public class DogTagAnnotationTest {
     verifyNoMatch(dTI, t123456, t123886); // d, e
     verifyNoMatch(dTI, t123456, t828886); // a, c, d, e
 
-    DogTag<TestClassTwo> dTIs = DogTag.createForInclusion(TestClassTwo.class) // include charlie, echo
+    DogTag<TestClassTwo> dTIs = DogTag.createByInclusion(TestClassTwo.class) // include charlie, echo
         .withReflectUpTo(TestClassOne.class)
         .build();
     verifyMatch__(dTIs, t123456, t173456); // b, f differ
@@ -191,7 +191,7 @@ public class DogTagAnnotationTest {
     verifyNoMatch(dTIs, t123456, t123886); // d, e
     verifyNoMatch(dTIs, t123456, t828886); // a, c, d, e
 
-    DogTag<TestClassTwo> dTI2 = DogTag.createForInclusion(TestClassTwo.class, TestInclude.class) // include delta, echo
+    DogTag<TestClassTwo> dTI2 = DogTag.createByInclusion(TestClassTwo.class, TestInclude.class) // include delta, echo
         .build();
     verifyMatch__(dTI2, t123456, t173456); // b, f differ
     verifyMatch__(dTI2, t123456, t723456); // a
@@ -207,7 +207,7 @@ public class DogTagAnnotationTest {
     verifyNoMatch(dTI2, t123456, t123886); // d, e
     verifyNoMatch(dTI2, t123456, t828886); // a, c, d, e
 
-    DogTag<TestClassTwo> dTI2s = DogTag.createForInclusion(TestClassTwo.class, TestInclude.class) // include alpha, charlie, delta, echo
+    DogTag<TestClassTwo> dTI2s = DogTag.createByInclusion(TestClassTwo.class, TestInclude.class) // include alpha, charlie, delta, echo
         .withReflectUpTo(TestClassOne.class)
         .build();
     verifyMatch__(dTI2s, t123456, t173456); // b, f differ
