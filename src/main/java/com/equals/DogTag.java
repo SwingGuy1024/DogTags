@@ -317,7 +317,7 @@ public final class DogTag<T> {
      */
     @SuppressWarnings("BooleanParameter")
     public DogTagExclusionBuilder<T> withTransients(boolean useTransients) {
-      testTransients = useTransients;
+      withTransientsHidden(useTransients);
       return this;
     }
   
@@ -333,9 +333,9 @@ public final class DogTag<T> {
      * @return this, for method chaining
      */
     public DogTagExclusionBuilder<T> withFinalFieldsOnly(boolean finalFieldsOnly) {
-      this.finalFieldsOnly = finalFieldsOnly;
+      withFinalFieldsOnlyHidden(finalFieldsOnly);
       if (finalFieldsOnly) {
-        useCachedHash = true;
+        withCachedHash(true);
       }
       return this;
     }
@@ -368,21 +368,22 @@ public final class DogTag<T> {
 
     static final String[] EMPTY_STRING_ARRAY = new String[0];
     // fields initialized in constructor
-    protected final boolean useInclusionMode;
-    protected final Class<T> targetClass;
-    protected final String[] selectedFieldNames;
-
-    protected Class<? super T> lastSuperClass;    // not final. May change with options.
-    // pre-initialized fields
-    protected int startingHash = 1;
-    protected boolean finalFieldsOnly = false;
-    protected boolean useCachedHash = false;
-    private static final HashBuilder defaultHashBuilder = (int h, Object o) -> (h * 31) + o.hashCode(); // Same as Objects.class
-    protected HashBuilder hashBuilder = defaultHashBuilder; // Reuse the same HashBuilder
+    private final boolean useInclusionMode;
+    private final Class<T> targetClass;
+    private final String[] selectedFieldNames;
     private final List<Class<? extends Annotation>> flaggedList;
-    protected Set<Field> selectedFields = new HashSet<>();
 
-    protected boolean testTransients = false;
+    private Class<? super T> lastSuperClass;    // not final. May change with options.
+
+    // pre-initialized fields
+    private int startingHash = 1;
+    /** @noinspection BooleanVariableAlwaysNegated*/
+    private boolean finalFieldsOnly = false;
+    private boolean useCachedHash = false;
+    private static final HashBuilder defaultHashBuilder = (int h, Object o) -> (h * 31) + o.hashCode(); // Same as Objects.class
+    private HashBuilder hashBuilder = defaultHashBuilder; // Reuse the same HashBuilder
+    private Set<Field> selectedFields = new HashSet<>();
+    private boolean testTransients = false;
 
     DogTagInclusionBuilder(Class<T> theClass, String... includedFields) {
       this(theClass, true, DogTagInclude.class, includedFields);
@@ -461,7 +462,7 @@ public final class DogTag<T> {
       this.hashBuilder = hashBuilder;
       return this;
     }
-
+    
     /**
      * Use a CachedHash to cache the hash value when only final fields are used to build the DogTag. Enabling the
      * finalFieldsOnly option automatically enables this option, but you may use this method to set it manually.
@@ -482,6 +483,16 @@ public final class DogTag<T> {
     public DogTagInclusionBuilder<T> withCachedHash(boolean useCachedHash) {
       this.useCachedHash = useCachedHash;
       return this;
+    }
+
+    // protected and called "hidden" to avoid confusion with the subclass's public method, and inheritance errors
+    protected void withFinalFieldsOnlyHidden(boolean finalFieldsOnly) {
+      this.finalFieldsOnly = finalFieldsOnly;
+    }
+
+    // protected and called "hidden" to avoid confusion with the subclass's public method, and inheritance errors
+    protected void withTransientsHidden(boolean useTransients) {
+      this.testTransients = useTransients;
     }
 
     /**
