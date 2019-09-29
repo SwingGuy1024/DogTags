@@ -20,6 +20,11 @@ public class DogTagHashTest {
         .withHashBuilder(1, (int i, Object v) -> (i * 4567) + v.hashCode())
         .build();
     assertEquals(787738377, revisedDogTag.doHashCode(tc1));
+    
+    DogTag<TestClassOne> inclusionDogTag = DogTag.createByInclusion(TestClassOne.class, "alpha", "bravo", "charlie")
+        .withHashBuilder(1, (int i, Object v) -> (i * 4567) + v.hashCode())
+        .build();
+    assertEquals(787738377, inclusionDogTag.doHashCode(tc1));
   }
   
   @Test
@@ -114,6 +119,31 @@ public class DogTagHashTest {
     assertEquals(t5.hashCode(), t5.hashCode());
     
     assertEquals(t1.toString(), String.valueOf(t1.hashCode()));
+    
+    // Test cache in inclusion mode
+    
+    DogTag<TestClassWithCache> dogTagInclusion = DogTag.createByInclusion(TestClassWithCache.class, "delta", "echo")
+        .withCachedHash(true)
+        .build();
+    
+    final CachedHash cachedHash = dogTagInclusion.makeCachedHash();
+    h1 = dogTagInclusion.doHashCode(t1, cachedHash);
+    //noinspection MagicNumber
+    setEcho(t1, 99); // If the hash code is cached, changing an included field shouldn't change the hash code.
+    assertEquals(h1, dogTagInclusion.doHashCode(t1, cachedHash));
+    //noinspection MagicNumber
+    setEcho(t1, 98); // If the hash code is cached, changing an included field shouldn't change the hash code.
+    assertEquals(h1, dogTagInclusion.doHashCode(t1, cachedHash));
+  }
+  
+  private void setEcho(TestClassWithCache instance, int newValue) {
+    try {
+      Field echoField = TestClassWithCache.class.getDeclaredField("echo");
+      echoField.setAccessible(true);
+      echoField.set(instance, newValue);
+    } catch (NoSuchFieldException | IllegalAccessException e) {
+      throw new AssertionError(e);
+    }
   }
 
   /**
@@ -194,7 +224,7 @@ public class DogTagHashTest {
       return foxTrot;
     }
 
-    public void setFoxTrot(final int foxTrot) {
+    void setFoxTrot(final int foxTrot) {
       this.foxTrot = foxTrot;
     }
 

@@ -5,6 +5,8 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Objects;
 import com.equals.DogTag;
+import com.equals.DogTagExclude;
+import com.equals.DogTagInclude;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -166,7 +168,11 @@ public class PerformanceTest {
     TestClass(int alpha, String bravo) {
       super(alpha, bravo);
     }
+    
+    @DogTagExclude // Just to get rid of the warning in DogTagExclude.java that says 'class may be package private.'
+    private static final int unused = 0;
 
+    @DogTagInclude // Just to get rid of the warning in DogTagInclude.java that says 'class may be package private.'
     private int[] novemberIntArray = {11, 12, 13};
     private String[] operaStringArray = {"papa", "quebec", "romeo", "sierra", "tango"};
     private long[] papaLongArray = {1L, 3L, 6L, 10L, 15L, 21L, 28L, 36L, 45L};
