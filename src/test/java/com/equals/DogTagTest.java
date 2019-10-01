@@ -10,7 +10,7 @@ import static org.junit.Assert.*;
 
 // Todo: Write test of cached hash in inclusion mode
 
-@SuppressWarnings({"HardCodedStringLiteral", "MagicNumber", "MagicCharacter", "ImplicitNumericConversion", "UseOfClone"})
+@SuppressWarnings({"HardCodedStringLiteral", "MagicNumber", "MagicCharacter", "ImplicitNumericConversion", "UseOfClone", "AccessStaticViaInstance", "EqualsReplaceableByObjectsCall"})
 public class DogTagTest {
   private static final String CHARLIE_INT = "charlieInt";
 
@@ -239,7 +239,6 @@ public class DogTagTest {
         .build();
   }
 
-  /** @noinspection AccessStaticViaInstance*/
   @Test
   public void testNoStatic() {
     DogTagTestTail tail = new DogTagTestTail();
@@ -358,17 +357,17 @@ public class DogTagTest {
     dogTag.doHashCode(tail2); // just make sure we can get a hashCode with that null member.
   }
 
+  @SuppressWarnings({"EqualsBetweenInconvertibleTypes", "LiteralAsArgToStringEquals", "ResultOfMethodCallIgnored"})
   @Test(expected = AssertionError.class)
   public void testDisabledEqualsMethod() {
     DogTag<DogTagTestBase> dogTag = DogTag.from(DogTagTestBase.class);
-    //noinspection EqualsReplaceableByObjectsCall,EqualsBetweenInconvertibleTypes,ResultOfMethodCallIgnored,LiteralAsArgToStringEquals
     dogTag.equals("xx");
   }
 
+  @SuppressWarnings("ResultOfMethodCallIgnored")
   @Test(expected = AssertionError.class)
   public void testDisabledHashCodeMethod() {
     DogTag<DogTagTestBase> dogTag = DogTag.from(DogTagTestBase.class);
-    //noinspection ResultOfMethodCallIgnored
     dogTag.hashCode();
   }
 
@@ -482,6 +481,7 @@ public class DogTagTest {
     verifyNoMatch(dogTag, tail1, tail2);
   }
 
+  @SuppressWarnings("ResultOfObjectAllocationIgnored")
   @Test(expected = AssertionError.class)
   public void testBadClass() {
     // Test for case where dogTag is not static. This would seriously slow down the equals and hashCode methods, since
@@ -489,7 +489,6 @@ public class DogTagTest {
     // even work, because it would get included in the list of fields, so equals() and hashCode() methods will throw
     // an AssertionError! So we throw an exception when the dogTag is constructed. We test that exception here.
 
-    //noinspection ResultOfObjectAllocationIgnored
     new BadClass();
   }
 

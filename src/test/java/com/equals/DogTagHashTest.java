@@ -7,9 +7,8 @@ import static org.junit.Assert.*;
 
 import org.junit.Test;
 
-/** @noinspection HardCodedStringLiteral*/
+@SuppressWarnings({"MagicNumber", "HardCodedStringLiteral", "ResultOfObjectAllocationIgnored", "EqualsWhichDoesntCheckParameterClass"})
 public class DogTagHashTest {
-  @SuppressWarnings("MagicNumber")
   @Test
   public void testHashBuilder() {
     TestClassOne tc1 = new TestClassOne(1, 2, 3);
@@ -128,10 +127,8 @@ public class DogTagHashTest {
     
     final CachedHash cachedHash = dogTagInclusion.makeCachedHash();
     h1 = dogTagInclusion.doHashCode(t1, cachedHash);
-    //noinspection MagicNumber
     setEcho(t1, 99); // If the hash code is cached, changing an included field shouldn't change the hash code.
     assertEquals(h1, dogTagInclusion.doHashCode(t1, cachedHash));
-    //noinspection MagicNumber
     setEcho(t1, 98); // If the hash code is cached, changing an included field shouldn't change the hash code.
     assertEquals(h1, dogTagInclusion.doHashCode(t1, cachedHash));
   }
@@ -151,7 +148,6 @@ public class DogTagHashTest {
    */
   @Test(expected = AssertionError.class)
   public void testStaticCache() {
-    //noinspection ResultOfObjectAllocationIgnored
     new TestStaticCache(5);
   }
 
@@ -160,7 +156,6 @@ public class DogTagHashTest {
    */
   @Test(expected = AssertionError.class)
   public void testNonFinalField() {
-    //noinspection ResultOfObjectAllocationIgnored
     new TestNonFinalCache(5);
   }
 
@@ -169,7 +164,6 @@ public class DogTagHashTest {
    */
   @Test(expected = AssertionError.class)
   public void testWithoutCache() {
-    //noinspection ResultOfObjectAllocationIgnored
     new TestWithoutCache(5);
   }
 
@@ -199,8 +193,7 @@ public class DogTagHashTest {
     }
   }
 
-  /** @noinspection unused*/
-  @SuppressWarnings("PackageVisibleField")
+  @SuppressWarnings({"PackageVisibleField", "unused"})
   private static class TestClassWithCache {
     private final int delta;
     private final int echo;
@@ -251,7 +244,7 @@ public class DogTagHashTest {
     }
   }
   
-  /** @noinspection EqualsWhichDoesntCheckParameterClass, unused */
+  @SuppressWarnings("unused")
   private static class TestStaticCache {
     private final int golf;
     TestStaticCache(int golf) {
@@ -279,7 +272,7 @@ public class DogTagHashTest {
     }
   }
 
-  /** @noinspection EqualsWhichDoesntCheckParameterClass, unused */
+  @SuppressWarnings("unused")
   private static class TestNonFinalCache {
     private int golf;
 
@@ -312,7 +305,7 @@ public class DogTagHashTest {
     }
   }
   
-  /** @noinspection unused*/
+  @SuppressWarnings("unused")
   private static class TestWithoutCache {
     private final int golf;
 

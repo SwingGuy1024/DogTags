@@ -48,9 +48,11 @@ enum TimingUtility {
     Runnable dogTagRunner = makeRunner(t1, t2, dogTagTest);
     Runnable eBRunner = makeRunner(t1, t2, (a, b) -> EqualsBuilder.reflectionEquals(a, b, excluded));
     Runnable directRunner = makeRunner(t1, t2, direct);
+    Runnable eB2Runner = makeRunner(t1, t2, Object::equals);
     long dtTime = time(dogTagRunner, iterations);
     long ebTime = time(eBRunner, iterations);
     long drTime = time(directRunner, iterations);
+    long d2Time = time(eB2Runner, iterations);
 
     String label;
     if (i == 0) {
@@ -60,7 +62,7 @@ enum TimingUtility {
     } else {
       label = String.format("Fields Tried %2d:", (count + 1) - i);
     }
-    System.out.printf("%16s\t%5d\t%5d\t%5d\t%8.3f%n", label, dtTime, ebTime, drTime, ((double)ebTime)/dtTime); //NON-NLS
+    System.out.printf("%16s\t%5d\t%5d\t%5d\t%5d\t%8.3f%n", label, dtTime, ebTime, drTime, d2Time, ((double)ebTime)/dtTime); //NON-NLS
   }
   
   private static <T> Runnable makeRunner(T a, T b, BiFunction<T, T, Boolean> equal) {

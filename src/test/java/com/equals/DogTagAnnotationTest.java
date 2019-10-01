@@ -14,8 +14,8 @@ import static com.equals.TestUtility.*;
  * <p>Time: 12:39 AM
  *
  * @author Miguel Mu\u00f1oz
- * @noinspection HardCodedStringLiteral
  */
+@SuppressWarnings("HardCodedStringLiteral")
 public class DogTagAnnotationTest {
   // TODO: test that useTransients is ignored in Inclusion mode.
   // TODO: test that @DogTagExclude can override withTransients(true)
@@ -261,10 +261,7 @@ public class DogTagAnnotationTest {
     }
   }
 
-  /**
-   * @noinspection unused
-   */
-  @SuppressWarnings("PackageVisibleField")
+  @SuppressWarnings({"PackageVisibleField", "unused"})
   private static class TestClassTwo extends TestClassOne {
     @TestExclude
     @TestInclude

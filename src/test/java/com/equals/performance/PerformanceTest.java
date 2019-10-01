@@ -7,6 +7,7 @@ import java.util.Objects;
 import com.equals.DogTag;
 import com.equals.DogTagExclude;
 import com.equals.DogTagInclude;
+import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -18,7 +19,6 @@ import static com.equals.performance.TimingUtility.reverse;
  * <p>Time: 11:36 PM
  *
  * @author Miguel Mu\u00f1oz
- * @noinspection EqualsReplaceableByObjectsCall, AccessingNonPublicFieldOfAnotherObject, UseOfClone
  */
 @SuppressWarnings({"MagicNumber", "HardCodedStringLiteral", "MagicCharacter", "HardcodedLineSeparator", "UnnecessaryBoxing", "RedundantStringConstructorCall"})
 public class PerformanceTest {
@@ -93,34 +93,6 @@ public class PerformanceTest {
     TimingUtility.runTestCycles(dogTagNoArrays, t0, pInstances, PerformanceTest::singleValueDirectEqual, EMPTY_STRING_ARRAY);
   }
 
-  @SuppressWarnings("EqualsReplaceableByObjectsCall")
-  private static boolean isEqual(TestClass t1, TestClass t2) {
-    //noinspection ObjectEquality
-    if (t1 == t2) {
-      return true;
-    }
-    return (t1.getAlphaInt() == t2.getAlphaInt())
-        && t1.getBravoString().equals(t2.getBravoString())
-        && (t1.getCharlieInt() == t2.getCharlieInt())
-        && (t1.getDeltaLong() == t2.getDeltaLong())
-        && t1.getEchoString().equals(t2.getEchoString())
-        && t1.getFoxtrotPoint().equals(t2.getFoxtrotPoint())
-        && (t1.getHotelByte() == t2.getHotelByte())
-        && (t1.isJulietBoolean() == t2.isJulietBoolean())
-        && (t1.getKiloShort() == t2.getKiloShort())
-        && Double.valueOf(t1.getLimaDouble()).equals(t2.getLimaDouble())
-        && Float.valueOf(t1.getMikeFloat()).equals(t2.getMikeFloat())
-        && Arrays.equals(t1.getNovemberIntArray(), t2.getNovemberIntArray())
-        && Arrays.equals(t1.getOperaStringArray(), t2.getOperaStringArray())
-        && Arrays.equals(t1.getPapaLongArray(), t2.getPapaLongArray())
-        && Arrays.equals(t1.getQuebecShortArray(), t2.getQuebecShortArray())
-        && Arrays.equals(t1.getRomeoByteArray(), t2.getRomeoByteArray())
-        && Arrays.equals(t1.getSierraCharArray(), t2.getSierraCharArray())
-        && Arrays.equals(t1.getTangoBooleanArray(), t2.getTangoBooleanArray())
-        && Arrays.equals(t1.getUniformFloatArray(), t2.getUniformFloatArray())
-        && Arrays.equals(t1.getVictorDoubleArray(), t2.getVictorDoubleArray())
-        && Arrays.equals(t1.getWhiskeyObjectArray(), t2.getWhiskeyObjectArray());
-  }
   
   private static boolean singleValueDirectEqual(SingleValueTestClass t1, SingleValueTestClass t2) {
     //noinspection ObjectEquality
@@ -157,13 +129,8 @@ public class PerformanceTest {
     return dup;
   }
 
-  /** @noinspection CachedNumberConstructorCall, deprecation */
-  @SuppressWarnings({"AssignmentOrReturnOfFieldWithMutableType", "WeakerAccess", "MagicCharacter", "MagicNumber", "HardCodedStringLiteral", "ImplicitNumericConversion"})
+  @SuppressWarnings({"AssignmentOrReturnOfFieldWithMutableType", "WeakerAccess", "MagicCharacter", "MagicNumber", "HardCodedStringLiteral", "ImplicitNumericConversion", "EqualsAndHashcode"})
   private static class TestClass extends SingleValueTestClass {
-
-    TestClass() {
-      this(1, "bravo");
-    }
 
     TestClass(int alpha, String bravo) {
       super(alpha, bravo);
@@ -264,12 +231,10 @@ public class PerformanceTest {
       this.whiskeyObjectArray = whiskeyObjectArray;
     }
 
-    @Override
     public TestClass duplicate() {
       return duplicate(getAlphaInt(), getBravoString());
     }
 
-    @Override
     public TestClass duplicate(int alpha, String bravo) {
       TestClass tail = new TestClass(alpha, bravo);
       tail.setCharlieInt(getCharlieInt());
@@ -295,15 +260,42 @@ public class PerformanceTest {
       tail.setWhiskeyObjectArray(getWhiskeyObjectArray());
       return tail;
     }
+
+    @Override
+    public boolean equals(final Object obj) {
+      if (obj == this) { return true; }
+      if (!(obj instanceof TestClass)) { return false; }
+      TestClass tc = (TestClass) obj;
+      return new EqualsBuilder()
+          .append(getAlphaInt(), tc.getAlphaInt())
+          .append(getBravoString(), tc.getBravoString())
+          .append(getCharlieInt(), tc.getCharlieInt())
+          .append(getDeltaLong(), tc.getDeltaLong())
+          .append(getEchoString(), tc.getEchoString())
+          .append(getFoxtrotPoint(), tc.getFoxtrotPoint())
+          .append(getGolfInt(), tc.getGolfInt())
+          .append(getHotelByte(), tc.getHotelByte())
+          .append(getIndigoChar(), tc.getIndigoChar())
+          .append(isJulietBoolean(), tc.isJulietBoolean())
+          .append(getKiloShort(), tc.getKiloShort())
+          .append(getLimaDouble(), tc.getLimaDouble())
+          .append(getMikeFloat(), tc.getMikeFloat())
+          .append(getNovemberIntArray(), tc.getNovemberIntArray())
+          .append(getOperaStringArray(), tc.getOperaStringArray())
+          .append(getPapaLongArray(), tc.getPapaLongArray())
+          .append(getQuebecShortArray(), tc.getQuebecShortArray())
+          .append(getRomeoByteArray(), tc.getRomeoByteArray())
+          .append(getSierraCharArray(), tc.getSierraCharArray())
+          .append(getTangoBooleanArray(), tc.getTangoBooleanArray())
+          .append(getUniformFloatArray(), tc.getUniformFloatArray())
+          .append(getVictorDoubleArray(), tc.getVictorDoubleArray())
+          .append(getWhiskeyObjectArray(), tc.getWhiskeyObjectArray())
+          .isEquals();
+    }
   }
 
-  /** @noinspection CachedNumberConstructorCall*/
-  @SuppressWarnings("WeakerAccess")
+  @SuppressWarnings({"WeakerAccess", "EqualsAndHashcode"})
   private static class SingleValueTestClass {
-    SingleValueTestClass() {
-      this(1, "bravo");
-    }
-
     SingleValueTestClass(int alpha, String bravo) {
       alphaInt = alpha;
       // I use new String(String) to avoid the identity check when comparing two identical Strings. 
@@ -420,29 +412,35 @@ public class PerformanceTest {
     public void setMikeFloat(float mikeFloat) {
       this.mikeFloat = mikeFloat;
     }
-    public SingleValueTestClass duplicate() {
-      return duplicate(getAlphaInt(), getBravoString());
-    }
 
-    /** @noinspection deprecation*/
-    public SingleValueTestClass duplicate(int alpha, String bravo) {
-      SingleValueTestClass tail = new SingleValueTestClass(alpha, bravo);
-      tail.setCharlieInt(getCharlieInt());
-      tail.setDeltaLong(getDeltaLong());
-      tail.setEchoString(dup(getEchoString()));
-      tail.setFoxtrotPoint(new Point2D.Double(getFoxtrotPoint().getX(), getFoxtrotPoint().getY()));
-      tail.setGolfInt(getGolfInt());
-      tail.setHotelByte(new Byte(getHotelByte())); // To avoid identity test
-      tail.setIndigoChar(getIndigoChar());
-      tail.setJulietBoolean(isJulietBoolean());
-      tail.setKiloShort(getKiloShort());
-      tail.setLimaDouble(getLimaDouble());
-      tail.setMikeFloat(getMikeFloat());
-      return tail;
+    @Override
+    public boolean equals(final Object obj) {
+      if (obj == null) { return false; }
+      if (obj == this) { return true; }
+      if (!(obj instanceof SingleValueTestClass)) {
+        return false;
+      }
+      SingleValueTestClass rhs = (SingleValueTestClass) obj;
+      return new EqualsBuilder()
+          .appendSuper(super.equals(obj))
+          .append(getAlphaInt(), rhs.getAlphaInt())
+          .append(getBravoString(), rhs.getBravoString())
+          .append(getCharlieInt(), rhs.getCharlieInt())
+          .append(getDeltaLong(), rhs.getDeltaLong())
+          .append(getEchoString(), rhs.getEchoString())
+          .append(getFoxtrotPoint(), rhs.getFoxtrotPoint())
+          .append(getGolfInt(), rhs.getGolfInt())
+          .append(getHotelByte(), rhs.getHotelByte())
+          .append(getIndigoChar(), rhs.getIndigoChar())
+          .append(isJulietBoolean(), rhs.isJulietBoolean())
+          .append(getKiloShort(), rhs.getKiloShort())
+          .append(getLimaDouble(), rhs.getLimaDouble())
+          .append(getMikeFloat(), rhs.getMikeFloat())
+          .isEquals();
     }
-
   }
   
+  @SuppressWarnings("EqualsAndHashcode")
   private static class TwoStringClass {
     private String alpha;
     private String bravo;
@@ -452,8 +450,24 @@ public class PerformanceTest {
       alpha = new String(a);
       bravo = new String(b);
     }
+
+    @Override
+    public boolean equals(final Object obj) {
+      if (obj == null) { return false; }
+      if (obj == this) { return true; }
+      if (!(obj instanceof TwoStringClass)) {
+        return false;
+      }
+      TwoStringClass rhs = (TwoStringClass) obj;
+      //noinspection NonFinalFieldReferenceInEquals
+      return new EqualsBuilder()
+          .append(alpha, rhs.alpha)
+          .append(bravo, rhs.bravo)
+          .isEquals();
+    }
   }
 
+  @SuppressWarnings({"EqualsReplaceableByObjectsCall", "AccessingNonPublicFieldOfAnotherObject"})
   private static boolean handCoded(TwoStringClass one, TwoStringClass two) {
     return one.alpha.equals(two.alpha) && one.bravo.equals(two.bravo);
   }
@@ -473,7 +487,7 @@ public class PerformanceTest {
   
   // todo: Add 26 strings
   
-  /** @noinspection PackageVisibleField, UseOfClone */
+  @SuppressWarnings({"EqualsAndHashcode", "UseOfClone", "PackageVisibleField"})
   private static class S26 implements Cloneable {
     // I use new String(String) to avoid the identity check when comparing two identical Strings. 
     String a = new String("alpha");
@@ -507,10 +521,50 @@ public class PerformanceTest {
     public S26 clone() throws CloneNotSupportedException {
       return (S26) super.clone();
     }
+
+    @SuppressWarnings("NonFinalFieldReferenceInEquals")
+    @Override
+    public boolean equals(final Object obj) {
+      if (obj == this) {
+        return true;
+      }
+      if (!(obj instanceof S26)) {
+        return false;
+      }
+      S26 other = (S26) obj;
+      return new EqualsBuilder()
+          .append(a, other.a)
+          .append(b, other.b)
+          .append(c, other.c)
+          .append(d, other.d)
+          .append(e, other.e)
+          .append(f, other.f)
+          .append(g, other.g)
+          .append(h, other.h)
+          .append(i, other.i)
+          .append(j, other.j)
+          .append(k, other.k)
+          .append(l, other.l)
+          .append(m, other.m)
+          .append(n, other.n)
+          .append(o, other.o)
+          .append(p, other.p)
+          .append(q, other.q)
+          .append(r, other.r)
+          .append(s, other.s)
+          .append(t, other.t)
+          .append(u, other.u)
+          .append(v, other.v)
+          .append(w, other.w)
+          .append(x, other.x)
+          .append(y, other.y)
+          .append(z, other.z)
+          .isEquals();
+    }
   }
   
+  @SuppressWarnings("EqualsReplaceableByObjectsCall")
   private static boolean handCoded26(S26 a, S26 b) {
-    //noinspection EqualsReplaceableByObjectsCall
     return a.a.equals(b.a)
         && a.b.equals(b.b)
         && a.c.equals(b.c)
@@ -597,6 +651,7 @@ public class PerformanceTest {
     S26 zz = new S26();
     zz.z = "mismatch";
     
+    @SuppressWarnings("UseOfClone")
     S26 clone = original.clone();
     
     DogTag<S26> dogTag = DogTag.from(S26.class);

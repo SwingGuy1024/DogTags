@@ -113,7 +113,6 @@ import java.util.function.Function;
  *   Static fields are never used.
  * <p>
  * TODO: Still to do:
- * Add an option to specify case sensitivity.
  * Add a way to specify the order of the fields
  * 
  * @param <T> Type that uses a DogTag equals and hashCode method
@@ -332,10 +331,8 @@ public final class DogTag<T> {
     }
   }
 
-  /** @noinspection AssignmentToSuperclassField*/
   abstract static class DogTagBuilder<T> {
 
-    static final String[] EMPTY_STRING_ARRAY = new String[0];
     // fields initialized in constructor
     private final boolean useInclusionMode;
     private final Class<T> targetClass;
@@ -346,7 +343,7 @@ public final class DogTag<T> {
 
     // pre-initialized fields
     private int startingHash = 1;
-    /** @noinspection BooleanVariableAlwaysNegated*/
+    @SuppressWarnings("BooleanVariableAlwaysNegated")
     private boolean finalFieldsOnly = false;
     private boolean useCachedHash = false;
     private static final HashBuilder defaultHashBuilder = (int h, Object o) -> (h * 31) + o.hashCode(); // Same as Objects.class
@@ -497,11 +494,13 @@ public final class DogTag<T> {
             }
             field.setAccessible(true);
             Class<?> fieldType = field.getType();
+            FieldProcessor<T> processorForField;
             if (fieldType.isArray()) {
-              fieldProcessorList.add(getProcessorForArray(field, fieldType));
+              processorForField = getProcessorForArray(field, fieldType);
             } else {
-              fieldProcessorList.add(new FieldProcessor<>(field, Objects::equals, Objects::hashCode));
+              processorForField = new FieldProcessor<>(field, Objects::equals, Objects::hashCode);
             }
+            fieldProcessorList.add(processorForField);
           } else {
             if (isCache && isStatic) {
               throw new AssertionError("Your CachedHash instance cannot be static. Private and final are recommended");
@@ -591,9 +590,9 @@ public final class DogTag<T> {
    * @param thatOneNullable {@code 'other'} in the equals() method
    * @return true if the objects are equal, false otherwise
    */
+  @SuppressWarnings("ObjectEquality")
   public boolean doEqualsTest(T thisOneNeverNull, Object thatOneNullable) {
     assert thisOneNeverNull != null : "Always pass 'this' to the first parameter of this method!";
-    //noinspection ObjectEquality
     if (thisOneNeverNull == thatOneNullable) {
       return true;
     }
