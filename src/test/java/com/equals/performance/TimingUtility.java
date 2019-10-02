@@ -30,15 +30,20 @@ enum TimingUtility {
    * @param excluded Excluded field names. Should match those specified by the DogTag
    * @param <T> The type being tested
    */
+  @SuppressWarnings("StringConcatenation")
   static <T> void runTestCycles(DogTag<T> dogTag, final T t0, final T[] instances, final BiFunction<T, T, Boolean> directEqual, String[] excluded) {
     for (int i = 0; i < 4; ++i) {
-      //noinspection StringConcatenation
       System.out.println("Test " + i);
+      //noinspection HardcodedFileSeparator
+      System.out.printf("%15s \t%5s\t%5s\t%5s\t%5s\t%8s%n", " ", "DgTg", "R.Eq", "HC", "Eq.B", "R.Eq/DgTg");
       int index = 0;
       for (T t : instances) {
         TimingUtility.runTimedTest(dogTag, directEqual, index++, t0, t, 1000000, instances.length - 2, excluded);
       }
-      System.out.println("\n\n");
+      System.out.println("\nKey: DgTg: DogTags\n" +
+          "     R.Eq: EqualsBuilder.ReferenceEqual()\n" +
+          "       HC: Hand Coded\n" +
+          "     Eq.B: new EqualsBuilder()\n");
     }
   }
 
