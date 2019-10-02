@@ -10,8 +10,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 
 /**
  * Fast {@code equals()} and {@code hashCode()} methods that use Reflection to easily get all the desired fields,
@@ -125,7 +123,7 @@ public final class DogTag<T> {
   // Todo: Specify field order by annotations?
   // Todo: new additive create() class that includes nothing by default?
   private final Class<T> targetClass;
-  private final List<FieldProcessor<T>> fieldProcessors;
+  private final List<FieldProcessor> fieldProcessors;
   private final int startingHash;
   private final HashBuilder hashBuilder;
   private final boolean useCache;
@@ -199,7 +197,7 @@ public final class DogTag<T> {
 
   private DogTag(
       Class<T> theClass,
-      List<FieldProcessor<T>> getters,
+      List<FieldProcessor> getters,
       int startingHash,
       HashBuilder hashBuilder,
       boolean useCache
@@ -253,13 +251,13 @@ public final class DogTag<T> {
   }
 
   static final class DogTagExclusionBuilder<T> extends DogTagBuilder<T> {
-  
+
     DogTagExclusionBuilder(Class<T> theClass, String... excludedFields) {
       super(theClass, false, DogTagExclude.class, excludedFields);
     }
 
     /**
-     * Specify an annotation class to be used to exclude fields, which may be used instead of the 
+     * Specify an annotation class to be used to exclude fields, which may be used instead of the
      * {@code DogTagExclude} annotation. This allows you to use an annotation of your choice, for compatibility with
      * other systems or your own framework. The {@code DogTagExclude} annotation will still work.
      * @param annotationClass The class object of the custom annotation you may use to specify which fields to
@@ -272,7 +270,7 @@ public final class DogTag<T> {
       }
       return this;
     }
-  
+
     /**
      * Set the Transient option, before building the DogTag. Defaults to false. This is used only in exclusion mode.
      * When true, transient fields will be included, provided they meet all the other criteria. For example, if the
@@ -283,12 +281,11 @@ public final class DogTag<T> {
      * @param useTransients true if you want transient fields included in the equals and hashCode methods
      * @return this, for method chaining
      */
-    @SuppressWarnings("BooleanParameter")
     public DogTagExclusionBuilder<T> withTransients(boolean useTransients) {
       setTransients(useTransients);
       return this;
     }
-  
+
     /**
      * Set the finalFieldsOnly option, before building the DogTag. Defaults to false. This option is only used in
      * Exclusion mode. Enabling this option also enables the cachedHash option, although the use of a cached hash code
@@ -324,7 +321,7 @@ public final class DogTag<T> {
     public DogTagExclusionBuilder<T> withReflectUpTo(final Class<? super T> reflectUpTo) {
       return (DogTagExclusionBuilder<T>) super.withReflectUpTo(reflectUpTo);
     }
-  
+
     @Override
     public DogTagExclusionBuilder<T> withCachedHash(final boolean useCachedHash) {
       return (DogTagExclusionBuilder<T>) super.withCachedHash(useCachedHash);
@@ -419,7 +416,7 @@ public final class DogTag<T> {
       this.hashBuilder = hashBuilder;
       return this;
     }
-    
+
     /**
      * Use a CachedHash to cache the hash value when only final fields are used to build the DogTag. Enabling the
      * finalFieldsOnly option automatically enables this option, but you may use this method to set it manually.
@@ -452,17 +449,16 @@ public final class DogTag<T> {
 
     /**
      * Once options are specified, build the DogTag instance for the Type. Options may be specified in any order.
-     *
      * @return A {@code DogTag<T>} that uses the specified options.
      */
     public DogTag<T> build() {
       return new DogTag<>(targetClass, makeGetterList(), startingHash, hashBuilder, useCachedHash);
     }
 
-    private List<FieldProcessor<T>> makeGetterList() {
+    private List<FieldProcessor> makeGetterList() {
       collectMatchingFields(selectedFieldNames, selectedFields);
 
-      List<FieldProcessor<T>> fieldProcessorList = new LinkedList<>();
+      List<FieldProcessor> fieldProcessorList = new LinkedList<>();
       Class<? super T> theClass = targetClass;
 
       // We shouldn't ever reach Object.class unless someone specifies it as the reflect-up-to superclass.
@@ -494,13 +490,18 @@ public final class DogTag<T> {
             }
             field.setAccessible(true);
             Class<?> fieldType = field.getType();
-            FieldProcessor<T> processorForField;
+            FieldProcessor fieldProcessor;
             if (fieldType.isArray()) {
-              processorForField = getProcessorForArray(field, fieldType);
+              fieldProcessor = getProcessorForArray(field, fieldType);
+            } else if (fieldType.isPrimitive()) {
+              fieldProcessor = getProcessorForPrimitive(field, fieldType);
             } else {
-              processorForField = new FieldProcessor<>(field, Objects::equals, Objects::hashCode);
+              ToBooleanBiFunction<Object> objectToBooleanBiFunction = (Object thisOne, Object thatOne)
+                  -> Objects.equals(field.get(thisOne), (field.get(thatOne)));
+              ToIntThrowingFunction<Object> hashFunction = (t) -> Objects.hashCode(field.get(t));
+              fieldProcessor = new FieldProcessor(objectToBooleanBiFunction, hashFunction);
             }
-            fieldProcessorList.add(processorForField);
+            fieldProcessorList.add(fieldProcessor);
           } else {
             if (isCache && isStatic) {
               throw new AssertionError("Your CachedHash instance cannot be static. Private and final are recommended");
@@ -515,6 +516,7 @@ public final class DogTag<T> {
       return fieldProcessorList;
     }
 
+    @SuppressWarnings("BoundedWildcard")
     private void collectMatchingFields(final String[] fieldNames, final Set<Field> searchField) {
       for (String fieldName : fieldNames) {
         searchField.add(getFieldFromName(fieldName));
@@ -536,42 +538,75 @@ public final class DogTag<T> {
       return false;
     }
 
-    private static <T> FieldProcessor<T> getProcessorForArray(Field arrayField, Class<?> fieldType) {
+    private static FieldProcessor getProcessorForPrimitive(Field primitiveField, Class<?> fieldType) {
+      ToBooleanBiFunction<Object> primitiveEquals = null;
+      ToIntThrowingFunction<Object> primitiveHash = null;
+      if (fieldType == Integer.TYPE) {
+        primitiveEquals = (thisOne, thatOne) -> primitiveField.getInt(thisOne) == primitiveField.getInt(thatOne);
+        primitiveHash = primitiveField::getInt;
+      } else if (fieldType == Long.TYPE) {
+        primitiveEquals = (thisOne, thatOne) -> primitiveField.getLong(thisOne) == primitiveField.getLong(thatOne);
+        primitiveHash = (instance) -> Long.hashCode(primitiveField.getLong(instance));
+      } else if (fieldType == Short.TYPE) {
+        primitiveEquals = (thisOne, thatOne) -> primitiveField.getShort(thisOne) == primitiveField.getShort(thatOne);
+        primitiveHash = primitiveField::getShort;
+      } else if (fieldType == Character.TYPE) {
+        primitiveEquals = (thisOne, thatOne) -> primitiveField.getChar(thisOne) == primitiveField.getChar(thatOne);
+        primitiveHash = (instance) -> Character.hashCode(primitiveField.getChar(instance));
+      } else if (fieldType == Byte.TYPE) {
+        primitiveEquals = (thisOne, thatOne) -> primitiveField.getByte(thisOne) == primitiveField.getByte(thatOne);
+        primitiveHash = primitiveField::getByte;
+      } else if (fieldType == Double.TYPE) {
+        primitiveEquals = (thisOne, thatOne) -> Double.doubleToLongBits(primitiveField.getDouble(thisOne))
+            == Double.doubleToLongBits(primitiveField.getDouble(thatOne));
+        primitiveHash = (instance) -> Double.hashCode(primitiveField.getDouble(instance));
+      } else if (fieldType == Float.TYPE) {
+        primitiveEquals = (thisOne, thatOne) -> Float.floatToIntBits(primitiveField.getFloat(thisOne)) == Float.floatToIntBits(primitiveField.getFloat(thatOne));
+        primitiveHash = (instance) -> Float.hashCode(primitiveField.getFloat(instance));
+      } else if (fieldType == Boolean.TYPE) {
+        primitiveEquals = (thisOne, thatOne) -> primitiveField.getBoolean(thisOne) == primitiveField.getBoolean(thatOne);
+        primitiveHash = (instance) -> Boolean.hashCode(primitiveField.getBoolean(instance));
+      }
+      assert primitiveEquals != null : fieldType; // implies primitiveHash is also not null
+      return new FieldProcessor(primitiveEquals, primitiveHash);
+    }
+
+    private static FieldProcessor getProcessorForArray(Field field, Class<?> fieldType) {
       Class<?> componentType = fieldType.getComponentType();
-      BiFunction<Object, Object, Boolean> arrayEquals;
-      Function<Object, Integer> arrayHash;
+      ToBooleanBiFunction<Object> arrayEquals;
+      ToIntThrowingFunction<Object> arrayHash;
       if (componentType == Integer.TYPE) {
-        arrayEquals = (thisOne, thatOne) -> Arrays.equals((int[]) thisOne, (int[]) thatOne);
-        arrayHash = (array) -> Arrays.hashCode((int[]) array);
+        arrayEquals = (thisOne, thatOne) -> Arrays.equals((int[]) field.get(thisOne), (int[]) field.get(thatOne));
+        arrayHash = (array) -> Arrays.hashCode((int[]) field.get(array));
       } else if (componentType == Long.TYPE) {
-        arrayEquals = (thisOne, thatOne) -> Arrays.equals((long[]) thisOne, (long[]) thatOne);
-        arrayHash = (array) -> Arrays.hashCode((long[]) array);
+        arrayEquals = (thisOne, thatOne) -> Arrays.equals((long[]) field.get(thisOne), (long[]) field.get(thatOne));
+        arrayHash = (array) -> Arrays.hashCode((long[]) field.get(array));
       } else if (componentType == Short.TYPE) {
-        arrayEquals = (thisOne, thatOne) -> Arrays.equals((short[]) thisOne, (short[]) thatOne);
-        arrayHash = (array) -> Arrays.hashCode((short[]) array);
+        arrayEquals = (thisOne, thatOne) -> Arrays.equals((short[]) field.get(thisOne), (short[]) field.get(thatOne));
+        arrayHash = (array) -> Arrays.hashCode((short[]) field.get(array));
       } else if (componentType == Character.TYPE) {
-        arrayEquals = (thisOne, thatOne) -> Arrays.equals((char[]) thisOne, (char[]) thatOne);
-        arrayHash = (array) -> Arrays.hashCode((char[]) array);
+        arrayEquals = (thisOne, thatOne) -> Arrays.equals((char[]) field.get(thisOne), (char[]) field.get(thatOne));
+        arrayHash = (array) -> Arrays.hashCode((char[]) field.get(array));
       } else if (componentType == Byte.TYPE) {
-        arrayEquals = (thisOne, thatOne) -> Arrays.equals((byte[]) thisOne, (byte[]) thatOne);
-        arrayHash = (array) -> Arrays.hashCode((byte[]) array);
+        arrayEquals = (thisOne, thatOne) -> Arrays.equals((byte[]) field.get(thisOne), (byte[]) field.get(thatOne));
+        arrayHash = (array) -> Arrays.hashCode((byte[]) field.get(array));
       } else if (componentType == Double.TYPE) {
-        arrayEquals = (thisOne, thatOne) -> Arrays.equals((double[]) thisOne, (double[]) thatOne);
-        arrayHash = (array) -> Arrays.hashCode((double[]) array);
+        arrayEquals = (thisOne, thatOne) -> Arrays.equals((double[]) field.get(thisOne), (double[]) field.get(thatOne));
+        arrayHash = (array) -> Arrays.hashCode((double[]) field.get(array));
       } else if (componentType == Float.TYPE) {
-        arrayEquals = (thisOne, thatOne) -> Arrays.equals((float[]) thisOne, (float[]) thatOne);
-        arrayHash = (array) -> Arrays.hashCode((float[]) array);
+        arrayEquals = (thisOne, thatOne) -> Arrays.equals((float[]) field.get(thisOne), (float[]) field.get(thatOne));
+        arrayHash = (array) -> Arrays.hashCode((float[]) field.get(array));
       } else if (componentType == Boolean.TYPE) {
-        arrayEquals = (thisOne, thatOne) -> Arrays.equals((boolean[]) thisOne, (boolean[]) thatOne);
-        arrayHash = (array) -> Arrays.hashCode((boolean[]) array);
+        arrayEquals = (thisOne, thatOne) -> Arrays.equals((boolean[]) field.get(thisOne), (boolean[]) field.get(thatOne));
+        arrayHash = (array) -> Arrays.hashCode((boolean[]) field.get(array));
       } else {
         // componentType is Object.class or some subclass of it. It is not a primitive. It may be an array, if the
         // field is a multi-dimensional array.
         assert !componentType.isPrimitive() : componentType;
-        arrayEquals = (thisOne, thatOne) -> Arrays.equals((Object[]) thisOne, (Object[]) thatOne);
-        arrayHash = (array) -> Arrays.hashCode((Object[]) array);
+        arrayEquals = (thisOne, thatOne) -> Arrays.equals((Object[]) field.get(thisOne), (Object[]) field.get(thatOne));
+        arrayHash = (array) -> Arrays.hashCode((Object[]) field.get(array));
       }
-      return new FieldProcessor<>(arrayField, arrayEquals, arrayHash);
+      return new FieldProcessor(arrayEquals, arrayHash);
     }
   }
 
@@ -605,7 +640,7 @@ public final class DogTag<T> {
     @SuppressWarnings("unchecked")
     T thatOneNeverNull = (T) thatOneNullable;
     try {
-      for (FieldProcessor<T> f : fieldProcessors) {
+      for (FieldProcessor f : fieldProcessors) {
         if (!f.testForEquals(thisOneNeverNull, thatOneNeverNull)) {
           return false;
         }
@@ -635,7 +670,7 @@ public final class DogTag<T> {
     int hash = startingHash;
 
     try {
-      for (FieldProcessor<T> f : fieldProcessors) {
+      for (FieldProcessor f : fieldProcessors) {
         hash = hashBuilder.newHash(hash, f.getHashValue(thisOne));
       }
     } catch (IllegalAccessException e) {
@@ -717,8 +752,13 @@ public final class DogTag<T> {
   }
 
   @FunctionalInterface
-  private interface ThrowingFunction<T, R> {
-    R get(T object) throws IllegalAccessException;
+  private interface ToIntThrowingFunction<T> {
+    int get(T object) throws IllegalAccessException;
+  }
+
+  @FunctionalInterface
+  private interface ToBooleanBiFunction<T>  {
+    boolean eval(T thisOne, T thatOne) throws IllegalAccessException;
   }
 
   /**
@@ -747,25 +787,22 @@ public final class DogTag<T> {
    * handled differently from single values. This class holds the getter for a field, and the methods for equals and
    * hash code. The getter varies according to the field type, but the equals() and hashCode() vary based on whether 
    * the field is single-value or an array. The appropriate methods are passed in to the constructor.
-   * @param <F> The field type
    */
-  private static final class FieldProcessor<F> {
-    private final ThrowingFunction<F, ?> getter;
-    private final BiFunction<Object, Object, Boolean> equalMethod; // This will be from either Arrays or Objects::equals 
-    private final Function<Object, Integer> hashMethod; // This will be from either Arrays or Objects::hashCode
+  private static final class FieldProcessor {
+    private final ToBooleanBiFunction<Object> compareFieldMethod; //
+    private final ToIntThrowingFunction<Object> hashMethod; // This will be from either Arrays or Objects::hashCode
     
-    private FieldProcessor(Field field, BiFunction<Object, Object, Boolean> equalMethod, Function<Object, Integer> hashMethod) {
-      this.getter = field::get;
-      this.equalMethod = equalMethod;
+    private FieldProcessor(ToBooleanBiFunction<Object> equalMethod, ToIntThrowingFunction<Object> hashMethod) {
+      compareFieldMethod = equalMethod;
       this.hashMethod = hashMethod;
     }
     
-    private boolean testForEquals(F thisOne, F thatOne) throws IllegalAccessException {
-      return equalMethod.apply(getter.get(thisOne), getter.get(thatOne));
+    private boolean testForEquals(Object thisOne, Object thatOne) throws IllegalAccessException {
+      return compareFieldMethod.eval(thisOne, thatOne);
     }
     
-    private int getHashValue(F thisOne) throws IllegalAccessException {
-      return hashMethod.apply(getter.get(thisOne));
+    private int getHashValue(Object thisOne) throws IllegalAccessException {
+      return hashMethod.get(thisOne);
     }
   }
 }
