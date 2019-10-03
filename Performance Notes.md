@@ -9,7 +9,7 @@ When I used wrapper classes like Integer for all my fields, DogTags comparisons 
 When I compare the speed difference of DogTags and `EqualsBuilder.referenceEquals()`, DogTags are anywhere from 5 to 50 times as fast, depending on how many fields are tested before a mismatch is found. If the mismatch is found early, DogTags can be about 50 times faster. But a hand-coded equals method is generally in the range of 25 times faster than a DogTag. Also, using EqualsBuilder to build an equals method, while is the least convenient, it's also nearly as fast as hand-coding. Consequently, I need to be clear that DogTags does not replace EqualsBuilder entirely, but it's a good, much faster replacement of EqualsBuilder's `reflectionEquals()` method.
 
 ## 3 Functional Programming degrades performance.
-This may come as a surprise, but the reasons have little to do with the Stream classes or their methods. In order to convert DogTags to use functional programming, I needed to get rid of the ThrowingFunction interface, which declares its one method to throw a checked exception. So I first had to rewrite the implementing code to wrap the thrown exception and rethrow it. This code was never executed, because the Exception can't be thrown under the circumstances. But it's necessary because, to use a Stream, I need a method that qualifies as a Predicate, which does not throw a checked exception. 
+This may come as a surprise, but the reasons have little to do with the Stream classes or their methods. In order to convert DogTags to use functional programming, I needed to get rid of the two "Throwing" functional interfaces, which declare a method to throw a checked exception. So I first had to rewrite the implementing code to wrap the thrown exception and rethrow it. This code was never executed, because the Exception can't be thrown under the circumstances. But it's necessary because, to use a Stream, I need a method that qualifies as a Predicate, which does not throw a checked exception.
 
 Once I made this change, but before I switched to functional code, I repeated my performance test, and discovered the code ran twice as slowly. Converting to functional programming didn't offer any speed improvements, and turning on parallel processing actually slowed down the code by a factor of 10 or so.
 
@@ -22,7 +22,7 @@ Here's the final loop of the doTestForEqual(T, T) written a functional programmi
 
 ## Results
 
-Here are the result s of a performance test comparing DogTags with EqualsBuilder:
+Here are the result s of a performance test comparing DogTags with `EqualsBuilder.reflectionEquals()`:
 
 ![png](https://github.com/SwingGuy1024/DogTags/blob/master/Performance.png)
 
