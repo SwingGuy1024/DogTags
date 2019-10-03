@@ -234,17 +234,17 @@ public final class DogTag<T> {
       return this;
     }
 
-    @Override
+    @Override // JavaDocs are in the super class
     public DogTagInclusionBuilder<T> withReflectUpTo(final Class<? super T> reflectUpTo) {
       return (DogTagInclusionBuilder<T>) super.withReflectUpTo(reflectUpTo);
     }
 
-    @Override
+    @Override // JavaDocs are in the super class
     public DogTagInclusionBuilder<T> withHashBuilder(final int startingHash, final HashBuilder hashBuilder) {
       return (DogTagInclusionBuilder<T>) super.withHashBuilder(startingHash, hashBuilder);
     }
 
-    @Override
+    @Override // JavaDocs are in the super class
     public DogTagInclusionBuilder<T> withCachedHash(final boolean useCachedHash) {
       return (DogTagInclusionBuilder<T>) super.withCachedHash(useCachedHash);
     }
@@ -312,17 +312,17 @@ public final class DogTag<T> {
   // All inherited "with<Option> methods must be overridden to return DogTagExclusionBuilder instead of the
   // default DogTagBuilder:
 
-    @Override
+    @Override // JavaDocs are in the super class
     public DogTagExclusionBuilder<T> withHashBuilder(final int startingHash, final HashBuilder hashBuilder) {
       return (DogTagExclusionBuilder<T>) super.withHashBuilder(startingHash, hashBuilder);
     }
 
-    @Override
+    @Override // JavaDocs are in the super class
     public DogTagExclusionBuilder<T> withReflectUpTo(final Class<? super T> reflectUpTo) {
       return (DogTagExclusionBuilder<T>) super.withReflectUpTo(reflectUpTo);
     }
 
-    @Override
+    @Override // JavaDocs are in the super class
     public DogTagExclusionBuilder<T> withCachedHash(final boolean useCachedHash) {
       return (DogTagExclusionBuilder<T>) super.withCachedHash(useCachedHash);
     }
@@ -751,6 +751,8 @@ public final class DogTag<T> {
     throw new AssertionError("Never call hashCode(). To get the hashCode of your object, call doHashCode(this)");
   }
 
+  // These two interfaces declare a thrown exception that will actually never get thrown. I could wrap or ignore the
+  // exception inside the methods declared here, but that slows down execution by a factor of 2. I don't know why.
   @FunctionalInterface
   private interface ToIntThrowingFunction<T> {
     int get(T object) throws IllegalAccessException;
