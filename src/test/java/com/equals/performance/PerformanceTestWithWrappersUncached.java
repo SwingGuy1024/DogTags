@@ -1,8 +1,8 @@
 package com.equals.performance;
 
+import com.equals.DogTag;
 import java.awt.geom.Point2D;
 import java.util.function.BiFunction;
-import com.equals.DogTag;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -15,7 +15,7 @@ import org.junit.Test;
  * @author Miguel Mu\u00f1oz
  */
 @SuppressWarnings({"MagicNumber", "HardCodedStringLiteral", "MagicCharacter", "SameParameterValue"})
-public class PerformanceTestWithWrappers {
+public class PerformanceTestWithWrappersUncached {
   private static final String[] EMPTY_STRING_ARRAY = new String[0];
   private DogTag<TestClass> dogTag = DogTag.from(TestClass.class);
 
@@ -29,11 +29,11 @@ public class PerformanceTestWithWrappers {
   @Test
   public void timeTest() {
     System.out.printf("Java version = %s%n", System.getProperty("java.version"));
-    TestClass t0 = new TestClass(1, "bravo");
-    TestClass t1 = t0.duplicate(11, "bravo");
-    TestClass t2 = t0.duplicate(1, "bravisimo");
+    TestClass t0 = new TestClass(1111, "bravo");
+    TestClass t1 = t0.duplicate(2222, "bravo");
+    TestClass t2 = t0.duplicate(1111, "bravisimo");
     TestClass t3 = t0.duplicate();
-    t3.setCharlieInt(99);
+    t3.setCharlieInt(9999);
     TestClass t4 = t0.duplicate();
     t4.setDeltaLong(999L);
     TestClass t5 = t0.duplicate();
@@ -45,19 +45,20 @@ public class PerformanceTestWithWrappers {
     TestClass t8 = t0.duplicate();
     t8.setHotelByte( toByte(34));
     TestClass t9 = t0.duplicate();
-    t9.setIndigoChar('P');
+    t9.setIndigoChar('\u3412');
     TestClass t10 = t0.duplicate();
     t10.setJulietBoolean(true);
     TestClass t11 = t0.duplicate();
-    t11.setKiloShort(toShort(79));
+    t11.setKiloShort(toShort(790));
     TestClass t12 = t0.duplicate();
     t12.setLimaDouble(798.23);
     TestClass t13 = t0.duplicate();
     t13.setMikeFloat(423.97F);
+
     TestClass[] instances = { t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, /* t14, t15, t16, t17, t18, t19, t20, t21, t22, t23, */ t0.duplicate() };
     TimingUtility.reverse(instances);
 
-    final BiFunction<TestClass, TestClass, Boolean> directEqual = PerformanceTestWithWrappers::isEqual;
+    final BiFunction<TestClass, TestClass, Boolean> directEqual = PerformanceTestWithWrappersUncached::isEqual;
     TimingUtility.runTestCycles(dogTag, t0, instances, directEqual, EMPTY_STRING_ARRAY);
   }
 
@@ -87,7 +88,7 @@ public class PerformanceTestWithWrappers {
   private static class TestClass {
 
     TestClass() {
-      this(1, "bravo");
+      this(111111, "bravo");
     }
     
     TestClass(Integer alpha, String bravo) {
@@ -97,15 +98,15 @@ public class PerformanceTestWithWrappers {
 
     private final Integer alphaInt;
     private final String bravoString;
-    private Integer charlieInt = 3;
-    private Long deltaLong = 4L;
+    private Integer charlieInt = 333;
+    private Long deltaLong = 444L;
     private String echoString = "echo";
     private Point2D foxtrotPoint = new Point2D.Double(6.54, 4.56);
-    private Integer golfInt = 7;
-    private Byte hotelByte = toByte(8);
+    private Integer golfInt = 777;
+    private Byte hotelByte = toByte(888);
     private Character indigoChar = 'I';
     private Boolean julietBoolean = false;
-    private Short kiloShort = 11;
+    private Short kiloShort = 11111;
     private Double limaDouble = 12.0;
     private Float mikeFloat = 13.13F;
 
@@ -205,7 +206,6 @@ public class PerformanceTestWithWrappers {
       this.mikeFloat = mikeFloat;
     }
 
-
     public TestClass duplicate() {
       return duplicate(getAlphaInt(), getBravoString());
     }
@@ -225,7 +225,6 @@ public class PerformanceTestWithWrappers {
       tail.setMikeFloat(getMikeFloat());
       return tail;
     }
-
     @SuppressWarnings({"NonFinalFieldReferenceInEquals", "ObjectInstantiationInEqualsHashCode"})
     @Override
     public boolean equals(Object obj) {
@@ -270,6 +269,6 @@ public class PerformanceTestWithWrappers {
   }
 
   public static void main(String[] args) {
-    new PerformanceTestWithWrappers().timeTest();
+    new PerformanceTestWithWrappersUncached().timeTest();
   }
 }

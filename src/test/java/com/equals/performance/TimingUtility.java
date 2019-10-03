@@ -76,6 +76,7 @@ enum TimingUtility {
 
   private static long time(Runnable runner, int count) {
     runner.run(); // load all classes ahead of time.
+    runner.run(); // Avoid spurious early results
     long start = System.currentTimeMillis();
     for (int ii = 0; ii < count; ++ii) {
       runner.run();
