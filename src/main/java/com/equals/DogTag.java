@@ -51,7 +51,7 @@ import java.util.Set;
  *     private static final{@literal DogTag<MyClass>} dogTag = DogTag.create(MyClass.class)
  *       .withTransients(true)                // defaults to false
  *       .withExcludedFields("size", "date")  // defaults to non-transient, non-static fields
- *       .withReflectUpTo(MyBaseClass.class)  // defaults to no superclasses
+ *       .withReflectUpTo(MyClass.class)      // defaults to all superclasses
  *       .build();
  *
  *    {@literal @Override}
@@ -111,6 +111,8 @@ import java.util.Set;
  *   Static fields are never used.
  * <p>
  * TODO: Still to do:
+ * Add exclusion fields to from(), with unit tests
+ * Add getter method points to createByInclusion
  * Add a way to specify the order of the fields
  * 
  * @param <T> Type that uses a DogTag equals and hashCode method
@@ -180,7 +182,7 @@ public final class DogTag<T> {
    * For example:
    * <pre>
    *     {@literal DogTag<MyClass>} dogTag = DogTag.createByInclusion(MyClass.class, "name", "ssNumber", "email")
-   *         .withReflectUpTo(MyBaseClass.class) // options are specified here
+   *         .withReflectUpTo(MyBaseClass.class) // options are specified here, and all begin with "with..."
    *         .build();
    * </pre>
    * <p>
@@ -232,11 +234,6 @@ public final class DogTag<T> {
     DogTagInclusionBuilder<T> withInclusionAnnotation(Class<? extends Annotation> annotationClass) {
       addSelectionAnnotation(annotationClass);
       return this;
-    }
-
-    @Override // JavaDocs are in the super class
-    public DogTagInclusionBuilder<T> withReflectUpTo(final Class<? super T> reflectUpTo) {
-      return (DogTagInclusionBuilder<T>) super.withReflectUpTo(reflectUpTo);
     }
 
     @Override // JavaDocs are in the super class
@@ -305,21 +302,31 @@ public final class DogTag<T> {
       return this;
     }
 
+    /**
+     * Specify the superclass of the DogTag Type parameter class to include in the equals and hash code calculations.
+     * The classes inspected for fields to use are those of the type class, the specified superclass, and any
+     * class that is a superclass of the type class and a subclass of the specified superclass. Defaults to
+     * Object.class.
+     *
+     * @param reflectUpTo The superclass, up to which are inspected for fields to include.
+     * @return this, for method chaining
+     */
+    public DogTagExclusionBuilder<T> withReflectUpTo(Class<? super T> reflectUpTo) {
+      setReflectUpTo(reflectUpTo);
+      return this;
+    }
+
     @Override
     protected boolean isFieldSelected(final Field theField) {
       return !isSelected(theField);
     }
+
   // All inherited "with<Option> methods must be overridden to return DogTagExclusionBuilder instead of the
   // default DogTagBuilder:
 
     @Override // JavaDocs are in the super class
     public DogTagExclusionBuilder<T> withHashBuilder(final int startingHash, final HashBuilder hashBuilder) {
       return (DogTagExclusionBuilder<T>) super.withHashBuilder(startingHash, hashBuilder);
-    }
-
-    @Override // JavaDocs are in the super class
-    public DogTagExclusionBuilder<T> withReflectUpTo(final Class<? super T> reflectUpTo) {
-      return (DogTagExclusionBuilder<T>) super.withReflectUpTo(reflectUpTo);
     }
 
     @Override // JavaDocs are in the super class
@@ -336,7 +343,7 @@ public final class DogTag<T> {
     private final String[] selectedFieldNames;
     private final List<Class<? extends Annotation>> flaggedList;
 
-    private Class<? super T> lastSuperClass;    // not final. May change with options.
+    private Class<? super T> lastSuperClass = Object.class;    // not final. May change with options.
 
     // pre-initialized fields
     private int startingHash = 1;
@@ -350,7 +357,6 @@ public final class DogTag<T> {
 
     protected DogTagBuilder(Class<T> theClass, boolean inclusionMode, Class<? extends Annotation> defaultSelectionAnnotation, String[] selectedFieldNames) {
       targetClass = theClass;
-      lastSuperClass = targetClass;
       this.selectedFieldNames = Arrays.copyOf(selectedFieldNames, selectedFieldNames.length);
       flaggedList = new LinkedList<>(Collections.singleton(defaultSelectionAnnotation));
       useInclusionMode = inclusionMode;
@@ -369,37 +375,34 @@ public final class DogTag<T> {
      */
     private Field getFieldFromName(String fieldName) {
       Class<?> theClass = targetClass;
+      Class<?> previousClass = targetClass;
       boolean inProgress = true;
       while (inProgress) {
-        if (theClass == lastSuperClass) {
-          inProgress = false;
-        }
         try {
           return theClass.getDeclaredField(fieldName);
         } catch (NoSuchFieldException e) {
-          theClass = theClass.getSuperclass();
+          previousClass = theClass;
+
+          // This test must come before moving to the superClass
+          if (theClass == lastSuperClass) {
+            inProgress = false;
+          } else {
+            theClass = theClass.getSuperclass();
+
+            // This test must come after moving to the superClass
+            if (theClass == Object.class) {
+              inProgress = false;
+            }
+          }
         }
       }
 
       // If we only searched through one class...
-      if (targetClass == lastSuperClass) {
+      if (targetClass == previousClass) {
         // ... we send a simpler error message.
         throw new IllegalArgumentException(String.format("Field %s not found in class %s", fieldName, targetClass));
       }
       throw new IllegalArgumentException(String.format("Field '%s' not found from class %s to superClass %s", fieldName, targetClass, lastSuperClass));
-    }
-
-    /**
-     * Specify the superclass of the DogTag Type parameter class to include in the equals and hash code calculations.
-     * The classes inspected for fields to use are those of the type class, the specified superclass, and any
-     * class that is a superclass of the type class and a subclass of the specified superclass.
-     *
-     * @param reflectUpTo The superclass, up to which are inspected for fields to include.
-     * @return this, for method chaining
-     */
-    public DogTagBuilder<T> withReflectUpTo(Class<? super T> reflectUpTo) {
-      lastSuperClass = reflectUpTo;
-      return this;
     }
 
     /**
@@ -446,6 +449,8 @@ public final class DogTag<T> {
     protected void setTransients(boolean useTransients) {
       this.testTransients = useTransients;
     }
+
+    protected void setReflectUpTo(Class<? super T> superClass) { this.lastSuperClass = superClass; }
 
     /**
      * Once options are specified, build the DogTag instance for the Type. Options may be specified in any order.
@@ -496,8 +501,8 @@ public final class DogTag<T> {
             } else if (fieldType.isPrimitive()) {
               fieldProcessor = getProcessorForPrimitive(field, fieldType);
             } else {
-              ToBooleanBiFunction<Object> objectToBooleanBiFunction = (Object thisOne, Object thatOne)
-                  -> Objects.equals(field.get(thisOne), (field.get(thatOne)));
+              ToBooleanBiFunction<Object> objectToBooleanBiFunction
+                  = (thisOne, thatOne) -> Objects.equals(field.get(thisOne), (field.get(thatOne)));
               ToIntThrowingFunction<Object> hashFunction = (t) -> Objects.hashCode(field.get(t));
               fieldProcessor = new FieldProcessor(objectToBooleanBiFunction, hashFunction);
             }

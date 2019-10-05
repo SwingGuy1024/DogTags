@@ -193,31 +193,72 @@ public class DogTagTest {
 
   @Test
   public void testSuperClasses() {
+    // The names reflect where the differences are.
     DogTagTestTail tail1 = new DogTagTestTail();
     DogTagTestTail tail2 = new DogTagTestTail();
+    DogTagTestTail tail3 = new DogTagTestTail();
+    DogTagTestTail tail4 = new DogTagTestTail();
+    DogTagTestTail tail5 = new DogTagTestTail();
+    DogTagTestTail tail6 = new DogTagTestTail();
+    DogTagTestTail mid_1 = new DogTagTestTail();
+    DogTagTestTail mid_2 = new DogTagTestTail();
+    DogTagTestTail base1 = new DogTagTestTail();
+    DogTagTestTail base2 = new DogTagTestTail();
     tail2.setKiloShort((short) 999);
     tail2.setJulietBoolean(!tail1.isJulietBoolean());
+    tail3.setKiloShort((short) 987);
+    tail3.setJulietBoolean(!tail1.isJulietBoolean());
+    tail3.setLimaDouble(703.14);
+    tail4.setPapaLongArray(new long[] {9L, 8L});
+    tail5.setVictorDoubleArray(new double[] { 5.3, 4.9 });
+    tail6.setLimaDouble(2.718281828);
+    mid_1.setEchoString("mid_1 string");
+    mid_2.setFoxtrotPoint(new Point2D.Double(98.7, 65.4));
+    base1.setCharlieInt(7654);
+    base2.setDeltaLong(96L);
 
     DogTag<DogTagTestTail> dogTag = DogTag.create(DogTagTestTail.class, "kiloShort", "julietBoolean")
         .withReflectUpTo(DogTagTestBase.class)
         .build();
 
     verifyMatch__(dogTag, tail1, tail2);
+    verifyNoMatch(dogTag, tail1, tail3);
+    verifyNoMatch(dogTag, tail1, tail4);
+    verifyNoMatch(dogTag, tail1, tail5);
+    verifyNoMatch(dogTag, tail1, tail6);
+    verifyNoMatch(dogTag, tail1, mid_1);
+    verifyNoMatch(dogTag, tail1, mid_2);
+    verifyNoMatch(dogTag, tail1, base1);
+    verifyNoMatch(dogTag, tail1, base2);
 
     tail2.setIndigoChar('X');
     tail2.setHotelByte((byte) 126);
 
-    DogTag<DogTagTestTail> dogTagSuper = DogTag.create(DogTagTestTail.class, "kiloShort", "julietBoolean", "hotelByte", "indigoChar")
+    DogTag<DogTagTestTail> dogTagToMid = DogTag.create(DogTagTestTail.class, "kiloShort", "julietBoolean", "hotelByte", "indigoChar")
         .withReflectUpTo(DogTagTestMid.class)
         .build();
-    verifyMatch__(dogTagSuper, tail1, tail2);
+    verifyMatch__(dogTagToMid, tail1, tail2);
+    verifyNoMatch(dogTagToMid, tail1, tail3);
+    verifyNoMatch(dogTagToMid, tail1, tail4);
+    verifyNoMatch(dogTagToMid, tail1, tail5);
+    verifyNoMatch(dogTagToMid, tail1, tail6);
+    verifyNoMatch(dogTagToMid, tail1, mid_1);
+    verifyNoMatch(dogTagToMid, tail1, mid_2);
+    verifyMatch__(dogTagToMid, tail1, base1);
+    verifyMatch__(dogTagToMid, tail1, base2);
 
-    // The withExcludedFields() and reflectUpTo() methods are the only options that interact with each other.
-    // Here, we verify that the two methods may be called in either order.
-    DogTag<DogTagTestTail> reversedDogTag = DogTag.create(DogTagTestTail.class, "kiloShort", "julietBoolean", "hotelByte", "indigoChar")
-        .withReflectUpTo(DogTagTestMid.class)
+    DogTag<DogTagTestTail> dogTagNoSuper = DogTag.create(DogTagTestTail.class, "kiloShort", "julietBoolean")
+        .withReflectUpTo(DogTagTestTail.class)
         .build();
-    verifyMatch__(reversedDogTag, tail1, tail2);
+    verifyMatch__(dogTagNoSuper, tail1, tail2);
+    verifyNoMatch(dogTagNoSuper, tail1, tail3);
+    verifyNoMatch(dogTagNoSuper, tail1, tail4);
+    verifyNoMatch(dogTagNoSuper, tail1, tail5);
+    verifyNoMatch(dogTagNoSuper, tail1, tail6);
+    verifyMatch__(dogTagNoSuper, tail1, mid_1);
+    verifyMatch__(dogTagNoSuper, tail1, mid_2);
+    verifyMatch__(dogTagNoSuper, tail1, base1);
+    verifyMatch__(dogTagNoSuper, tail1, base2);
   }
 
   @Test
@@ -235,7 +276,15 @@ public class DogTagTest {
 
   @Test(expected=IllegalArgumentException.class)
   public void testBadExcludedFieldName() {
-    DogTag.create(DogTagTestTail.class, CHARLIE_INT) // CHARLIE_INT is a superclass method, but the superclass wasn't included.
+    DogTag.create(DogTagTestTail.class, CHARLIE_INT)
+        .withReflectUpTo(DogTagTestTail.class)// CHARLIE_INT is a superclass method, but the superclass wasn't included.
+        .build();
+  }
+
+  @Test(expected=IllegalArgumentException.class)
+  public void testBadExcludedFieldName2() {
+    DogTag.create(DogTagTestTail.class, "hotelByte")
+        .withReflectUpTo(DogTagTestTail.class)
         .build();
   }
 
