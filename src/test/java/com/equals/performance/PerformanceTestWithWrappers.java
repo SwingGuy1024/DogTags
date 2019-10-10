@@ -17,7 +17,7 @@ import org.junit.Test;
 @SuppressWarnings({"MagicNumber", "HardCodedStringLiteral", "MagicCharacter", "SameParameterValue"})
 public class PerformanceTestWithWrappers {
   private static final String[] EMPTY_STRING_ARRAY = new String[0];
-  private DogTag<TestClass> dogTag = DogTag.from(TestClass.class);
+  private DogTag.Factory<TestClass> dogTag = DogTag.create(TestClass.class).makeFactory();
 
   @SuppressWarnings("NumericCastThatLosesPrecision")
   private static Short toShort(int i) { return (short) i;}
@@ -81,15 +81,15 @@ public class PerformanceTestWithWrappers {
         && t1.getLimaDouble().equals(t2.getLimaDouble())
         && t1.getMikeFloat().equals(t2.getMikeFloat());
   }
-  
-  
-  @SuppressWarnings({"AssignmentOrReturnOfFieldWithMutableType", "WeakerAccess", "MagicCharacter", "MagicNumber", "HardCodedStringLiteral", "ImplicitNumericConversion"})
+
+
+  @SuppressWarnings({"AssignmentOrReturnOfFieldWithMutableType", "WeakerAccess", "MagicCharacter", "MagicNumber", "HardCodedStringLiteral", "ImplicitNumericConversion", "EqualsAndHashcode"})
   private static class TestClass {
 
     TestClass() {
       this(1, "bravo");
     }
-    
+
     TestClass(Integer alpha, String bravo) {
       alphaInt = alpha;
       bravoString = bravo;
@@ -209,7 +209,7 @@ public class PerformanceTestWithWrappers {
     public TestClass duplicate() {
       return duplicate(getAlphaInt(), getBravoString());
     }
-    
+
     public TestClass duplicate(Integer alpha, String bravo) {
       TestClass tail = new TestClass(alpha, bravo);
       tail.setCharlieInt(getCharlieInt());
@@ -254,12 +254,12 @@ public class PerformanceTestWithWrappers {
           .isEquals();
     }
   }
-  
+
   private static String dup(String s) {
     String s2 = '1' + s;
     return s2.substring(1);
   }
-  
+
   private static String[] dupArray(String[] array) {
     String[] dup = new String[array.length];
     int i=0;

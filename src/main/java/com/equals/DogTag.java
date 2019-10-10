@@ -1,17 +1,21 @@
 package com.equals;
 
 import java.lang.annotation.Annotation;
+import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
 /**
+ * <strong>All documentation is out of date. It will be updated shortly</strong><p>
  * Fast {@code equals()} and {@code hashCode()} methods that use Reflection to easily get all the desired fields,
  * and produce an {@code equals()} method and a {@code hashCode()} method that are guaranteed to be consistent with
  * each other.
@@ -33,7 +37,7 @@ import java.util.Set;
  *     }
  *     
  *     public int hashCode() {
- *       return dogTag.doHashCode(this);
+ *       return dogTag.doHashCodeInternal(this);
  *     }
  *   }
  * </pre>
@@ -60,53 +64,24 @@ import java.util.Set;
  *     }
  *
  *     public int hashCode() {
- *       return dogTag.doHashCode(this);
+ *       return dogTag.doHashCodeInternal(this);
  *     }
  *   }
  * </pre>
- * When relying only on final fields, the hash code may be cached by enabling the withCachedHash option, and
- * using a {@code CachedHash}. To use a cached hash code, {@code the hashCode()} method must be implemented this way:
- * <pre>
- *   private static final {@literal DogTag<MyClass>} dogTag = DogTag.create() // must be static!
- *       .withCachedHash(true)
- *       // other options specified here
- *       .build();
- *
- *   private final CachedHash cachedHash = dogTag.makeCachedHash(); // must NOT be static!
- *
- *  {@literal @Override}
- *   public int doHashCode() {
- *     return doHashCode(this, cachedHash);
- *   }
- *
- *   // Your equals() method does not change.
- *  {@literal @Override}
- *   public boolean equals(Object that) { return dogTag.doEqualsTest(this, that); }
- * </pre>
+ * When relying only on final fields, the hash code may be cached by enabling the withCachedHash option.
  * <strong>Warning</strong> Simply using final fields in your DogTag isn't sufficient to implement a properly written
  * cached hash code. All your final fields must themselves be primitives or immutable classes, or they must be classes
- * that also rely only on final fields of immutable values to generate their hash code. While you may use a CachedHash
- * with a DogTag generated with only final fields, you are not required to do so.
+ * that also rely only on final fields of immutable values to generate their hash code.
  * <p>
  * <strong>Notes:</strong><p>
  *   The following mistakes will generate AssertionErrors:
  *    <ul>
- *     <li>Failing to declaring a DogTag static</li>
- *     <li>Declaring a CachedHash static</li>
- *     <li>Enabling the CachedHash option while using a non-final field</li>
- *     <li>Trying to get a CachedHash from a DogTag that was not built with the CachedHash option enabled</li>
  *     <li>Calling either DogTag.equals() or DogTag.hashCode().</li>
  *    </ul>
- *   The DogTag instance needs to be static or performance will suffer. It's prudent to also declare it
- *   private and final, since you shouldn't ever need to change its value.
- * <p>
- *   The CashedHash instance can't be static or all instances will share the same hash code.
  * <p>
  *   The DogTag methods {@code equals()} and {@code hashCode()} are disabled to prevent their accidental use instead
- *   of {@code doEqualsTest()} and {@code doHashCode()} The two correct methods both start with "do" to avoid
+ *   of {@code doEqualsTest()} and {@code doHashCodeInternal()} The two correct methods both start with "do" to avoid
  *   confusion.
- * <p>
- *   You should always pass {@code this} as the first parameter of {@code doEqualsTest()} and {@code doHashCode()}.
  * <p>
  *   Static fields are never used.
  * <p>
@@ -120,15 +95,131 @@ import java.util.Set;
  */
 @SuppressWarnings("WeakerAccess")
 public final class DogTag<T> {
-  // Todo: Add business key support, using annotations
-  // Todo: Add exclusion support using annotations.
+  private static final Map<Class<?>, Factory<?>> factoryMap = new HashMap<>();
+  private final Factory<T> factory;
+  private final WeakReference<T> thisRef;
+  private int cachedHash;
+  
   // Todo: Specify field order by annotations?
-  // Todo: new additive create() class that includes nothing by default?
-  private final Class<T> targetClass;
-  private final List<FieldProcessor> fieldProcessors;
-  private final int startingHash;
-  private final HashBuilder hashBuilder;
-  private final boolean useCache;
+  
+  // package access for testing
+  public static final class Factory<T> {
+    private final Class<T> targetClass;
+    private final List<FieldProcessor> fieldProcessors;
+    private final int startingHash;
+    private final HashBuilder hashBuilder;
+    private final boolean useCache;
+
+    private Factory(
+        Class<T> theClass,
+        List<FieldProcessor> getters,
+        int startingHash,
+        HashBuilder hashBuilder,
+        boolean useCache
+    ) {
+      targetClass = theClass;
+      fieldProcessors = getters;
+      this.startingHash = startingHash;
+      this.hashBuilder = hashBuilder;
+      this.useCache = useCache;
+    }
+
+    public DogTag<T> tag(T instance) {
+      return new DogTag<>(this, instance);
+    }
+
+    /**
+     * Compare two objects for null. This should always be called with {@code this} as the first parameter. Your
+     * equals method should look like this:
+     * <pre>
+     *   private static final{@literal DogTag<YourClass>} dogTag = DogTag.from(YourClass.class); // Or built from the builder
+     *
+     *  {@literal @Override}
+     *   public boolean equals(Object that) {
+     *     return dogTag.doEqualsTest(this, that);
+     *   }
+     * </pre>
+     *
+     * @param thisOneNeverNull Pass {@code this} to this parameter
+     * @param thatOneNullable  {@code 'other'} in the equals() method
+     * @return true if the objects are equal, false otherwise
+     */
+    @SuppressWarnings("ObjectEquality")
+    public boolean doEqualsTest(T thisOneNeverNull, Object thatOneNullable) {
+      assert thisOneNeverNull != null : "Always pass 'this' to the first parameter of this method!";
+      if (thisOneNeverNull == thatOneNullable) {
+        return true;
+      }
+
+      // Includes an implicit test for null
+      if (!targetClass.isInstance(thatOneNullable)) {
+        return false;
+      }
+
+      @SuppressWarnings("unchecked")
+      T thatOneNeverNull = (T) thatOneNullable;
+      try {
+        for (FieldProcessor f : fieldProcessors) {
+          if (!f.testForEquals(thisOneNeverNull, thatOneNeverNull)) {
+            return false;
+          }
+        }
+        return true;
+      } catch (IllegalAccessException e) {
+
+        // Shouldn't happen, since accessible has been set to true.
+        throw new AssertionError("Illegal Access should not happen", e);
+      }
+    }
+
+    /**
+     * Get the hash code from an instance of the containing class, consistent with {@code equals()}
+     * For example:
+     * <pre>
+     *  {@literal @Override}
+     *   public int hashCode() {
+     *     return dogTag.doHashCodeInternal(this);
+     *   }
+     * </pre>
+     *
+     * @param thisOne Pass 'this' to this parameter
+     * @return The hashCode
+     */
+    int doHashCodeInternal(T thisOne) {
+      assert thisOne != null : "Always pass 'this' to this method! That guarantees it won't be null.";
+      int hash = startingHash;
+
+      try {
+        for (FieldProcessor f : fieldProcessors) {
+          hash = hashBuilder.newHash(hash, f.getHashValue(thisOne));
+        }
+      } catch (IllegalAccessException e) {
+
+        // Shouldn't happen, because accessible has been set to true.
+        throw new AssertionError("Illegal Access shouldn't happen", e);
+      }
+      return hash;
+    }
+
+    @SuppressWarnings("AccessingNonPublicFieldOfAnotherObject")
+    private int doCachedHashCode(final T thisOne, DogTag<T> dogTag) {
+      if (dogTag.cachedHash == 0) {
+        dogTag.cachedHash = doHashCodeInternal(thisOne);
+      }
+      return dogTag.cachedHash;
+    }
+  }
+
+  private DogTag(Factory<T> factory, T instance) {
+    this.factory = factory;
+    thisRef = new WeakReference<>(instance);
+  }
+
+  private static <T> Factory<T> getForClass(Class<T> theClass) {
+    @SuppressWarnings("unchecked")
+    final Factory<T> factory = (Factory<T>) factoryMap.get(theClass);
+    return factory;
+  }
 
   /**
    * Instantiate a DogTag for class T, using default options. The default options are: All Fields are included except 
@@ -138,8 +229,8 @@ public final class DogTag<T> {
    * @param <T> The type of the enclosing class.
    * @return An instance of {@literal DogTag<T>}. This should be a static member of the enclosing class
    */
-  public static <T> DogTag<T> from(Class<T> theClass) {
-    return new DogTagExclusionBuilder<>(theClass).build();
+  public static <T> DogTag<T> from(Class<T> theClass, T instance) {
+    return new DogTagExclusionBuilder<>(theClass).build().tag(instance);
   }
 
   /**
@@ -197,21 +288,14 @@ public final class DogTag<T> {
     return new DogTagInclusionBuilder<>(theClass, fieldNames);
   }
 
-  private DogTag(
-      Class<T> theClass,
-      List<FieldProcessor> getters,
-      int startingHash,
-      HashBuilder hashBuilder,
-      boolean useCache
-  ) {
-    targetClass = theClass;
-    fieldProcessors = getters;
-    this.startingHash = startingHash;
-    this.hashBuilder = hashBuilder;
-    this.useCache = useCache;
-  }
-  
-  static final class DogTagInclusionBuilder<T> extends DogTagBuilder<T> {
+  static final class DogTagInclusionBuilder<T> extends DogTagFullBuilder<T> {
+
+    // Temporarily removed. This will be put back to support ordered inclusion fields
+//    @Override
+//    Collection<Field> getFieldCandidates(final Class<T> targetClass) {
+//      // Temporary. We will replace this by other methods for different inclusion modes.
+//      return Arrays.asList(targetClass.getDeclaredFields());
+//    }
 
     DogTagInclusionBuilder(Class<T> theClass, String... includedFields) {
       super(theClass, false, DogTagInclude.class, includedFields);
@@ -231,6 +315,7 @@ public final class DogTag<T> {
      *                        exclude.
      * @return this, for method chaining.
      */
+    @SuppressWarnings("SameParameterValue")
     DogTagInclusionBuilder<T> withInclusionAnnotation(Class<? extends Annotation> annotationClass) {
       addSelectionAnnotation(annotationClass);
       return this;
@@ -247,7 +332,13 @@ public final class DogTag<T> {
     }
   }
 
-  static final class DogTagExclusionBuilder<T> extends DogTagBuilder<T> {
+  public static final class DogTagExclusionBuilder<T> extends DogTagFullBuilder<T> {
+
+    // Temporarily removed. This will be put back to support ordered inclusion fields
+//    @Override
+//    Collection<Field> getFieldCandidates(Class<T> targetClass) {
+//      return Arrays.asList(targetClass.getDeclaredFields());
+//    }
 
     DogTagExclusionBuilder(Class<T> theClass, String... excludedFields) {
       super(theClass, false, DogTagExclude.class, excludedFields);
@@ -322,7 +413,7 @@ public final class DogTag<T> {
     }
 
   // All inherited "with<Option> methods must be overridden to return DogTagExclusionBuilder instead of the
-  // default DogTagBuilder:
+  // default DogTagFullBuilder:
 
     @Override // JavaDocs are in the super class
     public DogTagExclusionBuilder<T> withHashBuilder(final int startingHash, final HashBuilder hashBuilder) {
@@ -335,7 +426,7 @@ public final class DogTag<T> {
     }
   }
 
-  abstract static class DogTagBuilder<T> {
+  public abstract static class DogTagFullBuilder<T> {
 
     // fields initialized in constructor
     private final boolean useInclusionMode;
@@ -355,7 +446,10 @@ public final class DogTag<T> {
     private Set<Field> selectedFields = new HashSet<>();
     private boolean testTransients = false;
 
-    protected DogTagBuilder(Class<T> theClass, boolean inclusionMode, Class<? extends Annotation> defaultSelectionAnnotation, String[] selectedFieldNames) {
+    // Temporarily removed. This will be put back to support ordered inclusion fields
+//    abstract Collection<Field> getFieldCandidates(Class<T> targetClass);
+
+    protected DogTagFullBuilder(Class<T> theClass, boolean inclusionMode, Class<? extends Annotation> defaultSelectionAnnotation, String[] selectedFieldNames) {
       targetClass = theClass;
       this.selectedFieldNames = Arrays.copyOf(selectedFieldNames, selectedFieldNames.length);
       flaggedList = new LinkedList<>(Collections.singleton(defaultSelectionAnnotation));
@@ -414,14 +508,14 @@ public final class DogTag<T> {
      * @return this, for method chaining
      * @see HashBuilder
      */
-    public DogTagBuilder<T> withHashBuilder(int startingHash, HashBuilder hashBuilder) {
+    public DogTagFullBuilder<T> withHashBuilder(int startingHash, HashBuilder hashBuilder) {
       this.startingHash = startingHash;
       this.hashBuilder = hashBuilder;
       return this;
     }
 
     /**
-     * Use a CachedHash to cache the hash value when only final fields are used to build the DogTag. Enabling the
+     * Cache the hash value when only final fields are used to build the DogTag. Enabling the
      * finalFieldsOnly option automatically enables this option, but you may use this method to set it manually.
      * <p>
      * This option should be used with extreme caution. Even if you specify only final fields, this will fail if, for
@@ -434,10 +528,8 @@ public final class DogTag<T> {
      * The second, of course, makes this recursive. In other words, if any field anywhere in the object tree of any
      * field is used to calculate a hash code, that field cannot change value once the outermost element of the tree
      * is constructed.
-     *
-     * @see CachedHash
      */
-    public DogTagBuilder<T> withCachedHash(boolean useCachedHash) {
+    public DogTagFullBuilder<T> withCachedHash(boolean useCachedHash) {
       this.useCachedHash = useCachedHash;
       return this;
     }
@@ -456,8 +548,26 @@ public final class DogTag<T> {
      * Once options are specified, build the DogTag instance for the Type. Options may be specified in any order.
      * @return A {@code DogTag<T>} that uses the specified options.
      */
-    public DogTag<T> build() {
-      return new DogTag<>(targetClass, makeGetterList(), startingHash, hashBuilder, useCachedHash);
+    public Factory<T> build() {
+      Factory<T> factory = getForClass(targetClass);
+      if (factory == null) {
+        factory = makeFactory();
+        factoryMap.put(targetClass, factory);
+      }
+      return factory;
+    }
+    
+    public DogTag<T> build(T instance) {
+      return build().tag(instance);
+    }
+
+    /**
+     * Extracted from build() to be used for testing. This allows you to make a factory without adding it to the Map,
+     * which is crucial for unit tests.
+     * @return A factory from the previously set options
+     */
+    public Factory<T> makeFactory() {
+      return new Factory<>(targetClass, makeGetterList(), startingHash, hashBuilder, useCachedHash);
     }
 
     private List<FieldProcessor> makeGetterList() {
@@ -471,17 +581,17 @@ public final class DogTag<T> {
         Field[] declaredFields = theClass.getDeclaredFields();
         for (Field field : declaredFields) {
           int modifiers = field.getModifiers();
-          boolean isCache = field.getType() == CachedHash.class;
           final boolean isStatic = Modifier.isStatic(modifiers);
           final boolean fieldIsFinal = Modifier.isFinal(modifiers);
-          if ((field.getType() == DogTag.class) && !isStatic) {
-            throw new AssertionError("Your DogTag instance must be static. Private and final are recommended.");
+          final boolean isDogTag = field.getType() == DogTag.class;
+          if (isDogTag && isStatic) {
+            throw new AssertionError("Your DogTag instance must be not static. Private and final are recommended.");
           }
 
           // Test if the field should be included. This tests for inclusion, regardless of the selectionMode.
           //noinspection MagicCharacter
           if (!isStatic
-              && !isCache
+              && !isDogTag
               // transients are tested only in exclusion mode
               && (testTransients || useInclusionMode || !Modifier.isTransient(modifiers))
               && (!finalFieldsOnly || useInclusionMode || fieldIsFinal)
@@ -507,10 +617,6 @@ public final class DogTag<T> {
               fieldProcessor = new FieldProcessor(objectToBooleanBiFunction, hashFunction);
             }
             fieldProcessorList.add(fieldProcessor);
-          } else {
-            if (isCache && isStatic) {
-              throw new AssertionError("Your CachedHash instance cannot be static. Private and final are recommended");
-            }
           }
         }
         if (theClass == lastSuperClass) {
@@ -614,124 +720,15 @@ public final class DogTag<T> {
       return new FieldProcessor(arrayEquals, arrayHash);
     }
   }
-
-  /**
-   * Compare two objects for null. This should always be called with {@code this} as the first parameter. Your
-   * equals method should look like this:
-   * <pre>
-   *   private static final{@literal DogTag<YourClass>} dogTag = DogTag.from(YourClass.class); // Or built from the builder
-   *
-   *  {@literal @Override}
-   *   public boolean equals(Object that) {
-   *     return dogTag.doEqualsTest(this, that);
-   *   }
-   * </pre>
-   * @param thisOneNeverNull Pass {@code this} to this parameter
-   * @param thatOneNullable {@code 'other'} in the equals() method
-   * @return true if the objects are equal, false otherwise
-   */
-  @SuppressWarnings("ObjectEquality")
-  public boolean doEqualsTest(T thisOneNeverNull, Object thatOneNullable) {
-    assert thisOneNeverNull != null : "Always pass 'this' to the first parameter of this method!";
-    if (thisOneNeverNull == thatOneNullable) {
-      return true;
-    }
-
-    // Includes an implicit test for null
-    if (!targetClass.isInstance(thatOneNullable)) {
-      return false;
-    }
-
-    @SuppressWarnings("unchecked")
-    T thatOneNeverNull = (T) thatOneNullable;
-    try {
-      for (FieldProcessor f : fieldProcessors) {
-        if (!f.testForEquals(thisOneNeverNull, thatOneNeverNull)) {
-          return false;
-        }
-      }
-      return true;
-    } catch (IllegalAccessException e) {
-
-      // Shouldn't happen, since accessible has been set to true.
-      throw new AssertionError("Illegal Access should not happen", e);
-    }
+  
+  public boolean doEqualsTest(Object thatOne) {
+    return factory.doEqualsTest(thisRef.get(), thatOne);
   }
-
-  /**
-   * Get the hash code from an instance of the containing class, consistent with {@code equals()}
-   * For example:
-   * <pre>
-   *  {@literal @Override}
-   *   public int hashCode() {
-   *     return dogTag.doHashCode(this);
-   *   }
-   * </pre>
-   * @param thisOne Pass 'this' to this parameter
-   * @return The hashCode
-   */
-  public int doHashCode(T thisOne) {
-    assert thisOne != null : "Always pass 'this' to this method! That guarantees it won't be null.";
-    int hash = startingHash;
-
-    try {
-      for (FieldProcessor f : fieldProcessors) {
-        hash = hashBuilder.newHash(hash, f.getHashValue(thisOne));
-      }
-    } catch (IllegalAccessException e) {
-
-      // Shouldn't happen, because accessible has been set to true.
-      throw new AssertionError("Illegal Access shouldn't happen", e);
-    }
-    return hash;
-  }
-
-  /** get the hashCode from the cache if it has already been calculated, or if it hasn't, calculate it and store it
-   * in the Cache. This should only be used with DogTags created with fields that can't change value.
-   * @see CachedHash
-   * @param thisOne The instance to hash
-   * @param cachedHash The cache that stores the previous value
-   * @return The hash code.
-   */
-  public int doHashCode(T thisOne, CachedHash cachedHash) {
-    if (!cachedHash.isSet()) {
-      cachedHash.setHash(doHashCode(thisOne));
-    }
-    return cachedHash.getHash();
-  }
-
-  /**
-   * Make a HashedCache instance for each instance of your class. This should only be called if you built your DogTag
-   * using the 'withCachedHash' option set to true. CachedHashes only work if all the specified fields are final. You
-   * do not need to specify the withFinalFieldsOnly option to use a CachedHash as long as all the fields you include
-   * are final. A CachedHash will always work when the withFinalFieldsOnly option is true.
-   * <p>
-   * To use a CachedHash, your hash code method should be implemented like this:
-   * <pre>
-   *   private static final {@literal DogTag<MyClass>} dogTag = DogTag.create() // must be static!
-   *       .withCachedHash(true)
-   *       // other options specified here
-   *       .build();
-   *       
-   *   private final CachedHash cachedHash = dogTag.makeCachedHash(); // must NOT be static!
-   *
-   *  {@literal @Override}
-   *   public int doHashCode() {
-   *     return doHashCode(this, cachedHash);
-   *   }
-   * 
-   *   // Your equals() method does not change.
-   *  {@literal @Override}
-   *   public boolean equals(Object that) { return dogTag.doEqualsTest(this, that); } 
-   * </pre>
-   * For simplicity, the CachedHash class does not have a public API.
-   * @return A CachedHash to cache the hash value for improved performance.
-   */
-  public CachedHash makeCachedHash() {
-    if (useCache) {
-      return new CachedHash();
-    }
-    throw new AssertionError("A CachedHash can only be used if the 'withCachedHash' option is true");
+  
+  public int doHashCode() {
+    final T thisOne = this.thisRef.get();
+    //noinspection AccessingNonPublicFieldOfAnotherObject
+    return factory.useCache? factory.doCachedHashCode(thisOne, this) : factory.doHashCodeInternal(thisOne);
   }
 
   /**
@@ -743,17 +740,17 @@ public final class DogTag<T> {
   @Override
   public boolean equals(Object obj) {
     throw new AssertionError("Never call dogTag.equals(). To test if your object is equal to another," +
-        "call dogTag.doEqualsTest(this, other)");
+        "call dogTag.doEqualsTest(obj)");
   }
 
   /**
-   * This method is disabled, to avoid confusion with the doHashCode() method. You should never need this anyway.
+   * This method is disabled, to avoid confusion with the doHashCodeInternal() method. You should never need this anyway.
    * Calling this method will throw an AssertionError.
    * @return never returns
    */
   @Override
   public int hashCode() {
-    throw new AssertionError("Never call hashCode(). To get the hashCode of your object, call doHashCode(this)");
+    throw new AssertionError("Never call hashCode(). To get the hashCode of your object, call doHashCode()");
   }
 
   // These two interfaces declare a thrown exception that will actually never get thrown. I could wrap or ignore the

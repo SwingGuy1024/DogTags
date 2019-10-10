@@ -12,98 +12,98 @@ public class DogTagHashTest {
   @Test
   public void testHashBuilder() {
     TestClassOne tc1 = new TestClassOne(1, 2, 3);
-    DogTag<TestClassOne> dogTag = DogTag.from(TestClassOne.class);
-    assertEquals(30817, dogTag.doHashCode(tc1));
+    DogTag.Factory<TestClassOne> factory = DogTag.create(TestClassOne.class).makeFactory();
+    DogTag<TestClassOne> tag = factory.tag(tc1);
+    assertEquals(30817, tag.doHashCode());
 
-    DogTag<TestClassOne> revisedDogTag = DogTag.create(TestClassOne.class)
+    DogTag.Factory<TestClassOne> revisedFactory = DogTag.create(TestClassOne.class)
         .withHashBuilder(1, (int i, Object v) -> (i * 4567) + v.hashCode())
-        .build();
-    assertEquals(787738377, revisedDogTag.doHashCode(tc1));
-    
-    DogTag<TestClassOne> inclusionDogTag = DogTag.createByInclusion(TestClassOne.class, "alpha", "bravo", "charlie")
+        .makeFactory();
+    DogTag<TestClassOne> revisedTag = revisedFactory.tag(tc1);
+    assertEquals(787738377, revisedTag.doHashCode());
+
+    DogTag.Factory<TestClassOne> inclusionFactory = DogTag.createByInclusion(TestClassOne.class, "alpha", "bravo", "charlie")
         .withHashBuilder(1, (int i, Object v) -> (i * 4567) + v.hashCode())
-        .build();
-    assertEquals(787738377, inclusionDogTag.doHashCode(tc1));
+        .makeFactory();
+    DogTag<TestClassOne>  inclusionTag = inclusionFactory.tag(tc1);
+    assertEquals(787738377, inclusionTag.doHashCode());
   }
-  
+
+  @SuppressWarnings("AccessingNonPublicFieldOfAnotherObject")
   @Test
   public void testCache() throws NoSuchFieldException, IllegalAccessException {
-    DogTag<TestClassWithCache> dogTagFinal = DogTag.create(TestClassWithCache.class, "foxTrot")
+    DogTag.Factory<TestClassWithCache> factoryFinal = DogTag.create(TestClassWithCache.class, "foxTrot")
         .withCachedHash(true)
         .build();
-    CachedHash cachedHash1 = dogTagFinal.makeCachedHash();
-    CachedHash cachedHash2 = dogTagFinal.makeCachedHash();
-    CachedHash cachedHash3 = dogTagFinal.makeCachedHash();
-    CachedHash cachedHash4 = dogTagFinal.makeCachedHash();
-    CachedHash cachedHash5 = dogTagFinal.makeCachedHash();
 
     TestClassWithCache t1 = new TestClassWithCache(1, 2, 3);
     TestClassWithCache t2 = new TestClassWithCache(1, 2, 4);
     TestClassWithCache t3 = new TestClassWithCache(1, 6, 3);
     TestClassWithCache t4 = new TestClassWithCache(5, 2, 3);
     TestClassWithCache t5 = new TestClassWithCache(5, 2, 4);
-    
-    Field hashField = CachedHash.class.getDeclaredField("hash");
-    hashField.setAccessible(true);
-    Field setField = CachedHash.class.getDeclaredField("set");
-    setField.setAccessible(true);
-    
-    assertTrue(dogTagFinal.doEqualsTest(t1, t2)); // use equals at least once before testing initial cache
 
-    assertEquals(0, (int) ((Integer) hashField.get(cachedHash1)));
-    assertEquals(0, (int) ((Integer) hashField.get(cachedHash2)));
-    assertEquals(0, (int) ((Integer) hashField.get(cachedHash3)));
-    assertEquals(0, (int) ((Integer) hashField.get(cachedHash4)));
-    assertEquals(0, (int) ((Integer) hashField.get(cachedHash5)));
-    assertFalse((Boolean) setField.get(cachedHash1));
-    assertFalse((Boolean) setField.get(cachedHash2));
-    assertFalse((Boolean) setField.get(cachedHash3));
-    assertFalse((Boolean) setField.get(cachedHash4));
-    assertFalse((Boolean) setField.get(cachedHash5));
+    DogTag<TestClassWithCache> dt1 = factoryFinal.tag(t1);
+    DogTag<TestClassWithCache> dt2 = factoryFinal.tag(t2);
+    DogTag<TestClassWithCache> dt3 = factoryFinal.tag(t3);
+    DogTag<TestClassWithCache> dt4 = factoryFinal.tag(t4);
+    DogTag<TestClassWithCache> dt5 = factoryFinal.tag(t5);
+    
+    Field cachedField = DogTag.class.getDeclaredField("cachedHash");
+    cachedField.setAccessible(true);
+
+    assertTrue(factoryFinal.doEqualsTest(t1, t2)); // use equals at least once before testing initial cache
+
+    assertEquals(0, cachedField.getInt(t1.dogTag));
+    assertEquals(0, cachedField.getInt(t2.dogTag));
+    assertEquals(0, cachedField.getInt(t3.dogTag));
+    assertEquals(0, cachedField.getInt(t4.dogTag));
+    assertEquals(0, cachedField.getInt(t5.dogTag));
 
     // These verify methods don't use the cached hash. We're just testing that we didn't break the equals() method.
-    verifyMatch__(dogTagFinal, t1, t2);
-    verifyNoMatch(dogTagFinal, t1, t3);
-    verifyNoMatch(dogTagFinal, t1, t4);
-    verifyNoMatch(dogTagFinal, t1, t5);
-    verifyNoMatch(dogTagFinal, t2, t3);
-    verifyNoMatch(dogTagFinal, t2, t4);
-    verifyNoMatch(dogTagFinal, t2, t5);
-    verifyNoMatch(dogTagFinal, t3, t4);
-    verifyNoMatch(dogTagFinal, t3, t5);
-    verifyMatch__(dogTagFinal, t4, t5);
+    verifyMatch__(factoryFinal, t1, t2);
+    verifyNoMatch(factoryFinal, t1, t3);
+    verifyNoMatch(factoryFinal, t1, t4);
+    verifyNoMatch(factoryFinal, t1, t5);
+    verifyNoMatch(factoryFinal, t2, t3);
+    verifyNoMatch(factoryFinal, t2, t4);
+    verifyNoMatch(factoryFinal, t2, t5);
+    verifyNoMatch(factoryFinal, t3, t4);
+    verifyNoMatch(factoryFinal, t3, t5);
+    verifyMatch__(factoryFinal, t4, t5);
 
 
-    int h1 = dogTagFinal.doHashCode(t1, cachedHash1);
-    int h2 = dogTagFinal.doHashCode(t2, cachedHash2);
-    int h3 = dogTagFinal.doHashCode(t3, cachedHash3);
-    int h4 = dogTagFinal.doHashCode(t4, cachedHash4);
-    int h5 = dogTagFinal.doHashCode(t5, cachedHash5);
+    int h1 = dt1.doHashCode();
+    int h2 = dt2.doHashCode();
+    int h3 = dt3.doHashCode();
+    int h4 = dt4.doHashCode();
+    int h5 = dt5.doHashCode();
 
-    assertNotEquals(0, (int) ((Integer) hashField.get(cachedHash1)));
-    assertNotEquals(0, (int) ((Integer) hashField.get(cachedHash2)));
-    assertNotEquals(0, (int) ((Integer) hashField.get(cachedHash3)));
-    assertNotEquals(0, (int) ((Integer) hashField.get(cachedHash4)));
-    assertNotEquals(0, (int) ((Integer) hashField.get(cachedHash5)));
-    assertTrue((Boolean) setField.get(cachedHash1));
-    assertTrue((Boolean) setField.get(cachedHash2));
-    assertTrue((Boolean) setField.get(cachedHash3));
-    assertTrue((Boolean) setField.get(cachedHash4));
-    assertTrue((Boolean) setField.get(cachedHash5));
-
-    assertEquals(h1, dogTagFinal.doHashCode(t1, cachedHash1));
-    assertEquals(h2, dogTagFinal.doHashCode(t2, cachedHash2));
-    assertEquals(h3, dogTagFinal.doHashCode(t3, cachedHash3));
-    assertEquals(h4, dogTagFinal.doHashCode(t4, cachedHash4));
-    assertEquals(h5, dogTagFinal.doHashCode(t5, cachedHash5));
+    assertNotEquals(0, cachedField.get(dt1));
+    assertNotEquals(0, cachedField.get(dt2));
+    assertNotEquals(0, cachedField.get(dt3));
+    assertNotEquals(0, cachedField.get(dt4));
+    assertNotEquals(0, cachedField.get(dt5));
     
+    assertEquals(h1, factoryFinal.doHashCodeInternal(t1));
+    assertEquals(h2, factoryFinal.doHashCodeInternal(t2));
+    assertEquals(h3, factoryFinal.doHashCodeInternal(t3));
+    assertEquals(h4, factoryFinal.doHashCodeInternal(t4));
+    assertEquals(h5, factoryFinal.doHashCodeInternal(t5));
+
+    assertEquals(h1, dt1.doHashCode());
+    assertEquals(h2, dt2.doHashCode());
+    assertEquals(h3, dt3.doHashCode());
+    assertEquals(h4, dt4.doHashCode());
+    assertEquals(h5, dt5.doHashCode());
+
     // Equal objects should have equal hash codes.
     assertEquals(h1, h2);
     assertEquals(h4, h5);
-    
-    // Class TestClassWithCache has its own DogTag and CachedHash built-in. The DogTag was built with different options.
+
+    // Class TestClassWithCache has its own DogTag that uses a cached hash code. The DogTag factory was built with 
+    // different options.
     // It specified withFinalFieldsOnly, and left out withCachedHash, which should be set implicitly. Now we repeat 
-    // some of those tests with the built-in objects, to make verify the withCachedHash property got set.
+    // some of those tests with the built-in objects, to verify the withCachedHash property got set.
 
     assertEquals(h1, t1.hashCode());
     assertEquals(h2, t2.hashCode());
@@ -116,23 +116,23 @@ public class DogTagHashTest {
     assertEquals(t3.hashCode(), t3.hashCode());
     assertEquals(t4.hashCode(), t4.hashCode());
     assertEquals(t5.hashCode(), t5.hashCode());
-    
+
     assertEquals(t1.toString(), String.valueOf(t1.hashCode()));
-    
+
     // Test cache in inclusion mode
-    
-    DogTag<TestClassWithCache> dogTagInclusion = DogTag.createByInclusion(TestClassWithCache.class, "delta", "echo")
+
+    DogTag.Factory<TestClassWithCache> factoryInclusion = DogTag.createByInclusion(TestClassWithCache.class, "delta", "echo")
         .withCachedHash(true)
         .build();
-    
-    final CachedHash cachedHash = dogTagInclusion.makeCachedHash();
-    h1 = dogTagInclusion.doHashCode(t1, cachedHash);
+
+    DogTag<TestClassWithCache> dtOne = factoryInclusion.tag(t1);
+    h1 = dtOne.doHashCode();
     setEcho(t1, 99); // If the hash code is cached, changing an included field shouldn't change the hash code.
-    assertEquals(h1, dogTagInclusion.doHashCode(t1, cachedHash));
+    assertEquals(h1, dtOne.doHashCode());
     setEcho(t1, 98); // If the hash code is cached, changing an included field shouldn't change the hash code.
-    assertEquals(h1, dogTagInclusion.doHashCode(t1, cachedHash));
+    assertEquals(h1, dtOne.doHashCode());
   }
-  
+
   private void setEcho(TestClassWithCache instance, int newValue) {
     try {
       Field echoField = TestClassWithCache.class.getDeclaredField("echo");
@@ -141,30 +141,6 @@ public class DogTagHashTest {
     } catch (NoSuchFieldException | IllegalAccessException e) {
       throw new AssertionError(e);
     }
-  }
-
-  /**
-   * Make sure we get an AssertionError if the CachedHash is declared static
-   */
-  @Test(expected = AssertionError.class)
-  public void testStaticCache() {
-    new TestStaticCache(5);
-  }
-
-  /**
-   * Make sure we get an AssertionError if the DogTag uses a non-final field with a CachedHash
-   */
-  @Test(expected = AssertionError.class)
-  public void testNonFinalField() {
-    new TestNonFinalCache(5);
-  }
-
-  /**
-   * Make sure we get an AssertionError if the withCachedHash option is not turned on
-   */
-  @Test(expected = AssertionError.class)
-  public void testWithoutCache() {
-    new TestWithoutCache(5);
   }
 
   @SuppressWarnings("PackageVisibleField")
@@ -179,17 +155,17 @@ public class DogTagHashTest {
       this.charlie = charlie;
     }
 
-    private static final DogTag<TestClassOne> dogTag = DogTag.from(TestClassOne.class);
+    private final DogTag<TestClassOne> dogTag = DogTag.from(TestClassOne.class, this);
 
     @Override
     public int hashCode() {
-      return dogTag.doHashCode(this);
+      return dogTag.doHashCode();
     }
 
     @SuppressWarnings("EqualsWhichDoesntCheckParameterClass")
     @Override
     public boolean equals(Object that) {
-      return dogTag.doEqualsTest(this, that);
+      return dogTag.doEqualsTest(that);
     }
   }
 
@@ -221,103 +197,30 @@ public class DogTagHashTest {
       this.foxTrot = foxTrot;
     }
 
-    private static final DogTag<TestClassWithCache> dogTag = DogTag.create(TestClassWithCache.class)
+    private final DogTag<TestClassWithCache> dogTag = DogTag.create(TestClassWithCache.class)
         .withFinalFieldsOnly(true) // This should implicitly set withCachedHash to true 
-        .build();
-    
-    private final CachedHash cachedHash = dogTag.makeCachedHash();
+        .build(this);
 
     @Override
     public int hashCode() {
-      return dogTag.doHashCode(this, cachedHash);
+      return dogTag.doHashCode();
     }
 
     @SuppressWarnings("EqualsWhichDoesntCheckParameterClass")
     @Override
     public boolean equals(Object that) {
-      return dogTag.doEqualsTest(this, that);
+      return dogTag.doEqualsTest(that);
     }
 
     @Override
     public String toString() {
-      return cachedHash.toString();
+      try {
+        Field hashField = DogTag.class.getDeclaredField("cachedHash");
+        hashField.setAccessible(true);
+        return String.valueOf(hashField.getInt(this.dogTag));
+      } catch (NoSuchFieldException | IllegalAccessException e) {
+        throw new AssertionError(e);
+      }
     }
-  }
-  
-  @SuppressWarnings("unused")
-  private static class TestStaticCache {
-    private final int golf;
-    TestStaticCache(int golf) {
-      this.golf = golf;
-    }
-
-    public int getGolf() {
-      return golf;
-    }
-
-    private static final DogTag<TestStaticCache> dogTag = DogTag.create(TestStaticCache.class)
-    .withFinalFieldsOnly(true)
-    .build();
-    
-    private static final CachedHash cachedHash = dogTag.makeCachedHash();
-
-    @Override
-    public boolean equals(final Object that) {
-      return dogTag.doEqualsTest(this, that);
-    }
-
-    @Override
-    public int hashCode() {
-      return dogTag.doHashCode(this, cachedHash);
-    }
-  }
-
-  @SuppressWarnings("unused")
-  private static class TestNonFinalCache {
-    private int golf;
-
-    TestNonFinalCache(int golf) {
-      this.golf = golf;
-    }
-
-    public int getGolf() {
-      return golf;
-    }
-
-    public void setGolf(final int golf) {
-      this.golf = golf;
-    }
-
-    private static final DogTag<TestNonFinalCache> dogTag = DogTag.create(TestNonFinalCache.class)
-        .withCachedHash(true)
-        .build();
-
-    private static final CachedHash cachedHash = dogTag.makeCachedHash();
-
-    @Override
-    public int hashCode() {
-      return dogTag.doHashCode(this, cachedHash);
-    }
-
-    @Override
-    public boolean equals(final Object that) {
-      return dogTag.doEqualsTest(this, that);
-    }
-  }
-  
-  @SuppressWarnings("unused")
-  private static class TestWithoutCache {
-    private final int golf;
-
-    TestWithoutCache(final int golf) {
-      this.golf = golf;
-    }
-
-    public int getGolf() {
-      return golf;
-    }
-    
-    private static final DogTag<TestWithoutCache> dogTag = DogTag.from(TestWithoutCache.class);
-    private final CachedHash cachedHash = dogTag.makeCachedHash();
   }
 }

@@ -19,7 +19,7 @@ import org.junit.Test;
 @SuppressWarnings({"MagicNumber", "HardCodedStringLiteral"})
 public class PerformanceTestPrimitiveArrays {
   private static final String[] EMPTY_STRING_ARRAY = new String[0];
-  private DogTag<TestClass> dogTag = DogTag.from(TestClass.class);
+  private DogTag.Factory<TestClass> dogTag = DogTag.create(TestClass.class).makeFactory();
 
   @SuppressWarnings("NumericCastThatLosesPrecision")
   private static Short toShort(int i) { return (short) i;}
@@ -110,15 +110,15 @@ public class PerformanceTestPrimitiveArrays {
         && Arrays.equals(t1.getVictorDoubleArray(), t2.getVictorDoubleArray())
         && Arrays.equals(t1.getWhiskeyObjectArray(), t2.getWhiskeyObjectArray());
   }
-  
-  
+
+
   @SuppressWarnings({"AssignmentOrReturnOfFieldWithMutableType", "WeakerAccess", "MagicCharacter", "MagicNumber", "HardCodedStringLiteral", "ImplicitNumericConversion"})
   private static class TestClass {
 
     TestClass() {
       this(1, "bravo");
     }
-    
+
     TestClass(Integer alpha, String bravo) {
       alphaInt = alpha;
       bravoString = bravo;
@@ -328,7 +328,7 @@ public class PerformanceTestPrimitiveArrays {
     public TestClass duplicate() {
       return duplicate(getAlphaInt(), getBravoString());
     }
-    
+
     public TestClass duplicate(Integer alpha, String bravo) {
       TestClass tail = new TestClass(alpha, bravo);
       tail.setCharlieInt(getCharlieInt());
@@ -355,12 +355,12 @@ public class PerformanceTestPrimitiveArrays {
       return tail;
     }
   }
-  
+
   private static String dup(String s) {
     String s2 = '1' + s;
     return s2.substring(1);
   }
-  
+
   private static String[] dupArray(String[] array) {
     String[] dup = new String[array.length];
     int i=0;

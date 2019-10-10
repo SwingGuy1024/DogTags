@@ -15,9 +15,9 @@ import org.junit.Test;
  * @author Miguel Mu\u00f1oz
  */
 @SuppressWarnings({"MagicNumber", "HardCodedStringLiteral", "MagicCharacter", "SameParameterValue"})
-public class PerformanceTestWithWrappersUncached {
+public class PerformanceTestWithWrappersUnCached {
   private static final String[] EMPTY_STRING_ARRAY = new String[0];
-  private DogTag<TestClass> dogTag = DogTag.from(TestClass.class);
+  private DogTag.Factory<TestClass> dogTag = DogTag.create(TestClass.class).makeFactory();
 
   @SuppressWarnings("NumericCastThatLosesPrecision")
   private static Short toShort(int i) { return (short) i;}
@@ -58,7 +58,7 @@ public class PerformanceTestWithWrappersUncached {
     TestClass[] instances = { t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, /* t14, t15, t16, t17, t18, t19, t20, t21, t22, t23, */ t0.duplicate() };
     TimingUtility.reverse(instances);
 
-    final BiFunction<TestClass, TestClass, Boolean> directEqual = PerformanceTestWithWrappersUncached::isEqual;
+    final BiFunction<TestClass, TestClass, Boolean> directEqual = PerformanceTestWithWrappersUnCached::isEqual;
     TimingUtility.runTestCycles(dogTag, t0, instances, directEqual, EMPTY_STRING_ARRAY);
   }
 
@@ -82,15 +82,15 @@ public class PerformanceTestWithWrappersUncached {
         && t1.getLimaDouble().equals(t2.getLimaDouble())
         && t1.getMikeFloat().equals(t2.getMikeFloat());
   }
-  
-  
-  @SuppressWarnings({"AssignmentOrReturnOfFieldWithMutableType", "WeakerAccess", "MagicCharacter", "MagicNumber", "HardCodedStringLiteral", "ImplicitNumericConversion"})
+
+
+  @SuppressWarnings({"AssignmentOrReturnOfFieldWithMutableType", "WeakerAccess", "MagicCharacter", "MagicNumber", "HardCodedStringLiteral", "ImplicitNumericConversion", "EqualsAndHashcode"})
   private static class TestClass {
 
     TestClass() {
       this(111111, "bravo");
     }
-    
+
     TestClass(Integer alpha, String bravo) {
       alphaInt = alpha;
       bravoString = bravo;
@@ -209,7 +209,7 @@ public class PerformanceTestWithWrappersUncached {
     public TestClass duplicate() {
       return duplicate(getAlphaInt(), getBravoString());
     }
-    
+
     public TestClass duplicate(Integer alpha, String bravo) {
       TestClass tail = new TestClass(alpha, bravo);
       tail.setCharlieInt(getCharlieInt());
@@ -253,12 +253,12 @@ public class PerformanceTestWithWrappersUncached {
           .isEquals();
     }
   }
-  
+
   private static String dup(String s) {
     String s2 = '1' + s;
     return s2.substring(1);
   }
-  
+
   private static String[] dupArray(String[] array) {
     String[] dup = new String[array.length];
     int i=0;
@@ -269,6 +269,6 @@ public class PerformanceTestWithWrappersUncached {
   }
 
   public static void main(String[] args) {
-    new PerformanceTestWithWrappersUncached().timeTest();
+    new PerformanceTestWithWrappersUnCached().timeTest();
   }
 }

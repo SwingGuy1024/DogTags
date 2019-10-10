@@ -78,7 +78,7 @@ public class PerformanceTest {
 
 //    final BiFunction<TestClass, TestClass, Boolean> directEqual = PerformanceTest::isEqual;
 //    TimingUtility.runTestCycles(dogTag, t0, instances, directEqual, EMPTY_STRING_ARRAY);
-    
+
     // Test 2: No Arrays
 //    final String[] excludedFields = {"novemberIntArray", "operaStringArray", "papaLongArray", "quebecShortArray",
 //        "romeoByteArray", "sierraCharArray", "tangoBooleanArray", "uniformFloatArray", "victorDoubleArray",
@@ -86,14 +86,14 @@ public class PerformanceTest {
 //    DogTag<SingleValueTestClass> dogTagNoArrays = DogTag.create(SingleValueTestClass.class)
 //        .withExcludedFields(excludedFields)
 //        .build();
-    DogTag<SingleValueTestClass> dogTagNoArrays = DogTag.from(SingleValueTestClass.class);
+    DogTag.Factory<SingleValueTestClass> dogTagNoArrays = DogTag.create(SingleValueTestClass.class).makeFactory();
 
     TestClass[] pInstances = { t0.duplicate(), t13, t12, t11, t10, t9, t8, t7, t6, t5, t4, t3, t2, t1, t0 };
-    
+
     TimingUtility.runTestCycles(dogTagNoArrays, t0, pInstances, PerformanceTest::singleValueDirectEqual, EMPTY_STRING_ARRAY);
   }
 
-  
+
   private static boolean singleValueDirectEqual(SingleValueTestClass t1, SingleValueTestClass t2) {
     //noinspection ObjectEquality
     if (t1 == t2) {
@@ -114,12 +114,12 @@ public class PerformanceTest {
   }
 
 
- 
+
   private static String dup(String s) {
     String s2 = '1' + s;
     return s2.substring(1);
   }
-  
+
   private static String[] dupArray(String[] array) {
     String[] dup = new String[array.length];
     int i=0;
@@ -135,7 +135,7 @@ public class PerformanceTest {
     TestClass(int alpha, String bravo) {
       super(alpha, bravo);
     }
-    
+
     @DogTagExclude // Just to get rid of the warning in DogTagExclude.java that says 'class may be package private.'
     private static final int unused = 0;
 
@@ -439,12 +439,12 @@ public class PerformanceTest {
           .isEquals();
     }
   }
-  
+
   @SuppressWarnings("EqualsAndHashcode")
   private static class TwoStringClass {
     private String alpha;
     private String bravo;
-    
+
     TwoStringClass(String a, String b) {
       // I use new String(String) to avoid the identity check when comparing two identical Strings. 
       alpha = new String(a);
@@ -479,14 +479,14 @@ public class PerformanceTest {
     TwoStringClass t1 = new TwoStringClass("alpha", "BRAVO");
     TwoStringClass t2 = new TwoStringClass("alpha", "bravo");
     TwoStringClass t3 = new TwoStringClass("iALPHA".substring(1), "iBRAVO".substring(1));
-    
-    DogTag<TwoStringClass> dogTag = DogTag.from(TwoStringClass.class);
+
+    DogTag.Factory<TwoStringClass> dogTag = DogTag.create(TwoStringClass.class).makeFactory();
     TwoStringClass[] array = { t3, t2, t1, t0};
     TimingUtility.runTestCycles(dogTag, t0, array, PerformanceTest::handCoded, EMPTY_STRING_ARRAY);
   }
-  
+
   // todo: Add 26 strings
-  
+
   @SuppressWarnings({"EqualsAndHashcode", "UseOfClone", "PackageVisibleField"})
   private static class S26 implements Cloneable {
     // I use new String(String) to avoid the identity check when comparing two identical Strings. 
@@ -516,7 +516,7 @@ public class PerformanceTest {
     String x = new String("x-ray");
     String y = new String("yankee");
     String z = new String("zulu");
-    
+
     @Override
     public S26 clone() throws CloneNotSupportedException {
       return (S26) super.clone();
@@ -562,7 +562,7 @@ public class PerformanceTest {
           .isEquals();
     }
   }
-  
+
   @SuppressWarnings("EqualsReplaceableByObjectsCall")
   private static boolean handCoded26(S26 a, S26 b) {
     return a.a.equals(b.a)
@@ -593,7 +593,7 @@ public class PerformanceTest {
         && a.z.equals(b.z)
         ;
   }
-  
+
   @Ignore
   @Test
   public void test26() throws CloneNotSupportedException {
@@ -650,12 +650,12 @@ public class PerformanceTest {
     yy.y = "mismatch";
     S26 zz = new S26();
     zz.z = "mismatch";
-    
+
     @SuppressWarnings("UseOfClone")
     S26 clone = original.clone();
-    
-    DogTag<S26> dogTag = DogTag.from(S26.class);
-    
+
+    DogTag.Factory<S26> dogTag = DogTag.create(S26.class).makeFactory();
+
     S26[] i = {original, aa, bb, cc, dd, ee, ff, gg, hh, ii, jj, kk, ll, mm, nn, oo, pp, qq, rr, ss, tt, uu, vv, ww, xx, yy, zz, clone };
     reverse(i);
 

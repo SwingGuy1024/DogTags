@@ -91,7 +91,7 @@ I could get rid of the public factory class by storing all factories in a privat
     public class MyClass {
       // fields and methods here ...
       
-      private final DogTag<MyClass> dogTag = DogTag.from(MyClass.class, this);
+      private transient final DogTag<MyClass> dogTag = DogTag.from(MyClass.class, this);
       
       @Override
       public boolean equals(Object other) {
@@ -109,7 +109,7 @@ Or, for more complex build situations:
     public class MyClass extends MyBaseClass {
       // fields and methods
       
-      private final DogTag<MyClass> dogTag = DogTag.create(MyClass.class, this)
+      private transient final DogTag<MyClass> dogTag = DogTag.create(MyClass.class, this)
         .withAnnotation(MyExcludeField.class)
         .withReflectUpTo(MyBaseClass.class)
         .build();

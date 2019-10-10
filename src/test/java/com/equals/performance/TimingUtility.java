@@ -31,7 +31,7 @@ enum TimingUtility {
    * @param <T> The type being tested
    */
   @SuppressWarnings("StringConcatenation")
-  static <T> void runTestCycles(DogTag<T> dogTag, final T t0, final T[] instances, final BiFunction<T, T, Boolean> directEqual, String[] excluded) {
+  static <T> void runTestCycles(DogTag.Factory<T> dogTag, final T t0, final T[] instances, final BiFunction<T, T, Boolean> directEqual, String[] excluded) {
     for (int i = 0; i < 4; ++i) {
       System.out.println("Test " + i);
       //noinspection HardcodedFileSeparator
@@ -41,14 +41,14 @@ enum TimingUtility {
         TimingUtility.runTimedTest(dogTag, directEqual, index++, t0, t, 1000000, instances.length - 2, excluded);
       }
       System.out.println("\nKey: DgTg: DogTags\n" +
-          "     R.Eq: EqualsBuilder.ReferenceEqual()\n" +
+          "     R.Eq: EqualsBuilder.referenceEqual()\n" +
           "       HC: Hand Coded\n" +
           "     Eq.B: new EqualsBuilder()\n");
     }
   }
 
   /** @noinspection SameParameterValue*/
-  static <T> void runTimedTest(DogTag<T> dogTag, BiFunction<T, T, Boolean> direct, int i, T t1, T t2, int iterations, int count, String[] excluded) {
+  static <T> void runTimedTest(DogTag.Factory<T> dogTag, BiFunction<T, T, Boolean> direct, int i, T t1, T t2, int iterations, int count, String[] excluded) {
     BiFunction<T, T, Boolean> dogTagTest = dogTag::doEqualsTest;
     Runnable dogTagRunner = makeRunner(t1, t2, dogTagTest);
     Runnable eBRunner = makeRunner(t1, t2, (a, b) -> EqualsBuilder.reflectionEquals(a, b, excluded));
@@ -69,7 +69,7 @@ enum TimingUtility {
     }
     System.out.printf("%16s\t%5d\t%5d\t%5d\t%5d\t%8.3f%n", label, dtTime, ebTime, drTime, d2Time, ((double)ebTime)/dtTime); //NON-NLS
   }
-  
+
   private static <T> Runnable makeRunner(T a, T b, BiFunction<T, T, Boolean> equal) {
     return () -> equal.apply(a, b);
   }
