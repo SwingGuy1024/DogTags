@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.function.BiFunction;
 import com.equals.DogTag;
+import com.equals.TimingUtility;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -19,7 +20,6 @@ import org.junit.Test;
 @SuppressWarnings({"MagicNumber", "HardCodedStringLiteral"})
 public class PerformanceTestPrimitiveArrays {
   private static final String[] EMPTY_STRING_ARRAY = new String[0];
-  private DogTag.Factory<TestClass> dogTag = DogTag.create(TestClass.class).makeFactory();
 
   @SuppressWarnings("NumericCastThatLosesPrecision")
   private static Short toShort(int i) { return (short) i;}
@@ -79,6 +79,7 @@ public class PerformanceTestPrimitiveArrays {
     TimingUtility.reverse(instances);
 
     final BiFunction<TestClass, TestClass, Boolean> directEqual = PerformanceTestPrimitiveArrays::isEqual;
+    DogTag.Factory<TestClass> dogTag = DogTag.create(t0).constructFactory();
     TimingUtility.runTestCycles(dogTag, t0, instances, directEqual, EMPTY_STRING_ARRAY);
   }
 
@@ -115,15 +116,12 @@ public class PerformanceTestPrimitiveArrays {
   @SuppressWarnings({"AssignmentOrReturnOfFieldWithMutableType", "WeakerAccess", "MagicCharacter", "MagicNumber", "HardCodedStringLiteral", "ImplicitNumericConversion"})
   private static class TestClass {
 
-    TestClass() {
-      this(1, "bravo");
-    }
-
     TestClass(Integer alpha, String bravo) {
       alphaInt = alpha;
       bravoString = bravo;
     }
 
+    @SuppressWarnings("unused")
     private static int staticInt = 5;
     private final Integer alphaInt;
     private final String bravoString;

@@ -3,6 +3,7 @@ package com.equals.performance;
 import java.awt.geom.Point2D;
 import java.util.function.BiFunction;
 import com.equals.DogTag;
+import com.equals.TimingUtility;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -17,7 +18,6 @@ import org.junit.Test;
 @SuppressWarnings({"MagicNumber", "HardCodedStringLiteral", "MagicCharacter", "SameParameterValue"})
 public class PerformanceTestWithWrappers {
   private static final String[] EMPTY_STRING_ARRAY = new String[0];
-  private DogTag.Factory<TestClass> dogTag = DogTag.create(TestClass.class).makeFactory();
 
   @SuppressWarnings("NumericCastThatLosesPrecision")
   private static Short toShort(int i) { return (short) i;}
@@ -58,6 +58,7 @@ public class PerformanceTestWithWrappers {
     TimingUtility.reverse(instances);
 
     final BiFunction<TestClass, TestClass, Boolean> directEqual = PerformanceTestWithWrappers::isEqual;
+    DogTag.Factory<TestClass> dogTag = DogTag.create(t0).constructFactory();
     TimingUtility.runTestCycles(dogTag, t0, instances, directEqual, EMPTY_STRING_ARRAY);
   }
 
@@ -85,10 +86,6 @@ public class PerformanceTestWithWrappers {
 
   @SuppressWarnings({"AssignmentOrReturnOfFieldWithMutableType", "WeakerAccess", "MagicCharacter", "MagicNumber", "HardCodedStringLiteral", "ImplicitNumericConversion", "EqualsAndHashcode"})
   private static class TestClass {
-
-    TestClass() {
-      this(1, "bravo");
-    }
 
     TestClass(Integer alpha, String bravo) {
       alphaInt = alpha;
@@ -258,15 +255,6 @@ public class PerformanceTestWithWrappers {
   private static String dup(String s) {
     String s2 = '1' + s;
     return s2.substring(1);
-  }
-
-  private static String[] dupArray(String[] array) {
-    String[] dup = new String[array.length];
-    int i=0;
-    for (String s: array) {
-      dup[i++] = dup(s);
-    }
-    return dup;
   }
 
   public static void main(String[] args) {

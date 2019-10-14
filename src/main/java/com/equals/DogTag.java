@@ -15,79 +15,83 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * <strong>All documentation is out of date. It will be updated shortly</strong><p>
- * Fast {@code equals()} and {@code hashCode()} methods that use Reflection to easily get all the desired fields,
- * and produce an {@code equals()} method and a {@code hashCode()} method that are guaranteed to be consistent with
- * each other.
+ * <strong>Much of the documentation is out of date. It will be updated shortly</strong><p>
+ * Fast {@code equals()} and {@code hashCode()} methods. Guarantees that {@code equals()} complies with its contract, 
+ * and that {@code hashCode()} is consistent with {@code equals()}, according to its contract.
  * <p>
- * Unlike Apache's EqualsBuilder, most of the slow reflective calls are not done when {@code equals()} is called,
- * but at class-load time, so they are only done once for each class. This gives us a big improvement in performance.
+ * Unlike Apache's {@code EqualsBuilder.reflectionEquals()} method, most of the slow reflective calls are not done when 
+ * {@code equals()} is called, but at class-load time, or when the first instance is instantiated, so they are only 
+ * done once for each class. This gives you a big improvement in performance. It also improves maintainability, since
+ * equals and hashCode use the same construction.
  * <p>
  * Example usage:
  * <pre>
  *   public class MyClass {
  *     // Define various fields, getters, and methods here.
  *     
- *     // fields are examined by reflection here, when the class is loaded.
- *     private static final{@literal DogTag<MyClass>} dogTag = DogTag.from(MyClass.class);
+ *     private final{@literal DogTag<MyClass>} dogTag = DogTag.from(this);
  *     
  *    {@literal @Override}
  *     public boolean equals(Object that) {
- *       return dogTag.doEqualsTest(this, that);
+ *       return dogTag.equals(that);
  *     }
- *     
+ *
+ *    {@literal @Override}
  *     public int hashCode() {
- *       return dogTag.doHashCodeInternal(this);
+ *       return dogTag.hashCode();
  *     }
  *   }
  * </pre>
  * <p>
- * The equals comparison is implemented according to the guidelines set down in <strong>EffectiveJava</strong> by Joshua 
- * Bloch. The hashCode is generated using the same formula used as {@code java.lang.Objects.hash(Object...)}, 
- * although you are free to provide a different hash calculator. Floats and Doubles set to NaN are all treated as equal.
+ * The equals comparison is implemented according to the guidelines set down in <strong>Effective Java</strong> by 
+ * Joshua Bloch. The hashCode is generated using the same formula as {@code java.lang.Objects.hash(Object...)}, 
+ * although you are free to provide a different hash calculator. Floats and Doubles set to NaN are all treated as equal,
+ * unless they are in arrays. All arrays are compared using the methods in {@code java.util.Arrays}. So for arrays of
+ * float and double values, NaN are treated according to the rules for ==, which means NaN values are never equal to 
+ * anything.
  * <p>
- * Options include testing transient fields, excluding fields, using a cached hash code, and specifying a superclass to
- * include in the reflective process. These options are invoked by using one of the methods beginning with "create".
+ * Options include testing transient fields, excluding specific fields by name, using a cached hash code under special
+ * circumstances, and specifying a superclass to limit the reflective process. These options are invoked by using one 
+ * of the methods beginning with "create".
+ * <p>
+ * Here is an example of how to specify options:
  * <pre>
  *   public class MyClass extends MyBaseClass {
  *     // Define various fields, getters, and methods here.
  *
- *     private static final{@literal DogTag<MyClass>} dogTag = DogTag.create(MyClass.class)
- *       .withTransients(true)                // defaults to false
- *       .withExcludedFields("size", "date")  // defaults to non-transient, non-static fields
- *       .withReflectUpTo(MyClass.class)      // defaults to all superclasses
+ *     // Excludes size and date fields. Defaults to all non-transient, non-static fields.
+ *     private final{@literal DogTag<MyClass>} dogTag = DogTag.create(this, "size", "date")
+ *       .withTransients(true)            // defaults to false
+ *       .withReflectUpTo(MyClass.class)  // defaults to Object.class
  *       .build();
  *
  *    {@literal @Override}
- *     public boolean equals(Object that) {
- *       return dogTag.doEqualsTest(this, that);
+ *     public boolean equals(Object obj) {    // Implementations of equals() and hashCode() 
+ *       return dogTag.equals(obj);           // are the same as before.
  *     }
  *
+ *    {@literal @Override}
  *     public int hashCode() {
- *       return dogTag.doHashCodeInternal(this);
+ *       return dogTag.hashCode();
  *     }
  *   }
  * </pre>
- * When relying only on final fields, the hash code may be cached by enabling the withCachedHash option.
- * <strong>Warning</strong> Simply using final fields in your DogTag isn't sufficient to implement a properly written
- * cached hash code. All your final fields must themselves be primitives or immutable classes, or they must be classes
- * that also rely only on final fields of immutable values to generate their hash code.
- * <p>
+ * If the class is serializable, the DogTag fields should be declared transient.
  * <strong>Notes:</strong><p>
- *   The following mistakes will generate AssertionErrors:
+ *   The following mistake will generate AssertionErrors:
  *    <ul>
- *     <li>Calling either DogTag.equals() or DogTag.hashCode().</li>
+ *      <li>Declaring your DogTag instance static. </li>
+ *      <li>Not Declaring a DogTag.Factory static. (These are rarely needed)</li>
  *    </ul>
  * <p>
- *   The DogTag methods {@code equals()} and {@code hashCode()} are disabled to prevent their accidental use instead
- *   of {@code doEqualsTest()} and {@code doHashCodeInternal()} The two correct methods both start with "do" to avoid
- *   confusion.
+ * Static fields are always excluded. The DogTag field is also excluded, as is a (rarely used) DogTag.Factory field.
  * <p>
- *   Static fields are never used.
+ * For each member Object used in the equals and hash code calculations, the DogTag will call the object's 
+ * {@code equals()} and {@code hashCode()} methods. DogTags do not recurse into member objects.
  * <p>
+ * For performance reasons, DogTags make no effort to prevent cyclic dependencies. It is the responsibility of the 
+ * user to exclude any fields that could cause a cyclic dependency.
  * TODO: Still to do:
- * Add exclusion fields to from(), with unit tests
- * Add getter method points to createByInclusion
  * Add a way to specify the order of the fields
  * 
  * @param <T> Type that uses a DogTag equals and hashCode method
@@ -129,23 +133,14 @@ public final class DogTag<T> {
     }
 
     /**
-     * Compare two objects for null. This should always be called with {@code this} as the first parameter. Your
-     * equals method should look like this:
-     * <pre>
-     *   private static final{@literal DogTag<YourClass>} dogTag = DogTag.from(YourClass.class); // Or built from the builder
-     *
-     *  {@literal @Override}
-     *   public boolean equals(Object that) {
-     *     return dogTag.doEqualsTest(this, that);
-     *   }
-     * </pre>
-     *
-     * @param thisOneNeverNull Pass {@code this} to this parameter
+     * This is the implementation of the equals() method of a DogTag instance. This sits in the inner Factory class
+     * for testing purposes.
+     * @param thisOneNeverNull The instance wrapped by the DogTag should get passed to this parameter
      * @param thatOneNullable  {@code 'other'} in the equals() method
      * @return true if the objects are equal, false otherwise
      */
     @SuppressWarnings("ObjectEquality")
-    public boolean doEqualsTest(T thisOneNeverNull, Object thatOneNullable) {
+    boolean doEqualsTest(T thisOneNeverNull, Object thatOneNullable) {
       assert thisOneNeverNull != null : "Always pass 'this' to the first parameter of this method!";
       if (thisOneNeverNull == thatOneNullable) {
         return true;
@@ -173,16 +168,9 @@ public final class DogTag<T> {
     }
 
     /**
-     * Get the hash code from an instance of the containing class, consistent with {@code equals()}
-     * For example:
-     * <pre>
-     *  {@literal @Override}
-     *   public int hashCode() {
-     *     return dogTag.doHashCodeInternal(this);
-     *   }
-     * </pre>
-     *
-     * @param thisOne Pass 'this' to this parameter
+     * This is the implementation of the hashCode() method of a DogTag instance. This sits in the inner Factory class
+     * for testing purposes.
+     * @param thisOne The instance wrapped by the DogTag should get passed to this parameter
      * @return The hashCode
      */
     int doHashCodeInternal(T thisOne) {
@@ -212,6 +200,7 @@ public final class DogTag<T> {
 
   private DogTag(Factory<T> factory, T instance) {
     this.factory = factory;
+    // Use a WeakReference to avoid a circular reference that could delay garbage collection.
     thisRef = new WeakReference<>(instance);
   }
 
@@ -222,70 +211,75 @@ public final class DogTag<T> {
   }
 
   /**
-   * Instantiate a DogTag for class T, using default options. The default options are: All Fields are included except 
-   * transient and static fields, as well as fields annotated with {@code @DogTagExclude}. No superclass fields are 
-   * included.
-   * @param theClass The instance of enclosing {@literal Class<T>} for type T
+   * Instantiate a DogTag for an instance of class T, using default options. The default options are: All Fields are 
+   * included except transient and static fields, as well as fields annotated with {@code @DogTagExclude}. All 
+   * superclass fields are included.
+   * <p>
+   * The first time this method is called for a class, it will create a DogTag.Factory and store it. Subsequent calls
+   * will retrieve that factory and re-use it.
+   * @param instance The instance of enclosing class. Pass {@code this} to this parameter
    * @param <T> The type of the enclosing class.
-   * @return An instance of {@literal DogTag<T>}. This should be a static member of the enclosing class
+   * @return An instance of {@literal DogTag<T>}. This should be a non-static member of the enclosing class.
    */
-  public static <T> DogTag<T> from(Class<T> theClass, T instance) {
-    return new DogTagExclusionBuilder<>(theClass).build().tag(instance);
+  public static <T> DogTag<T> from(T instance) {
+    return new DogTagExclusionBuilder<>(instance).getFactory().tag(instance);
   }
 
   /**
-   * Instantiate a builder for a DogTag for class T, specifying a list of names of fields to be excluded. The fields 
-   * must be in the class specified by the type parameter for the DogTag, or any superclass included by the 
+   * Instantiate a builder for a DogTag for class T, specifying an optional list of names of fields to be excluded. The
+   * fields must be in the class specified by the type parameter for the DogTag, or any superclass included by the 
    * {@code withReflectUpTo()} option. Defaults to an empty array.
    * <p>
-   * The builder allows you to specify options before building your DogTag. The build() method generates the DogTag.
+   * This builder allows you to specify options before building your DogTag. The getFactory() method generates the DogTag.
    * All of the default options used by the {@code from()} method are used here, but they may be overridden. All the 
    * methods to set options begin with the word "with."
    * <p>
    *   For example:
    *   <pre>
-   *     {@literal DogTag<MyClass>} dogTag = DogTag.create(MyClass.class, "date", "source")
+   *     private final{@literal DogTag<MyClass>} dogTag = DogTag.create(this, "date", "source")
    *         .withTransients(true) // options are specified here
    *         .build();
    *   </pre>
    * <p>
    *   Options may be specified in any order.
-   * @param theClass The instance of enclosing {@literal Class<T>} for type T
+   * @param instance The instance of the enclosing class
    * @param excludedFieldNames The names of fields to exclude from the equals and hash code calculations
    * @param <T> The type of the enclosing class.
    * @return A builder for a {@literal DogTag<T>}, from which you can set options and build your DogTag.
    */
-  public static <T> DogTagExclusionBuilder<T> create(Class<T> theClass, String... excludedFieldNames) {
-    return new DogTagExclusionBuilder<>(theClass, excludedFieldNames);
+  public static <T> DogTagExclusionBuilder<T> create(T instance, String... excludedFieldNames) {
+    return new DogTagExclusionBuilder<>(instance, excludedFieldNames);
   }
-
+  
   /**
    * Instantiate a builder for a DogTag for class T using inclusion mode, specifying a list of names of fields to be 
-   * included. The fields must be in the class specified by the type parameter for the DogTag, or any superclass 
-   * included by the {@code withReflectUpTo()} option. Defaults to an empty array.
+   * included. The fields must be in the class specified by the type parameter for the DogTag, or any superclass. 
+   * Defaults to an empty array.
    * <p>
    * In Inclusion mode, none of the fields are included by default. They must be included by specifying their
    * name in this method, or by annotating the fields with {@literal @DogTagInclude} or a custom annotation of your
-   * choice.
-   * The builder allows you to specify options before building your DogTag. The build() method generates the DogTag.
-   * All the methods to set options begin with the word "with."
+   * choice. Fields are searched first in the Target class T, then in its most immediate superclasses, and on through
+   * the superclasses until it reaches Object.class.
+   * <p>
+   * The builder allows you to specify options before building your DogTag. The build() method generates the 
+   * DogTag. All the methods to set options begin with the word "with."
    * <p>
    * For example:
    * <pre>
-   *     {@literal DogTag<MyClass>} dogTag = DogTag.createByInclusion(MyClass.class, "name", "ssNumber", "email")
-   *         .withReflectUpTo(MyBaseClass.class) // options are specified here, and all begin with "with..."
-   *         .build();
+   *   {@literal DogTag<MyClass>} dogTag = DogTag.createByInclusion(this, "name", "ssNumber", "email")
+   *     .withInclusionAnnotation(MyIncludeAnnotation.class) // options are specified here
+   *     .build();
    * </pre>
    * <p>
    * Options may be specified in any order.
    *
-   * @param theClass   The instance of enclosing {@literal Class<T>} for type T
+   * @param instance   The instance of enclosing class. Pass {@code this} to this parameter.
    * @param fieldNames The names of fields to exclude from the equals and hash code calculations
    * @param <T>        The type of the enclosing class.
    * @return A builder for a {@literal DogTag<T>}, from which you can set options and build your DogTag.
    */
-  public static <T> DogTagInclusionBuilder<T> createByInclusion(Class<T> theClass, String... fieldNames) {
-    return new DogTagInclusionBuilder<>(theClass, fieldNames);
+  public static <T> DogTagInclusionBuilder<T>   createByInclusion(T instance, String... fieldNames) {
+    return new DogTagInclusionBuilder<>(instance, fieldNames);
   }
 
   static final class DogTagInclusionBuilder<T> extends DogTagFullBuilder<T> {
@@ -297,17 +291,17 @@ public final class DogTag<T> {
 //      return Arrays.asList(targetClass.getDeclaredFields());
 //    }
 
-    DogTagInclusionBuilder(Class<T> theClass, String... includedFields) {
-      super(theClass, false, DogTagInclude.class, includedFields);
+    DogTagInclusionBuilder(T instance, String... includedFields) {
+      super(instance, false, DogTagInclude.class, includedFields);
     }
 
     @Override
-    protected boolean isFieldSelected(final Field theField) {
+    protected boolean isFieldUsed(final Field theField) {
       return isSelected(theField);
     }
 
     /**
-     * Specify an annotation class to be used to include fields, which may be used in instead of the
+     * Specify an annotation class to be used to include fields, which may be used in addition to the
      * {@code DogTagInclude} annotation. This allows you to use an annotation of your choice, for compatibility with
      * other systems or your own framework. The {@code DogTagInclude} annotation will still work.
      *
@@ -340,12 +334,12 @@ public final class DogTag<T> {
 //      return Arrays.asList(targetClass.getDeclaredFields());
 //    }
 
-    DogTagExclusionBuilder(Class<T> theClass, String... excludedFields) {
-      super(theClass, false, DogTagExclude.class, excludedFields);
+    private DogTagExclusionBuilder(T instance, String... excludedFields) {
+      super(instance, false, DogTagExclude.class, excludedFields);
     }
 
     /**
-     * Specify an annotation class to be used to exclude fields, which may be used instead of the
+     * Specify an annotation class to be used to exclude fields, which may be used in addition to the
      * {@code DogTagExclude} annotation. This allows you to use an annotation of your choice, for compatibility with
      * other systems or your own framework. The {@code DogTagExclude} annotation will still work.
      * @param annotationClass The class object of the custom annotation you may use to specify which fields to
@@ -408,7 +402,7 @@ public final class DogTag<T> {
     }
 
     @Override
-    protected boolean isFieldSelected(final Field theField) {
+    protected boolean isFieldUsed(final Field theField) {
       return !isSelected(theField);
     }
 
@@ -435,6 +429,7 @@ public final class DogTag<T> {
     private final List<Class<? extends Annotation>> flaggedList;
 
     private Class<? super T> lastSuperClass = Object.class;    // not final. May change with options.
+    private T instance;
 
     // pre-initialized fields
     private int startingHash = 1;
@@ -449,11 +444,14 @@ public final class DogTag<T> {
     // Temporarily removed. This will be put back to support ordered inclusion fields
 //    abstract Collection<Field> getFieldCandidates(Class<T> targetClass);
 
-    protected DogTagFullBuilder(Class<T> theClass, boolean inclusionMode, Class<? extends Annotation> defaultSelectionAnnotation, String[] selectedFieldNames) {
+    protected DogTagFullBuilder(T instance, boolean inclusionMode, Class<? extends Annotation> defaultSelectionAnnotation, String[] selectedFieldNames) {
+      @SuppressWarnings("unchecked")
+      final Class<T> theClass = (Class<T>) instance.getClass();
       targetClass = theClass;
       this.selectedFieldNames = Arrays.copyOf(selectedFieldNames, selectedFieldNames.length);
       flaggedList = new LinkedList<>(Collections.singleton(defaultSelectionAnnotation));
       useInclusionMode = inclusionMode;
+      this.instance = instance;
     }
 
     protected void addSelectionAnnotation(Class<? extends Annotation> selectionAnnotation) {
@@ -463,7 +461,6 @@ public final class DogTag<T> {
     /**
      * Search through classes starting with dogTagClass, up to and including lastSuperClass, for a field with the
      * specified name.
-     * Can this be defeated by clashing private fields?
      * @param fieldName The Field name
      * @return A Field, from one of the classes in the range from dogTagClass to lastSuperClass.
      */
@@ -545,28 +542,33 @@ public final class DogTag<T> {
     protected void setReflectUpTo(Class<? super T> superClass) { this.lastSuperClass = superClass; }
 
     /**
-     * Once options are specified, build the DogTag instance for the Type. Options may be specified in any order.
-     * @return A {@code DogTag<T>} that uses the specified options.
+     * Once options are specified, find the DogTag.Factory for type T, or build a new one if one doesn't exist yet.
+     * Options may be specified in any order.
+     * @return A {@literal DogTag.Factory<T>} that builds instances of {@literal DogTag<T>} using the specified options.
      */
-    public Factory<T> build() {
+    public Factory<T> getFactory() {
       Factory<T> factory = getForClass(targetClass);
       if (factory == null) {
-        factory = makeFactory();
+        factory = constructFactory();
         factoryMap.put(targetClass, factory);
       }
       return factory;
     }
-    
-    public DogTag<T> build(T instance) {
-      return build().tag(instance);
+
+    /**
+     * Build the DogTag instance from the factory, creating the factory if it doesn't exist yet.
+     * @return The DogTag for the instance held in the builder.
+     */
+    public DogTag<T> build() {
+      return getFactory().tag(instance);
     }
 
     /**
-     * Extracted from build() to be used for testing. This allows you to make a factory without adding it to the Map,
-     * which is crucial for unit tests.
+     * Extracted from getFactory() to be used for testing. This allows you to make a factory without adding it to the Map,
+     * which is crucial for performance tests.
      * @return A factory from the previously set options
      */
-    public Factory<T> makeFactory() {
+    public Factory<T> constructFactory() {
       return new Factory<>(targetClass, makeGetterList(), startingHash, hashBuilder, useCachedHash);
     }
 
@@ -580,22 +582,29 @@ public final class DogTag<T> {
       while (theClass != Object.class) {
         Field[] declaredFields = theClass.getDeclaredFields();
         for (Field field : declaredFields) {
+          final Class<?> fieldType = field.getType();
           int modifiers = field.getModifiers();
           final boolean isStatic = Modifier.isStatic(modifiers);
           final boolean fieldIsFinal = Modifier.isFinal(modifiers);
-          final boolean isDogTag = field.getType() == DogTag.class;
+          final boolean isDogTag = fieldType == DogTag.class;
+          final boolean isFactory = fieldType == DogTag.Factory.class;
           if (isDogTag && isStatic) {
             throw new AssertionError("Your DogTag instance must be not static. Private and final are recommended.");
+          }
+          if (isFactory && !isStatic) {
+            // TODO: Write unit test to handle this case
+            throw new AssertionError("Your DogTag.Factory must be static.");
           }
 
           // Test if the field should be included. This tests for inclusion, regardless of the selectionMode.
           //noinspection MagicCharacter
           if (!isStatic
               && !isDogTag
+              && !isFactory
               // transients are tested only in exclusion mode
               && (testTransients || useInclusionMode || !Modifier.isTransient(modifiers))
               && (!finalFieldsOnly || useInclusionMode || fieldIsFinal)
-              && isFieldSelected(field)
+              && isFieldUsed(field)
               && (field.getName().indexOf('$') < 0)
           ) {
             if (useCachedHash && !fieldIsFinal) {
@@ -604,7 +613,6 @@ public final class DogTag<T> {
               );
             }
             field.setAccessible(true);
-            Class<?> fieldType = field.getType();
             FieldProcessor fieldProcessor;
             if (fieldType.isArray()) {
               fieldProcessor = getProcessorForArray(field, fieldType);
@@ -638,7 +646,7 @@ public final class DogTag<T> {
       return selectedFields.contains(theField) || isAnnotatedWith(theField, flaggedList);
     }
 
-    protected abstract boolean isFieldSelected(final Field theField);
+    protected abstract boolean isFieldUsed(final Field theField);
 
     private boolean isAnnotatedWith(Field field, List<Class<? extends Annotation>> annotationList) {
       for (Class<? extends Annotation> annotationClass : annotationList) {
@@ -720,41 +728,38 @@ public final class DogTag<T> {
       return new FieldProcessor(arrayEquals, arrayHash);
     }
   }
-  
-  public boolean doEqualsTest(Object thatOne) {
-    return factory.doEqualsTest(thisRef.get(), thatOne);
+
+  /**
+   * Compare two wrapped objects for null. Your equals method should look like this:
+   * <pre>
+   *  {@literal @Override}
+   *   public boolean equals(Object obj) {
+   *     return dogTag.equals(obj);
+   *   }
+   * </pre>
+   * You should only use this to compare wrapped objects. It is not meant to be used to compare DogTag instances.
+   * @param obj The object to compare with the wrapped instance of T
+   * @return true if the wrapped object is equal to {@code obj}, false otherwise
+   */
+  @SuppressWarnings("EqualsWhichDoesntCheckParameterClass")
+  @Override
+  public boolean equals(Object obj) {
+    return factory.doEqualsTest(thisRef.get(), obj);
   }
-  
-  public int doHashCode() {
+
+  /**
+   * Return the hash code of the wrapped instance of T
+   * @return The hash code of the wrapped instance.
+   */
+  @Override
+  public int hashCode() {
     final T thisOne = this.thisRef.get();
     //noinspection AccessingNonPublicFieldOfAnotherObject
     return factory.useCache? factory.doCachedHashCode(thisOne, this) : factory.doHashCodeInternal(thisOne);
   }
 
-  /**
-   * This method is disabled, to avoid confusion with the {@code doEqualsTest()} method. You should never need this
-   * anyway. Calling this method will throw an AssertionError.
-   * @param obj Unused
-   * @return never returns
-   */
-  @Override
-  public boolean equals(Object obj) {
-    throw new AssertionError("Never call dogTag.equals(). To test if your object is equal to another," +
-        "call dogTag.doEqualsTest(obj)");
-  }
-
-  /**
-   * This method is disabled, to avoid confusion with the doHashCodeInternal() method. You should never need this anyway.
-   * Calling this method will throw an AssertionError.
-   * @return never returns
-   */
-  @Override
-  public int hashCode() {
-    throw new AssertionError("Never call hashCode(). To get the hashCode of your object, call doHashCode()");
-  }
-
   // These two interfaces declare a thrown exception that will actually never get thrown. I could wrap or ignore the
-  // exception inside the methods declared here, but that slows down execution by a factor of 2. I don't know why.
+  // exception inside the methods declared here, but that slows down performance by a factor of 2. I don't know why.
   @FunctionalInterface
   private interface ToIntThrowingFunction<T> {
     int get(T object) throws IllegalAccessException;
@@ -775,10 +780,10 @@ public final class DogTag<T> {
    *     &nbsp;&nbsp;V<sub>n</sub> = newHash(V<sub>n-1</sub>, H<sub>n</sub>)<p>
    *   where V<sub>n</sub> is the new hash value, V<sub>n-1</sub> is the result from the previous iteration, and 
    *   newHash() is the implemented method. For the first iteration, the calling method must specify a starting value
-   *   for V<sub>n-1</sub>, which is usually one or zero. The final value of V<sub>n</sub> is returned. 
-   *   The default implementation uses this formula:<p>
+   *   for H<sub>0</sub>, which is usually one or zero. The final value of V<sub>n</sub> is returned. 
+   *   The default implementation sets a starting value of 1, and uses this formula:<p>
    *     &nbsp;&nbsp;V<sub>n</sub> = (31 * V<sub>n-1</sub>) + H<sub>n</sub><p>
-   *   This is the same calculation performed by the {@code java.util.Objects.hash(Object...)} method.
+   *   This is the same formula used by the {@code java.util.Objects.hash(Object...)} method.
    */
   @FunctionalInterface
   public interface HashBuilder {
@@ -786,11 +791,12 @@ public final class DogTag<T> {
   }
 
   /**
-   * This class knows how to extract a value from a field, determine if two fields are equal, and get the hash code. 
+   * This class knows how to extract a value from a field, determine if two fields are equal, and get the hash code,
+   * based on the stored reflected objects. 
    * Every object used by equals and hash code calculations is either a single value or an array. Arrays must be
-   * handled differently from single values. This class holds the getter for a field, and the methods for equals and
-   * hash code. The getter varies according to the field type, but the equals() and hashCode() vary based on whether 
-   * the field is single-value or an array. The appropriate methods are passed in to the constructor.
+   * handled differently from single values, and methods returning primitives must be handled differently than those
+   * returning Objects. This class holds the methods for equals and hash code. The appropriate methods are passed in to
+   * the constructor.
    */
   private static final class FieldProcessor {
     private final ToBooleanBiFunction<Object> compareFieldMethod; //

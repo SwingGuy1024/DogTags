@@ -7,11 +7,12 @@ import java.util.Objects;
 import com.equals.DogTag;
 import com.equals.DogTagExclude;
 import com.equals.DogTagInclude;
+import com.equals.TimingUtility;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import static com.equals.performance.TimingUtility.reverse;
+import static com.equals.TimingUtility.reverse;
 
 /**
  * <p>Created by IntelliJ IDEA.
@@ -85,8 +86,9 @@ public class PerformanceTest {
 //        "whiskeyObjectArray"};
 //    DogTag<SingleValueTestClass> dogTagNoArrays = DogTag.create(SingleValueTestClass.class)
 //        .withExcludedFields(excludedFields)
-//        .build();
-    DogTag.Factory<SingleValueTestClass> dogTagNoArrays = DogTag.create(SingleValueTestClass.class).makeFactory();
+//        .getFactory();
+    SingleValueTestClass dummy = new SingleValueTestClass(1, "x");
+    DogTag.Factory<SingleValueTestClass> dogTagNoArrays = DogTag.create(dummy).constructFactory();
 
     TestClass[] pInstances = { t0.duplicate(), t13, t12, t11, t10, t9, t8, t7, t6, t5, t4, t3, t2, t1, t0 };
 
@@ -480,8 +482,8 @@ public class PerformanceTest {
     TwoStringClass t2 = new TwoStringClass("alpha", "bravo");
     TwoStringClass t3 = new TwoStringClass("iALPHA".substring(1), "iBRAVO".substring(1));
 
-    DogTag.Factory<TwoStringClass> dogTag = DogTag.create(TwoStringClass.class).makeFactory();
-    TwoStringClass[] array = { t3, t2, t1, t0};
+    DogTag.Factory<TwoStringClass> dogTag = DogTag.create(t0).constructFactory();
+    TwoStringClass[] array = { t3, t2, t1, t0 };
     TimingUtility.runTestCycles(dogTag, t0, array, PerformanceTest::handCoded, EMPTY_STRING_ARRAY);
   }
 
@@ -654,7 +656,7 @@ public class PerformanceTest {
     @SuppressWarnings("UseOfClone")
     S26 clone = original.clone();
 
-    DogTag.Factory<S26> dogTag = DogTag.create(S26.class).makeFactory();
+    DogTag.Factory<S26> dogTag = DogTag.create(zz).constructFactory();
 
     S26[] i = {original, aa, bb, cc, dd, ee, ff, gg, hh, ii, jj, kk, ll, mm, nn, oo, pp, qq, rr, ss, tt, uu, vv, ww, xx, yy, zz, clone };
     reverse(i);

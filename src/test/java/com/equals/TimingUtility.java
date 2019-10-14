@@ -1,7 +1,6 @@
-package com.equals.performance;
+package com.equals;
 
 import java.util.function.BiFunction;
-import com.equals.DogTag;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 
 /**
@@ -13,7 +12,7 @@ import org.apache.commons.lang3.builder.EqualsBuilder;
  * @noinspection HardcodedLineSeparator, MagicNumber
  */
 @SuppressWarnings("HardCodedStringLiteral")
-enum TimingUtility {
+public enum TimingUtility {
   ;
 
   /**
@@ -31,14 +30,14 @@ enum TimingUtility {
    * @param <T> The type being tested
    */
   @SuppressWarnings("StringConcatenation")
-  static <T> void runTestCycles(DogTag.Factory<T> dogTag, final T t0, final T[] instances, final BiFunction<T, T, Boolean> directEqual, String[] excluded) {
+  public static <T> void runTestCycles(DogTag.Factory<T> dogTag, final T t0, final T[] instances, final BiFunction<T, T, Boolean> directEqual, String[] excluded) {
     for (int i = 0; i < 4; ++i) {
       System.out.println("Test " + i);
       //noinspection HardcodedFileSeparator
       System.out.printf("%15s \t%5s\t%5s\t%5s\t%5s\t%8s%n", " ", "DgTg", "R.Eq", "HC", "Eq.B", "R.Eq/DgTg");
       int index = 0;
       for (T t : instances) {
-        TimingUtility.runTimedTest(dogTag, directEqual, index++, t0, t, 1000000, instances.length - 2, excluded);
+        TimingUtility.runTimedTest(dogTag, directEqual, index++, t0, t, 1_000_000, instances.length - 2, excluded);
       }
       System.out.println("\nKey: DgTg: DogTags\n" +
           "     R.Eq: EqualsBuilder.referenceEqual()\n" +
@@ -46,6 +45,8 @@ enum TimingUtility {
           "     Eq.B: new EqualsBuilder()\n");
     }
   }
+  
+  // TODO: Move this to main package and make doEqualsTest non-public.
 
   /** @noinspection SameParameterValue*/
   static <T> void runTimedTest(DogTag.Factory<T> dogTag, BiFunction<T, T, Boolean> direct, int i, T t1, T t2, int iterations, int count, String[] excluded) {
@@ -85,7 +86,7 @@ enum TimingUtility {
     return end - start;
   }
 
-  static <T> void reverse(T[] a) {
+  public static <T> void reverse(T[] a) {
     int tail = a.length;
     int half = tail/2;
     for (int i=0; i<half; ++i) {
