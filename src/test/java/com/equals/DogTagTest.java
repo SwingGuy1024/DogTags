@@ -9,8 +9,7 @@ import static com.equals.TestUtility.*; // for verifyMatch__() and verifyNoMatch
 import static org.junit.Assert.*;
 
 // Todo: Write test of cached hash in inclusion mode
-
-@SuppressWarnings({"HardCodedStringLiteral", "MagicNumber", "MagicCharacter", "ImplicitNumericConversion", "UseOfClone", "AccessStaticViaInstance", "EqualsReplaceableByObjectsCall"})
+@SuppressWarnings({"HardCodedStringLiteral", "MagicNumber", "MagicCharacter", "ImplicitNumericConversion", "UseOfClone", "AccessStaticViaInstance", "EqualsReplaceableByObjectsCall", "EqualsWhichDoesntCheckParameterClass", "ConstantConditions"})
 public class DogTagTest {
   private static final String CHARLIE_INT = "charlieInt";
 
@@ -592,13 +591,22 @@ public class DogTagTest {
 
   @SuppressWarnings({"ResultOfObjectAllocationIgnored", "InstantiationOfUtilityClass"})
   @Test(expected = AssertionError.class)
-  public void testBadClass() {
-    // Test for case where dogTag is not static. This would seriously slow down the equals and hashCode methods, since
-    // the reflection would happen whenever the class is instantiated instead of once when it's loaded. But it won't
-    // even work, because it would get included in the list of fields, so equals() and hashCode() methods will throw
-    // an AssertionError! So we throw an exception when the dogTag is constructed. We test that exception here.
+  public void testBadDogTag() {
+    // Test for case where dogTag is static. This would not work, because each instance has to have its own DogTag,
+    // which holds a copy of the instance. So we throw an exception when the static dogTag is constructed. We test that
+    // exception here.
 
-    new BadClass();
+    new ClassWithBadDogTag();
+  }
+
+  @SuppressWarnings({"ResultOfObjectAllocationIgnored"})
+  @Test(expected = AssertionError.class)
+  public void testBadFactory() {
+    // Test for case where Factory is not static. This would seriously slow down the equals and hashCode methods, since
+    // the reflection would happen whenever the class is instantiated instead of once when it's loaded.  So we throw an
+    // exception when the dogTag is constructed. We test that exception here.
+
+    new ClassWithBadFactory();
   }
 
   ////////////////////
@@ -953,13 +961,40 @@ public class DogTagTest {
   }
 
   @SuppressWarnings("UtilityClassCanBeEnum")
-  private static final class BadClass {
+  private static final class ClassWithBadDogTag {
     @SuppressWarnings("InstantiationOfUtilityClass")
-    private static final BadClass badInstance = new BadClass();
-    private static final DogTag.DogTagExclusionBuilder<BadClass> builder = DogTag.create(badInstance);
-    private static final DogTag.Factory<BadClass> dogTagFactory = builder.constructFactory(); // Should throw AssertionError
+    private static final ClassWithBadDogTag badInstance = new ClassWithBadDogTag();
+    private static final DogTag.DogTagExclusionBuilder<ClassWithBadDogTag> builder = DogTag.create(badInstance);
+    private static final DogTag.Factory<ClassWithBadDogTag> dogTagFactory = builder.constructFactory(); // Should throw AssertionError
     @SuppressWarnings("unused")
-    private static final DogTag<BadClass> dogTag = dogTagFactory.tag(badInstance); // STATIC!
+    private static final DogTag<ClassWithBadDogTag> dogTag = dogTagFactory.tag(badInstance); // STATIC!
+  }
+
+  private static final class ClassWithBadFactory {
+    private final DogTag<ClassWithBadFactory> dogTag = DogTag.from(this);
+
+    // This is the only way I can come up with to construct a non-static factory. The purpose of this test is to
+    // verify that the isFactory variable in DogTag.makeGetterList() is exercised by a unit test. The isFactory test
+    // is there to make sure their Factory is static, because a non-static factory would get created every time they
+    // instantiate an DogTag, which means all the instances would go through the slow reflective process. So a
+    // non-static factory is both unnecessary and unproductive. However, whenever I instantiated my test class with a
+    // non-static factory, I got either a stackOverflowError or NullPointerException. So my concern for this defect is
+    // probably unwarranted. However, just to be sure, this unit test creates a non-static factory by specifying the
+    // wrong class. So, in the interest of testing the isFactory variable, and boosting my code coverage, we do
+    // something here that nobody should ever do in production.
+    private static final DogTagTestBase rivalInstance = new DogTagTestBase(1, "b", 1, 1L);
+    @SuppressWarnings("unused")
+    private DogTag.Factory<DogTagTestBase> factory = DogTag.create(rivalInstance).constructFactory();
+
+    @Override
+    public boolean equals(Object obj) {
+      return dogTag.equals(obj);
+    }
+
+    @Override
+    public int hashCode() {
+      return dogTag.hashCode();
+    }
   }
 
 }

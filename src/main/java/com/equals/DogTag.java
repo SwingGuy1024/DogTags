@@ -104,8 +104,6 @@ public final class DogTag<T> {
   private final WeakReference<T> thisRef;
   private int cachedHash;
   
-  // Todo: Specify field order by annotations?
-  
   // package access for testing
   public static final class Factory<T> {
     private final Class<T> targetClass;
@@ -153,6 +151,8 @@ public final class DogTag<T> {
 
       @SuppressWarnings("unchecked")
       T thatOneNeverNull = (T) thatOneNullable;
+
+      // Putting the try/catch here instead of inside the testForEquals() method doubles the speed.
       try {
         for (FieldProcessor f : fieldProcessors) {
           if (!f.testForEquals(thisOneNeverNull, thatOneNeverNull)) {
@@ -160,9 +160,7 @@ public final class DogTag<T> {
           }
         }
         return true;
-      } catch (IllegalAccessException e) {
-
-        // Shouldn't happen, since accessible has been set to true.
+      } catch (IllegalAccessException e) { // Shouldn't happen: Field.accessible has been set to true.
         throw new AssertionError("Illegal Access should not happen", e);
       }
     }
@@ -177,13 +175,12 @@ public final class DogTag<T> {
       assert thisOne != null : "Always pass 'this' to this method! That guarantees it won't be null.";
       int hash = startingHash;
 
+      // Putting the try/catch here instead of inside the testForEquals() method doubles the speed.
       try {
         for (FieldProcessor f : fieldProcessors) {
           hash = hashBuilder.newHash(hash, f.getHashValue(thisOne));
         }
-      } catch (IllegalAccessException e) {
-
-        // Shouldn't happen, because accessible has been set to true.
+      } catch (IllegalAccessException e) { // Shouldn't happen: Field.accessible has been set to true.
         throw new AssertionError("Illegal Access shouldn't happen", e);
       }
       return hash;
@@ -420,16 +417,54 @@ public final class DogTag<T> {
     }
   }
 
-  public abstract static class DogTagFullBuilder<T> {
+  public abstract static class DogTagBaseBuilder<T> {
+    private T instance;
+    protected final Class<T> targetClass;
+
+    DogTagBaseBuilder(T instance) {
+      this.instance = instance;
+      @SuppressWarnings("unchecked")
+      final Class<T> theClass = (Class<T>) instance.getClass();
+      targetClass = theClass;
+    }
+
+    /**
+     * Once options are specified, find the DogTag.Factory for type T, or build a new one if one doesn't exist yet.
+     * Options may be specified in any order.
+     * @return A {@literal DogTag.Factory<T>} that builds instances of {@literal DogTag<T>} using the specified options.
+     */
+    public Factory<T> getFactory() {
+      Factory<T> factory = getForClass(targetClass);
+      if (factory == null) {
+        factory = constructFactory();
+        factoryMap.put(targetClass, factory);
+      }
+      return factory;
+    }
+
+    protected Factory <T> constructFactory() {
+      return new Factory<>(targetClass, makeGetterList(), 0, null, false);
+    }
+
+    protected abstract List<FieldProcessor> makeGetterList();
+
+    /**
+     * Build the DogTag instance from the factory, creating the factory if it doesn't exist yet.
+     * @return The DogTag for the instance held in the builder.
+     */
+    public DogTag<T> build() {
+      return getFactory().tag(instance);
+    }
+  }
+
+  public abstract static class DogTagFullBuilder<T> extends DogTagBaseBuilder<T> {
 
     // fields initialized in constructor
     private final boolean useInclusionMode;
-    private final Class<T> targetClass;
     private final String[] selectedFieldNames;
     private final List<Class<? extends Annotation>> flaggedList;
 
     private Class<? super T> lastSuperClass = Object.class;    // not final. May change with options.
-    private T instance;
 
     // pre-initialized fields
     private int startingHash = 1;
@@ -445,13 +480,10 @@ public final class DogTag<T> {
 //    abstract Collection<Field> getFieldCandidates(Class<T> targetClass);
 
     protected DogTagFullBuilder(T instance, boolean inclusionMode, Class<? extends Annotation> defaultSelectionAnnotation, String[] selectedFieldNames) {
-      @SuppressWarnings("unchecked")
-      final Class<T> theClass = (Class<T>) instance.getClass();
-      targetClass = theClass;
+      super(instance);
       this.selectedFieldNames = Arrays.copyOf(selectedFieldNames, selectedFieldNames.length);
       flaggedList = new LinkedList<>(Collections.singleton(defaultSelectionAnnotation));
       useInclusionMode = inclusionMode;
-      this.instance = instance;
     }
 
     protected void addSelectionAnnotation(Class<? extends Annotation> selectionAnnotation) {
@@ -542,37 +574,17 @@ public final class DogTag<T> {
     protected void setReflectUpTo(Class<? super T> superClass) { this.lastSuperClass = superClass; }
 
     /**
-     * Once options are specified, find the DogTag.Factory for type T, or build a new one if one doesn't exist yet.
-     * Options may be specified in any order.
-     * @return A {@literal DogTag.Factory<T>} that builds instances of {@literal DogTag<T>} using the specified options.
-     */
-    public Factory<T> getFactory() {
-      Factory<T> factory = getForClass(targetClass);
-      if (factory == null) {
-        factory = constructFactory();
-        factoryMap.put(targetClass, factory);
-      }
-      return factory;
-    }
-
-    /**
-     * Build the DogTag instance from the factory, creating the factory if it doesn't exist yet.
-     * @return The DogTag for the instance held in the builder.
-     */
-    public DogTag<T> build() {
-      return getFactory().tag(instance);
-    }
-
-    /**
      * Extracted from getFactory() to be used for testing. This allows you to make a factory without adding it to the Map,
      * which is crucial for performance tests.
      * @return A factory from the previously set options
      */
+    @Override
     public Factory<T> constructFactory() {
       return new Factory<>(targetClass, makeGetterList(), startingHash, hashBuilder, useCachedHash);
     }
 
-    private List<FieldProcessor> makeGetterList() {
+    @Override
+    protected List<FieldProcessor> makeGetterList() {
       collectMatchingFields(selectedFieldNames, selectedFields);
 
       List<FieldProcessor> fieldProcessorList = new LinkedList<>();
@@ -592,7 +604,8 @@ public final class DogTag<T> {
             throw new AssertionError("Your DogTag instance must be not static. Private and final are recommended.");
           }
           if (isFactory && !isStatic) {
-            // TODO: Write unit test to handle this case
+            // I'm not sure it's possible to construct an object with a non-static factory without throwing a
+            // StackOverflowError or NullPointerException, but in case I'm wrong, we disallow a non-static Factory.
             throw new AssertionError("Your DogTag.Factory must be static.");
           }
 
@@ -600,7 +613,6 @@ public final class DogTag<T> {
           //noinspection MagicCharacter
           if (!isStatic
               && !isDogTag
-              && !isFactory
               // transients are tested only in exclusion mode
               && (testTransients || useInclusionMode || !Modifier.isTransient(modifiers))
               && (!finalFieldsOnly || useInclusionMode || fieldIsFinal)
@@ -613,17 +625,7 @@ public final class DogTag<T> {
               );
             }
             field.setAccessible(true);
-            FieldProcessor fieldProcessor;
-            if (fieldType.isArray()) {
-              fieldProcessor = getProcessorForArray(field, fieldType);
-            } else if (fieldType.isPrimitive()) {
-              fieldProcessor = getProcessorForPrimitive(field, fieldType);
-            } else {
-              ToBooleanBiFunction<Object> objectToBooleanBiFunction
-                  = (thisOne, thatOne) -> Objects.equals(field.get(thisOne), (field.get(thatOne)));
-              ToIntThrowingFunction<Object> hashFunction = (t) -> Objects.hashCode(field.get(t));
-              fieldProcessor = new FieldProcessor(objectToBooleanBiFunction, hashFunction);
-            }
+            FieldProcessor fieldProcessor = getFieldProcessorForType(field, fieldType);
             fieldProcessorList.add(fieldProcessor);
           }
         }
@@ -633,6 +635,21 @@ public final class DogTag<T> {
         theClass = theClass.getSuperclass();
       }
       return fieldProcessorList;
+    }
+
+    private FieldProcessor getFieldProcessorForType(Field field, Class<?> fieldType) {
+      FieldProcessor fieldProcessor;
+      if (fieldType.isArray()) {
+        fieldProcessor = getProcessorForArray(field, fieldType);
+      } else if (fieldType.isPrimitive()) {
+        fieldProcessor = getProcessorForPrimitive(field, fieldType);
+      } else {
+        ToBooleanBiFunction<Object> objectToBooleanBiFunction
+            = (thisOne, thatOne) -> Objects.equals(field.get(thisOne), (field.get(thatOne)));
+        ToIntThrowingFunction<Object> hashFunction = (t) -> Objects.hashCode(field.get(t));
+        fieldProcessor = new FieldProcessor(objectToBooleanBiFunction, hashFunction);
+      }
+      return fieldProcessor;
     }
 
     @SuppressWarnings("BoundedWildcard")
