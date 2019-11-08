@@ -8,7 +8,7 @@ import java.lang.annotation.Target;
 /**
  * Annotate fields to mark them for exclusion from use by DogTags, when using Exclusion mode.
  * @see DogTag.DogTagExclusionBuilder
- * @see DogTag#create(Class, String...) 
+ * @see DogTag#create(Object, String...)
  * <p>Created by IntelliJ IDEA.
  * <p>Date: 9/22/19
  * <p>Time: 9:53 PM
