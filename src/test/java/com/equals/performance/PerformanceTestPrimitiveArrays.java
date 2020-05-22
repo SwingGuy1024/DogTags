@@ -75,7 +75,7 @@ public class PerformanceTestPrimitiveArrays {
     TimingUtility.reverse(instances);
 
     final BiFunction<TestClass, TestClass, Boolean> directEqual = PerformanceTestPrimitiveArrays::isEqual;
-    DogTag.Factory<TestClass> dogTag = DogTag.create(t0).constructFactory();
+    DogTag.Factory<TestClass> dogTag = DogTag.create(t0).buildFactory();
     TimingUtility.runTestCycles(dogTag, t0, instances, directEqual, EMPTY_STRING_ARRAY);
   }
 

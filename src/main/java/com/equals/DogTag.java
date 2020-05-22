@@ -97,13 +97,21 @@ import java.util.function.Function;
  * @param <T> Type that uses a DogTag equals and hashCode method
  * @author Miguel Muñoz
  */
-@SuppressWarnings("WeakerAccess")
+@SuppressWarnings("HardCodedStringLiteral")
 public abstract class DogTag<T> {
   private static final Map<Class<?>, Factory<?>> factoryMap = new HashMap<>();
-  protected final Factory<T> factory;
-  protected final T instance;
+  private final Factory<T> factory;
+  private final T instance;
   private int cachedHash;
-  
+
+  protected Factory<T> getFactory() {
+    return factory;
+  }
+
+  protected T getInstance() {
+    return instance;
+  }
+
   public static final class Factory<T> {
     private final Class<T> targetClass;
     private final List<FieldProcessor> fieldProcessors;
@@ -220,7 +228,7 @@ public abstract class DogTag<T> {
    * @return An instance of {@literal DogTag<T>}. This should be a non-static member of the enclosing class.
    */
   public static <T> DogTag<T> from(T owner) {
-    return new DogTagExclusionBuilder<>(owner).getFactory().tag(owner);
+    return new DogTagExclusionBuilder<>(classFrom(owner)).getFactory().tag(owner);
   }
 
   /**
@@ -246,7 +254,23 @@ public abstract class DogTag<T> {
    * @return A builder for a {@literal DogTag<T>}, from which you can set options and build your DogTag.
    */
   public static <T> DogTagExclusionBuilder<T> create(T instance, String... excludedFieldNames) {
-    return new DogTagExclusionBuilder<>(instance, excludedFieldNames);
+    return new DogTagExclusionBuilder<>(classFrom(instance), excludedFieldNames);
+  }
+  
+  public static <T> DogTagExclusionBuilder<T> createFromClass(Class<T> theClass, String... excludedFieldNames) {
+    return new DogTagExclusionBuilder<>(theClass, excludedFieldNames);
+  }
+
+  /**
+   * Convenience method because getClass() returns {@literal Class<?> instead of Class<T>}
+   * @param t an object
+   * @param <T> The inferred type of the object
+   * @return the class of T, as a {@literal Class<T>} object
+   */
+  private static <T> Class<T> classFrom(T t) {
+    @SuppressWarnings("unchecked")
+    Class<T> targetClass = (Class<T>) t.getClass(); // I need to cast this because the getClass() method returns Class<?>
+    return targetClass;
   }
   
   /**
@@ -277,11 +301,11 @@ public abstract class DogTag<T> {
    * @return A builder for a {@literal DogTag<T>}, from which you can set options and build your DogTag.
    */
   public static <T> DogTagInclusionBuilder<T>   createByInclusion(T instance, String... fieldNames) {
-    return new DogTagInclusionBuilder<>(instance, fieldNames);
+    return new DogTagInclusionBuilder<>(classFrom(instance), fieldNames);
   }
   
   public static <T> DogTagInclusionBuilder<T> createByInclusion(T instance, Class<? extends Annotation> annotationClass) {
-    return new DogTagInclusionBuilder<>(instance).withInclusionAnnotation(annotationClass);
+    return new DogTagInclusionBuilder<>(classFrom(instance)).withInclusionAnnotation(annotationClass);
   }
 
   static final class DogTagInclusionBuilder<T> extends DogTagFullBuilder<T> {
@@ -293,13 +317,13 @@ public abstract class DogTag<T> {
 //      return Arrays.asList(targetClass.getDeclaredFields());
 //    }
 
-    DogTagInclusionBuilder(T instance, String... includedFields) {
-      super(instance, false, DogTagInclude.class, includedFields);
+    DogTagInclusionBuilder(Class<T> theClass, String... includedFields) {
+      super(theClass, false, DogTagInclude.class, includedFields);
     }
 
     // TODO: Write unit test
     public static <T> DogTagInclusionBuilder<T> createByPersistenceId(T instance) {
-      return createBySingleAnnotation(instance, "javax.persistence.Id");
+      return createBySingleAnnotation(instance, "javax.persistence.Id"); // NON-NLS
     }
     
     // TODO Write unit test
@@ -311,13 +335,13 @@ public abstract class DogTag<T> {
       }
     }
 
-    @SuppressWarnings("unchecked")
     private static Class<? extends Annotation> validateAnnotationClass(Class<?> annotationClass) {
       if (annotationClass.isAnnotation()) {
-        return (Class<? extends Annotation>) annotationClass;
+        @SuppressWarnings("unchecked")
+        Class<? extends Annotation> aClass = (Class<? extends Annotation>) annotationClass;
+        return aClass;
       }
-      throw new IllegalArgumentException(String.format("Specified %d is not an annotation", annotationClass));
-//      throw new IllegalArgumentException("Specified " + annotationClass + " is not an annotation");
+      throw new IllegalArgumentException(String.format("Specified %s is not an annotation", annotationClass));
     }
 
     @Override
@@ -359,8 +383,8 @@ public abstract class DogTag<T> {
 //      return Arrays.asList(targetClass.getDeclaredFields());
 //    }
 
-    private DogTagExclusionBuilder(T instance, String... excludedFields) {
-      super(instance, false, DogTagExclude.class, excludedFields);
+    private DogTagExclusionBuilder(Class<T> theClass, String... excludedFields) {
+      super(theClass, false, DogTagExclude.class, excludedFields);
     }
 
     /**
@@ -446,13 +470,9 @@ public abstract class DogTag<T> {
   }
 
   public abstract static class DogTagBaseBuilder<T> {
-    private T instance;
-    protected final Class<T> targetClass;
+    private final Class<T> targetClass;
 
-    DogTagBaseBuilder(T instance) {
-      this.instance = instance;
-      @SuppressWarnings("unchecked")
-      final Class<T> theClass = (Class<T>) instance.getClass();
+    DogTagBaseBuilder(Class<T> theClass) {
       targetClass = theClass;
     }
 
@@ -462,26 +482,30 @@ public abstract class DogTag<T> {
      * @return A {@literal DogTag.Factory<T>} that builds instances of {@literal DogTag<T>} using the specified options.
      */
     public Factory<T> getFactory() {
-      Factory<T> factory = getForClass(targetClass);
+      Factory<T> factory = getForClass(getTargetClass());
       if (factory == null) {
-        factory = constructFactory();
-        factoryMap.put(targetClass, factory);
+        factory = buildFactory();
+        factoryMap.put(getTargetClass(), factory);
       }
       return factory;
     }
 
-    protected Factory <T> constructFactory() {
-      return new Factory<>(targetClass, makeGetterList(), 0, null, false);
+    protected Factory <T> buildFactory() {
+      return new Factory<>(getTargetClass(), makeGetterList(), 0, null, false);
     }
 
     protected abstract List<FieldProcessor> makeGetterList();
 
-    /**
-     * Build the DogTag instance from the factory, creating the factory if it doesn't exist yet.
-     * @return The DogTag for the instance held in the builder.
-     */
-    public DogTag<T> build() {
-      return getFactory().tag(instance);
+//    /**
+//     * Build the DogTag instance from the factory, creating the factory if it doesn't exist yet.
+//     * @return The DogTag for the instance held in the builder.
+//     */
+//    public DogTag<T> build() {
+//      return getFactory().tag(instance);
+//    }
+
+    protected Class<T> getTargetClass() {
+      return targetClass;
     }
   }
 
@@ -501,14 +525,14 @@ public abstract class DogTag<T> {
     private boolean useCachedHash = false;
     private static final HashBuilder defaultHashBuilder = (int h, Object o) -> (h * 31) + o.hashCode(); // Same as Objects.class
     private HashBuilder hashBuilder = defaultHashBuilder; // Reuse the same HashBuilder
-    private Set<Field> selectedFields = new HashSet<>();
+    private final Set<Field> selectedFields = new HashSet<>();
     private boolean testTransients = false;
 
     // Temporarily removed. This will be put back to support ordered inclusion fields
 //    abstract Collection<Field> getFieldCandidates(Class<T> targetClass);
 
-    protected DogTagFullBuilder(T instance, boolean inclusionMode, Class<? extends Annotation> defaultSelectionAnnotation, String[] selectedFieldNames) {
-      super(instance);
+    protected DogTagFullBuilder(Class<T> theClass, boolean inclusionMode, Class<? extends Annotation> defaultSelectionAnnotation, String[] selectedFieldNames) {
+      super(theClass);
       this.selectedFieldNames = Arrays.copyOf(selectedFieldNames, selectedFieldNames.length);
       flaggedList = new LinkedList<>(Collections.singleton(defaultSelectionAnnotation));
       useInclusionMode = inclusionMode;
@@ -525,6 +549,7 @@ public abstract class DogTag<T> {
      * @return A Field, from one of the classes in the range from dogTagClass to lastSuperClass.
      */
     private Field getFieldFromName(String fieldName) {
+      Class<T> targetClass = getTargetClass();
       Class<?> theClass = targetClass;
       Class<?> previousClass = targetClass;
       boolean inProgress = true;
@@ -551,9 +576,11 @@ public abstract class DogTag<T> {
       // If we only searched through one class...
       if (targetClass == previousClass) {
         // ... we send a simpler error message.
-        throw new IllegalArgumentException(String.format("Field %s not found in class %s", fieldName, targetClass));
+        throw new IllegalArgumentException(String.format("Field %s not found in class %s", fieldName, targetClass)); // NON-NLS
       }
-      throw new IllegalArgumentException(String.format("Field '%s' not found from class %s to superClass %s", fieldName, targetClass, lastSuperClass));
+      throw new IllegalArgumentException(
+          String.format("Field '%s' not found from class %s to superClass %s", fieldName, targetClass, lastSuperClass)  // NON-NLS
+      );
     }
 
     /**
@@ -607,8 +634,8 @@ public abstract class DogTag<T> {
      * @return A factory from the previously set options
      */
     @Override
-    public Factory<T> constructFactory() {
-      return new Factory<>(targetClass, makeGetterList(), startingHash, hashBuilder, useCachedHash);
+    public Factory<T> buildFactory() {
+      return new Factory<>(getTargetClass(), makeGetterList(), startingHash, hashBuilder, useCachedHash);
     }
 
     @Override
@@ -616,7 +643,7 @@ public abstract class DogTag<T> {
       collectMatchingFields(selectedFieldNames, selectedFields);
 
       List<FieldProcessor> fieldProcessorList = new LinkedList<>();
-      Class<? super T> theClass = targetClass;
+      Class<? super T> theClass = getTargetClass();
 
       // We shouldn't ever reach Object.class unless someone specifies it as the reflect-up-to superclass.
       while (theClass != Object.class) {
@@ -649,7 +676,7 @@ public abstract class DogTag<T> {
           ) {
             if (useCachedHash && !fieldIsFinal) {
               throw new AssertionError(
-                  String.format("The 'withCachedHash' option may not be used with non-final field %s.", field.getName())
+                  String.format("The 'withCachedHash' option may not be used with non-final field %s.", field.getName()) //NON-NLS
               );
             }
             field.setAccessible(true);
@@ -861,13 +888,13 @@ public abstract class DogTag<T> {
 
     @Override
     public int hashCode() {
-      return factory.doHashCodeInternal(this.instance);
+      return getFactory().doHashCodeInternal(this.getInstance());
     }
 
     @SuppressWarnings("EqualsWhichDoesntCheckParameterClass")
     @Override
     public boolean equals(final Object that) {
-      return factory.doEqualsTest(instance, that);
+      return getFactory().doEqualsTest(getInstance(), that);
     }
   }
 
@@ -878,13 +905,13 @@ public abstract class DogTag<T> {
 
     @Override
     public int hashCode() {
-      return factory.doCachedHashCode(instance, this);
+      return getFactory().doCachedHashCode(getInstance(), this);
     }
 
     @SuppressWarnings("EqualsWhichDoesntCheckParameterClass")
     @Override
     public boolean equals(final Object that) {
-      return factory.doEqualsTest(instance, that);
+      return getFactory().doEqualsTest(getInstance(), that);
     }
   }
 }

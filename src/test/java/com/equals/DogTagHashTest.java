@@ -12,19 +12,19 @@ public class DogTagHashTest {
   @Test
   public void testHashBuilder() {
     TestClassOne tc1 = new TestClassOne(1, 2, 3);
-    DogTag.Factory<TestClassOne> factory = DogTag.create(tc1).constructFactory();
+    DogTag.Factory<TestClassOne> factory = DogTag.create(tc1).buildFactory();
     DogTag<TestClassOne> tag = factory.tag(tc1);
     assertEquals(30817, tag.hashCode());
 
     DogTag.Factory<TestClassOne> revisedFactory = DogTag.create(tc1)
         .withHashBuilder(1, (int i, Object v) -> (i * 4567) + v.hashCode())
-        .constructFactory();
+        .buildFactory();
     DogTag<TestClassOne> revisedTag = revisedFactory.tag(tc1);
     assertEquals(787738377, revisedTag.hashCode());
 
     DogTag.Factory<TestClassOne> inclusionFactory = DogTag.createByInclusion(tc1, "alpha", "bravo", "charlie")
         .withHashBuilder(1, (int i, Object v) -> (i * 4567) + v.hashCode())
-        .constructFactory();
+        .buildFactory();
     DogTag<TestClassOne>  inclusionTag = inclusionFactory.tag(tc1);
     assertEquals(787738377, inclusionTag.hashCode());
   }
@@ -139,7 +139,7 @@ public class DogTagHashTest {
     TestClassWithCache tc1 = new TestClassWithCache(1, 2, 3);
     DogTag.create(tc1)
         .withCachedHash(true)
-        .constructFactory();
+        .buildFactory();
   }
 
   private void setEcho(TestClassWithCache instance, int newValue) {
@@ -178,7 +178,7 @@ public class DogTagHashTest {
     }
   }
 
-  @SuppressWarnings({"PackageVisibleField", "unused"})
+  @SuppressWarnings({"unused"})
   private static class TestClassWithCache {
     private final int delta;
     private final int echo;
@@ -208,7 +208,8 @@ public class DogTagHashTest {
 
     private final DogTag<TestClassWithCache> dogTag = DogTag.create(this)
         .withFinalFieldsOnly(true) // This should implicitly set withCachedHash to true 
-        .build();
+        .buildFactory()
+        .tag(this);
 
     @Override
     public int hashCode() {

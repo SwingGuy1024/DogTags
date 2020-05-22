@@ -85,7 +85,7 @@ public class PerformanceTest {
 //        .withExcludedFields(excludedFields)
 //        .getFactory();
     SingleValueTestClass dummy = new SingleValueTestClass(1, "x");
-    DogTag.Factory<SingleValueTestClass> dogTagNoArrays = DogTag.create(dummy).constructFactory();
+    DogTag.Factory<SingleValueTestClass> dogTagNoArrays = DogTag.create(dummy).buildFactory();
 
     TestClass[] pInstances = { t0.duplicate(), t13, t12, t11, t10, t9, t8, t7, t6, t5, t4, t3, t2, t1, t0 };
 
@@ -478,7 +478,7 @@ public class PerformanceTest {
     TwoStringClass t2 = new TwoStringClass("alpha", "bravo");
     TwoStringClass t3 = new TwoStringClass("iALPHA".substring(1), "iBRAVO".substring(1));
 
-    DogTag.Factory<TwoStringClass> dogTag = DogTag.create(t0).constructFactory();
+    DogTag.Factory<TwoStringClass> dogTag = DogTag.create(t0).buildFactory();
     TwoStringClass[] array = { t3, t2, t1, t0 };
     TimingUtility.runTestCycles(dogTag, t0, array, PerformanceTest::handCoded, EMPTY_STRING_ARRAY);
   }
@@ -651,7 +651,7 @@ public class PerformanceTest {
     @SuppressWarnings("UseOfClone")
     S26 clone = original.clone();
 
-    DogTag.Factory<S26> dogTag = DogTag.create(zz).constructFactory();
+    DogTag.Factory<S26> dogTag = DogTag.create(zz).buildFactory();
 
     S26[] i = {original, aa, bb, cc, dd, ee, ff, gg, hh, ii, jj, kk, ll, mm, nn, oo, pp, qq, rr, ss, tt, uu, vv, ww, xx, yy, zz, clone };
     reverse(i);
