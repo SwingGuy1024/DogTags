@@ -11,10 +11,11 @@ There are two ways to use it. They are very similar. They are Reflect-On-Class-L
 ### Reflect-On-Class-Load
 
     public class MyClass {
+      private static final DogTag.Factory<MyClass> factory = DogTag.from(MyClass.class)
+
       // ... (fields and methods here)
       
-      private static final DogTag.Factory<MyClass> factory = DogTag.from(MyClass.class)
-      private DogTag<MyClass> dogTag = factory.tag(this);
+      private final DogTag<MyClass> dogTag = factory.tag(this);
       
       @Override
       public boolean equals(Object obj) {
@@ -121,10 +122,10 @@ For situations where a security manager prevents you from using reflected fields
 ## What DogTags Don't Do
 In the interest of speed and professional coding practices, there are some things DogTags do not do.
 
-1. They don't detect cyclic dependencies. It is the responsibility of the class designers to keep cyclic dependencies out of their code. Runtime detection only slows down the code. This potential problem is better fixed in the code ahead of time, during your development phase.
+1. They don't detect cyclic dependencies. It is the responsibility of the class designers to keep cyclic dependencies out of their code. Runtime detection only slows down the code. This potential problem is better fixed in the code ahead of time, during your development phase. Cyclic dependencies can be detected in unit tests. Consequently…
 
-1. They don't recurse into member classes. Each class has the responsibility to implement its own `equals()` and `hashCode()` methods, and to make them consistent. DogTags assume that all members have fulfilled the method contracts. DogTags guarantee that its `equals()` and `hashCode()` methods will fulfill their contracts correctly, but it always defers the work of comparing two member objects or hashing their values to their own methods. If think you need it to recurse into a custom type, give that type it's own DogTag.
+1. They don't eliminate the need for unit testing. Your `equals()` and `hashCode()` methods may not give you exactly what you want on the first try, so they still need to be unit tested. Many things can go wrong. For example, you may be using an option incorrectly, or left out a needed option, or have a cyclic dependency. And since your code will be subject to maintenance, bugs could creep in later, and your unit tests may help catch them. Tests of the equals() and hashCode() methods are easy to write. Test your code.
 
-1. They don't eliminate the need for unit testing. Your `equals()` and `hashCode()` methods may not give you exactly what you want on the first try, so they still need to be unit tested. Many things can go wrong. For example, you may be using an option incorrectly, or left out a needed option, or have a cyclic dependency. And since your code will be subject to maintenance, bugs could creep in later, and your unit tests may help catch them. Test your code.
+1. They don't recurse into member classes. Each class has the responsibility to implement its own `equals()` and `hashCode()` methods, and to make them consistent. DogTags assume that all members have fulfilled the method contracts correctly. DogTags guarantee that its `equals()` and `hashCode()` methods will fulfill their contracts correctly, but it always defers the work of comparing two member objects or hashing their values to their own methods. If think you need it to recurse into a custom type, give that type it's own DogTag.
 
-1. They don't completely replace the Apache EqualsBuilder class. They're a much faster replacement for the `EqualsBuilder.reflectionEquals()` and `EqualsBuilder.reflectionHashCode()` methods, but using EqualsBuilder to build an equals method that does not use reflection is still faster than DogTags, although it's more work and requires more maintenance.
+1. They don't completely replace the Apache EqualsBuilder class. DogTags are a much faster replacement for the `EqualsBuilder.reflectionEquals()` and `EqualsBuilder.reflectionHashCode()` methods, but using EqualsBuilder to build an equals method that does not use reflection is still faster than DogTags, although it's more work and requires more maintenance.

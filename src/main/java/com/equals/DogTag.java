@@ -1,7 +1,6 @@
 package com.equals;
 
 import java.lang.annotation.Annotation;
-import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
@@ -13,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 
 /**
  * <strong>Much of the documentation is out of date. It will be updated shortly</strong><p>
@@ -98,19 +98,18 @@ import java.util.Set;
  * @author Miguel Muñoz
  */
 @SuppressWarnings("WeakerAccess")
-public final class DogTag<T> {
+public abstract class DogTag<T> {
   private static final Map<Class<?>, Factory<?>> factoryMap = new HashMap<>();
-  private final Factory<T> factory;
-  private final WeakReference<T> thisRef;
+  protected final Factory<T> factory;
+  protected final T instance;
   private int cachedHash;
   
-  // package access for testing
   public static final class Factory<T> {
     private final Class<T> targetClass;
     private final List<FieldProcessor> fieldProcessors;
     private final int startingHash;
     private final HashBuilder hashBuilder;
-    private final boolean useCache;
+    private final Function<T, DogTag<T>> constructor;
 
     private Factory(
         Class<T> theClass,
@@ -123,11 +122,13 @@ public final class DogTag<T> {
       fieldProcessors = getters;
       this.startingHash = startingHash;
       this.hashBuilder = hashBuilder;
-      this.useCache = useCache;
+      constructor = useCache?
+          (t) -> new CachingDogTag<>(this, t) :
+          (t) -> new NonCachingDogTag<>(this, t);
     }
 
-    public DogTag<T> tag(T instance) {
-      return new DogTag<>(this, instance);
+    public DogTag<T> tag(T t) {
+      return constructor.apply(t); // Call the DogTag constructor that was specified in the Factory constructor
     }
 
     /**
@@ -194,11 +195,11 @@ public final class DogTag<T> {
       return dogTag.cachedHash;
     }
   }
-
+  
   private DogTag(Factory<T> factory, T instance) {
     this.factory = factory;
     // Use a WeakReference to avoid a circular reference that could delay garbage collection.
-    thisRef = new WeakReference<>(instance);
+    this.instance = instance;
   }
 
   private static <T> Factory<T> getForClass(Class<T> theClass) {
@@ -214,12 +215,12 @@ public final class DogTag<T> {
    * <p>
    * The first time this method is called for a class, it will create a DogTag.Factory and store it. Subsequent calls
    * will retrieve that factory and re-use it.
-   * @param instance The instance of enclosing class. Pass {@code this} to this parameter
+   * @param owner The instance of enclosing class. Pass {@code this} to this parameter
    * @param <T> The type of the enclosing class.
    * @return An instance of {@literal DogTag<T>}. This should be a non-static member of the enclosing class.
    */
-  public static <T> DogTag<T> from(T instance) {
-    return new DogTagExclusionBuilder<>(instance).getFactory().tag(instance);
+  public static <T> DogTag<T> from(T owner) {
+    return new DogTagExclusionBuilder<>(owner).getFactory().tag(owner);
   }
 
   /**
@@ -278,6 +279,10 @@ public final class DogTag<T> {
   public static <T> DogTagInclusionBuilder<T>   createByInclusion(T instance, String... fieldNames) {
     return new DogTagInclusionBuilder<>(instance, fieldNames);
   }
+  
+  public static <T> DogTagInclusionBuilder<T> createByInclusion(T instance, Class<? extends Annotation> annotationClass) {
+    return new DogTagInclusionBuilder<>(instance).withInclusionAnnotation(annotationClass);
+  }
 
   static final class DogTagInclusionBuilder<T> extends DogTagFullBuilder<T> {
 
@@ -290,6 +295,29 @@ public final class DogTag<T> {
 
     DogTagInclusionBuilder(T instance, String... includedFields) {
       super(instance, false, DogTagInclude.class, includedFields);
+    }
+
+    // TODO: Write unit test
+    public static <T> DogTagInclusionBuilder<T> createByPersistenceId(T instance) {
+      return createBySingleAnnotation(instance, "javax.persistence.Id");
+    }
+    
+    // TODO Write unit test
+    public static <T> DogTagInclusionBuilder<T> createBySingleAnnotation(T instance, String annotationClassName) {
+      try {
+        return createByInclusion(instance, validateAnnotationClass(Class.forName(annotationClassName)));
+      } catch (ClassNotFoundException e) {
+        throw new IllegalArgumentException(String.format("Not found: %s", annotationClassName), e);
+      }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Class<? extends Annotation> validateAnnotationClass(Class<?> annotationClass) {
+      if (annotationClass.isAnnotation()) {
+        return (Class<? extends Annotation>) annotationClass;
+      }
+      throw new IllegalArgumentException(String.format("Specified %d is not an annotation", annotationClass));
+//      throw new IllegalArgumentException("Specified " + annotationClass + " is not an annotation");
     }
 
     @Override
@@ -758,25 +786,18 @@ public final class DogTag<T> {
    * @param obj The object to compare with the wrapped instance of T
    * @return true if the wrapped object is equal to {@code obj}, false otherwise
    */
-  @SuppressWarnings("EqualsWhichDoesntCheckParameterClass")
   @Override
-  public boolean equals(Object obj) {
-    return factory.doEqualsTest(thisRef.get(), obj);
-  }
+  public abstract boolean equals(Object obj);
 
   /**
    * Return the hash code of the wrapped instance of T
    * @return The hash code of the wrapped instance.
    */
   @Override
-  public int hashCode() {
-    final T thisOne = this.thisRef.get();
-    //noinspection AccessingNonPublicFieldOfAnotherObject
-    return factory.useCache? factory.doCachedHashCode(thisOne, this) : factory.doHashCodeInternal(thisOne);
-  }
+  public abstract int hashCode();
 
   // These two interfaces declare a thrown exception that will actually never get thrown. I could wrap or ignore the
-  // exception inside the methods declared here, but that slows down performance by a factor of 2. I don't know why.
+  // exception inside the methods declared here, but that slows down performance by a factor of 2.
   @FunctionalInterface
   private interface ToIntThrowingFunction<T> {
     int get(T object) throws IllegalAccessException;
@@ -830,6 +851,40 @@ public final class DogTag<T> {
     
     private int getHashValue(Object thisOne) throws IllegalAccessException {
       return hashMethod.get(thisOne);
+    }
+  }
+
+  private static final class NonCachingDogTag<N> extends DogTag<N> {
+    private NonCachingDogTag(final Factory<N> factory, final N instance) {
+      super(factory, instance);
+    }
+
+    @Override
+    public int hashCode() {
+      return factory.doHashCodeInternal(this.instance);
+    }
+
+    @SuppressWarnings("EqualsWhichDoesntCheckParameterClass")
+    @Override
+    public boolean equals(final Object that) {
+      return factory.doEqualsTest(instance, that);
+    }
+  }
+
+  private static final class CachingDogTag<N> extends DogTag<N> {
+    private CachingDogTag(final Factory<N> factory, final N instance) {
+      super(factory, instance);
+    }
+
+    @Override
+    public int hashCode() {
+      return factory.doCachedHashCode(instance, this);
+    }
+
+    @SuppressWarnings("EqualsWhichDoesntCheckParameterClass")
+    @Override
+    public boolean equals(final Object that) {
+      return factory.doEqualsTest(instance, that);
     }
   }
 }

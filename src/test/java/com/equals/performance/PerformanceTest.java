@@ -9,10 +9,8 @@ import com.equals.DogTagExclude;
 import com.equals.DogTagInclude;
 import com.equals.TimingUtility;
 import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.junit.Ignore;
-import org.junit.Test;
 
-import static com.equals.TimingUtility.reverse;
+import static com.equals.TimingUtility.*;
 
 /**
  * <p>Created by IntelliJ IDEA.
@@ -21,14 +19,13 @@ import static com.equals.TimingUtility.reverse;
  *
  * @author Miguel Mu\u00f1oz
  */
-@SuppressWarnings({"MagicNumber", "HardCodedStringLiteral", "MagicCharacter", "HardcodedLineSeparator", "UnnecessaryBoxing", "RedundantStringConstructorCall"})
+@SuppressWarnings({"MagicNumber", "HardCodedStringLiteral", "MagicCharacter", "HardcodedLineSeparator", "UnnecessaryBoxing", "StringOperationCanBeSimplified"})
 public class PerformanceTest {
   private static final String[] EMPTY_STRING_ARRAY = new String[0];
   // TODO: Use DogTagInclude & DogTagExclude somewhere in this file, to remove package-private warning
 
-  @Ignore
-  @Test
   public void timeTest() {
+    System.out.println("Time Test. Comparing objects with 14 fields, including arrays\n-------------------------------------------------------------");
     TestClass t0 = new TestClass(1, "bravo");
     TestClass t1 = t0.duplicate(11, "bravo");
     TestClass t2 = t0.duplicate(1, "bravisimo");
@@ -131,7 +128,7 @@ public class PerformanceTest {
     return dup;
   }
 
-  @SuppressWarnings({"AssignmentOrReturnOfFieldWithMutableType", "WeakerAccess", "MagicCharacter", "MagicNumber", "HardCodedStringLiteral", "ImplicitNumericConversion", "EqualsAndHashcode"})
+  @SuppressWarnings({"AssignmentOrReturnOfFieldWithMutableType", "WeakerAccess", "MagicNumber", "HardCodedStringLiteral", "EqualsAndHashcode"})
   private static class TestClass extends SingleValueTestClass {
 
     TestClass(int alpha, String bravo) {
@@ -151,7 +148,7 @@ public class PerformanceTest {
     private boolean[] tangoBooleanArray = {false, true, true, false, true, false, false, true, true, false};
     private float[] uniformFloatArray = {1.4F, 2.0F, 2.8F, 4.0F, 5.6F, 8.0F, 11.0F, 16.0F, 22.0F};
     private double[] victorDoubleArray = {0.1, 0.02, 0.003, 0.0004, 0.00005, 0.000006, 0.0000007, 0.00000008, 9.0};
-    private Object[] whiskeyObjectArray = {new Point2D.Float(1.2f, 2.4f), "string", new HashSet()};
+    private Object[] whiskeyObjectArray = {new Point2D.Float(1.2f, 2.4f), "string", new HashSet<>()};
 
     public int[] getNovemberIntArray() {
       return novemberIntArray;
@@ -474,9 +471,8 @@ public class PerformanceTest {
     return one.alpha.equals(two.alpha) && one.bravo.equals(two.bravo);
   }
 
-  @Ignore
-  @Test
   public void testTwoStrings() {
+    System.out.println("TestTwoStrings(): Test comparison of class with two strings.\n------------------------------------------------------------");
     TwoStringClass t0 = new TwoStringClass("ALPHA", "BRAVO");
     TwoStringClass t1 = new TwoStringClass("alpha", "BRAVO");
     TwoStringClass t2 = new TwoStringClass("alpha", "bravo");
@@ -596,9 +592,8 @@ public class PerformanceTest {
         ;
   }
 
-  @Ignore
-  @Test
   public void test26() throws CloneNotSupportedException {
+    System.out.println("test26() Comparison of objects with 26 Strings.\n-----------------------------------------------");
     S26 original = new S26();
     S26 aa = new S26();
     aa.a = "mismatch";
@@ -662,5 +657,16 @@ public class PerformanceTest {
     reverse(i);
 
     TimingUtility.runTestCycles(dogTag, original, i, PerformanceTest::handCoded26, EMPTY_STRING_ARRAY);
+  }
+
+  public static void main(String[] args) {
+    PerformanceTest performanceTest = new PerformanceTest();
+    performanceTest.timeTest();
+    try {
+      performanceTest.test26();
+    } catch (CloneNotSupportedException e) {
+      e.printStackTrace();
+    }
+    performanceTest.testTwoStrings();
   }
 }

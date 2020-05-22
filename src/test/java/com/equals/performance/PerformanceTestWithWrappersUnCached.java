@@ -1,12 +1,10 @@
 package com.equals.performance;
 
-import com.equals.DogTag;
 import java.awt.geom.Point2D;
 import java.util.function.BiFunction;
+import com.equals.DogTag;
 import com.equals.TimingUtility;
 import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.junit.Ignore;
-import org.junit.Test;
 
 /**
  * <p>Created by IntelliJ IDEA.
@@ -25,8 +23,6 @@ public class PerformanceTestWithWrappersUnCached {
   @SuppressWarnings("NumericCastThatLosesPrecision")
   private static Byte toByte(int i) { return (byte) i; }
 
-  @Ignore
-  @Test
   public void timeTest() {
     System.out.printf("Java version = %s%n", System.getProperty("java.version"));
     TestClass t0 = new TestClass(1111, "bravo");

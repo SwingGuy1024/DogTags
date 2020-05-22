@@ -6,8 +6,6 @@ import java.util.HashSet;
 import java.util.function.BiFunction;
 import com.equals.DogTag;
 import com.equals.TimingUtility;
-import org.junit.Ignore;
-import org.junit.Test;
 
 /**
  * <p>Created by IntelliJ IDEA.
@@ -27,8 +25,6 @@ public class PerformanceTestPrimitiveArrays {
   @SuppressWarnings("NumericCastThatLosesPrecision")
   private static Byte toByte(int i) { return (byte) i; }
 
-  @Ignore
-  @Test
   public void timeTest() {
     TestClass t0 = new TestClass(1, "bravo");
     TestClass t1 = t0.duplicate(11, "bravo");
@@ -368,4 +364,7 @@ public class PerformanceTestPrimitiveArrays {
     return dup;
   }
 
+  public static void main(String[] args) {
+    new PerformanceTestPrimitiveArrays().timeTest();
+  }
 }
