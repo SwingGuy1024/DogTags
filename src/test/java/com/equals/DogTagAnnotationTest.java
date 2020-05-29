@@ -4,6 +4,8 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.util.Arrays;
+import java.util.List;
 import org.junit.Test;
 
 import static com.equals.TestUtility.*;
@@ -30,32 +32,55 @@ public class DogTagAnnotationTest {
     TestClassOne t199 = new TestClassOne(1, 9, 9); // bravo & charlie differ
     TestClassOne t453 = new TestClassOne(4, 5, 3); // alpha & bravo differ
 
-    DogTag.Factory<TestClassOne> dogTag1 = DogTag.create(t123).buildFactory(); // Exclude bravo
-    verifyMatch__(dogTag1, t123, t153); // a, c match
-    verifyNoMatch(dogTag1, t123, t124); // a, b
-    verifyNoMatch(dogTag1, t123, t623); // b, c
-    verifyNoMatch(dogTag1, t123, t199); // a
-    verifyNoMatch(dogTag1, t123, t453); // c
-
-    DogTag.Factory<TestClassOne> dt2 = DogTag.create(t123, "charlie") // exclude bravo, charlie
+    DogTag.Factory<TestClassOne> dogTag1Reflect = DogTag.create(t123).buildFactory(); // Exclude bravo
+    DogTag.Factory<TestClassOne> dogTag1Lambda = DogTag.createByLambda(TestClassOne.class)
+        .add(TestClassOne::getAlpha)
+        .add(TestClassOne::getCharlie)
         .buildFactory();
+    List<DogTag.Factory<TestClassOne>> fList = Arrays.asList(dogTag1Reflect, dogTag1Lambda);
 
-    verifyMatch__(dt2, t123, t153); // a, c match
-    verifyMatch__(dt2, t123, t124); // a, b
-    verifyNoMatch(dt2, t123, t623); // b, c
-    verifyMatch__(dt2, t153, t124); // a
-    verifyNoMatch(dt2, t124, t623); // b
-    verifyNoMatch(dt2, t153, t623); // c
+    for(DogTag.Factory<TestClassOne> dogTag1 : fList) {
+      verifyMatch__(dogTag1, t123, t153); // a, c match
+      verifyNoMatch(dogTag1, t123, t124); // a, b
+      verifyNoMatch(dogTag1, t123, t623); // b, c
+      verifyNoMatch(dogTag1, t123, t199); // a
+      verifyNoMatch(dogTag1, t123, t453); // c
+      verifyNoMatch(dogTag1, t124, t623); // b
+      verifyNoMatch(dogTag1, t124, t453); // nothing
+    }
 
-    DogTag.Factory<TestClassOne> dogTagTestExclude = DogTag.create(t123) // exclude alpha, bravo
+    DogTag.Factory<TestClassOne> dt2Reflect = DogTag.create(t123, "charlie") // exclude bravo, charlie
+        .buildFactory();
+    DogTag.Factory<TestClassOne> dt2Lambda = DogTag.createByLambda(TestClassOne.class)
+        .add(TestClassOne::getAlpha)
+        .buildFactory();
+    fList = Arrays.asList(dt2Reflect, dt2Lambda);
+
+    for (DogTag.Factory<TestClassOne> dt2 : fList) {
+      verifyMatch__(dt2, t123, t153); // a, c match
+      verifyMatch__(dt2, t123, t124); // a, b
+      verifyNoMatch(dt2, t123, t623); // b, c
+      verifyMatch__(dt2, t153, t124); // a
+      verifyNoMatch(dt2, t124, t623); // b
+      verifyNoMatch(dt2, t153, t623); // c
+      verifyNoMatch(dt2, t124, t453); // nothing
+    }
+
+    DogTag.Factory<TestClassOne> dogTagTestExcludeReflect = DogTag.create(t123) // exclude alpha, bravo
         .withExclusionAnnotation(TestExclude.class)
         .buildFactory();
-    verifyMatch__(dogTagTestExclude, t123, t153); // a, c match
-    verifyNoMatch(dogTagTestExclude, t123, t124); // a, b
-    verifyMatch__(dogTagTestExclude, t123, t623); // b, c
-    verifyNoMatch(dogTagTestExclude, t123, t199); // a
-    verifyNoMatch(dogTagTestExclude, t124, t623); // b
-    verifyMatch__(dogTagTestExclude, t153, t623); // c
+    DogTag.Factory<TestClassOne> dogTagTestExcludeLambda = DogTag.createByLambda(TestClassOne.class)
+        .add(TestClassOne::getCharlie)
+        .buildFactory();
+    fList = Arrays.asList(dogTagTestExcludeReflect, dogTagTestExcludeLambda);
+    for (DogTag.Factory<TestClassOne> dogTagTestExclude : fList) {
+      verifyMatch__(dogTagTestExclude, t123, t153); // a, c match
+      verifyNoMatch(dogTagTestExclude, t123, t124); // a, b
+      verifyMatch__(dogTagTestExclude, t123, t623); // b, c
+      verifyNoMatch(dogTagTestExclude, t123, t199); // a
+      verifyNoMatch(dogTagTestExclude, t124, t623); // b
+      verifyMatch__(dogTagTestExclude, t153, t623); // c
+    }
 
 
     TestClassTwo t123456 = new TestClassTwo(1, 2, 3, 4, 5, 6);
@@ -73,130 +98,190 @@ public class DogTagAnnotationTest {
     TestClassTwo t123886 = new TestClassTwo(1, 2, 3, 8, 8, 6); // d, e
     TestClassTwo t828886 = new TestClassTwo(8, 2, 8, 8, 8, 6); // a, c, d, e
 
-    DogTag.Factory<TestClassTwo> dt3 = DogTag.create(t123456) // Exclude bravo, foxtrot, Include a, c, d, e
+    // These two factories use the same fields
+    DogTag.Factory<TestClassTwo> dt3Reflect = DogTag.create(t123456) // Exclude bravo, foxtrot, Include a, c, d, e
         .buildFactory();
-    verifyMatch__(dt3, t123456, t173456); // b differs
-    verifyNoMatch(dt3, t123456, t723456); // a
-    verifyNoMatch(dt3, t123456, t127456); // c
-    verifyNoMatch(dt3, t123456, t123756); // d
-    verifyNoMatch(dt3, t123456, t123476); // e
-    verifyNoMatch(dt3, t123456, t183759); // b, d, f
-    verifyMatch__(dt3, t123456, t183459); // b, f
-    verifyNoMatch(dt3, t123456, t123756); // d, f
-    verifyNoMatch(dt3, t123456, t888458); // a, b, c, f
-    verifyNoMatch(dt3, t123456, t993959); // a, b, d, f
-    verifyNoMatch(dt3, t123456, t120406); // c, e
-    verifyNoMatch(dt3, t123456, t123886); // d, e
-    verifyNoMatch(dt3, t123456, t828886); // a, c, d, e
+    DogTag.Factory<TestClassTwo> dt3Lambda = DogTag.createByLambda(TestClassTwo.class)
+        .add(TestClassTwo::getAlpha)
+        .add(TestClassTwo::getCharlie)
+        .add(TestClassTwo::getDelta)
+        .add(TestClassTwo::getEcho)
+        .buildFactory();
+    List<DogTag.Factory<TestClassTwo>> fList2 = Arrays.asList(dt3Reflect, dt3Lambda);
+    for (DogTag.Factory<TestClassTwo> dt3: fList2) {
+      verifyMatch__(dt3, t123456, t173456); // b differs
+      verifyNoMatch(dt3, t123456, t723456); // a
+      verifyNoMatch(dt3, t123456, t127456); // c
+      verifyNoMatch(dt3, t123456, t123756); // d
+      verifyNoMatch(dt3, t123456, t123476); // e
+      verifyNoMatch(dt3, t123456, t183759); // b, d, f
+      verifyMatch__(dt3, t123456, t183459); // b, f
+      verifyNoMatch(dt3, t123456, t123756); // d, f
+      verifyNoMatch(dt3, t123456, t888458); // a, b, c, f
+      verifyNoMatch(dt3, t123456, t993959); // a, b, d, f
+      verifyNoMatch(dt3, t123456, t120406); // c, e
+      verifyNoMatch(dt3, t123456, t123886); // d, e
+      verifyNoMatch(dt3, t123456, t828886); // a, c, d, e
+    }
 
-    DogTag.Factory<TestClassTwo> dogTagNoSuper = DogTag.create(t123456)  // Exclude alpha, bravo, charlie, foxtrot, Include d, e
+    DogTag.Factory<TestClassTwo> dogTagNoSuperReflect = DogTag.create(t123456)  // Exclude alpha, bravo, charlie, foxtrot, Include d, e
         .withReflectUpTo(TestClassTwo.class)
         .buildFactory();
-    verifyMatch__(dogTagNoSuper, t123456, t173456); // b
-    verifyMatch__(dogTagNoSuper, t123456, t723456); // a
-    verifyMatch__(dogTagNoSuper, t123456, t127456); // c
-    verifyNoMatch(dogTagNoSuper, t123456, t123756); // d
-    verifyNoMatch(dogTagNoSuper, t123456, t123476); // e
-    verifyNoMatch(dogTagNoSuper, t123456, t183759); // b, d, f
-    verifyMatch__(dogTagNoSuper, t123456, t183459); // b, f
-    verifyNoMatch(dogTagNoSuper, t123456, t123757); // d, f
-    verifyMatch__(dogTagNoSuper, t123456, t888458); // a, b, c, f
-    verifyNoMatch(dogTagNoSuper, t123456, t993959); // a, b, d, f
-    verifyNoMatch(dogTagNoSuper, t123456, t120406); // c, e
-    verifyNoMatch(dogTagNoSuper, t123456, t123886); // d, e
-    verifyNoMatch(dogTagNoSuper, t123456, t828886); // a, c, d, e
+    DogTag.Factory<TestClassTwo> dogTagNoSuperLambda = DogTag.createByLambda(TestClassTwo.class)
+        .add(TestClassTwo::getDelta)
+        .add(TestClassTwo::getEcho)
+        .buildFactory();
+    fList2 = Arrays.asList(dogTagNoSuperReflect, dogTagNoSuperLambda);
+    for (DogTag.Factory<TestClassTwo> dogTagNoSuper: fList2) {
+      verifyMatch__(dogTagNoSuper, t123456, t173456); // b
+      verifyMatch__(dogTagNoSuper, t123456, t723456); // a
+      verifyMatch__(dogTagNoSuper, t123456, t127456); // c
+      verifyNoMatch(dogTagNoSuper, t123456, t123756); // d
+      verifyNoMatch(dogTagNoSuper, t123456, t123476); // e
+      verifyNoMatch(dogTagNoSuper, t123456, t183759); // b, d, f
+      verifyMatch__(dogTagNoSuper, t123456, t183459); // b, f
+      verifyNoMatch(dogTagNoSuper, t123456, t123757); // d, f
+      verifyMatch__(dogTagNoSuper, t123456, t888458); // a, b, c, f
+      verifyNoMatch(dogTagNoSuper, t123456, t993959); // a, b, d, f
+      verifyNoMatch(dogTagNoSuper, t123456, t120406); // c, e
+      verifyNoMatch(dogTagNoSuper, t123456, t123886); // d, e
+      verifyNoMatch(dogTagNoSuper, t123456, t828886); // a, c, d, e
+    }
 
-    DogTag.Factory<TestClassTwo> dogTagNoSuperTE = DogTag.create(t123456) // Exclude alpha, bravo, charlie, delta, foxtrot
+    DogTag.Factory<TestClassTwo> dogTagNoSuperTEReflect = DogTag.create(t123456) // Exclude alpha, bravo, charlie, delta, foxtrot
         .withReflectUpTo(TestClassTwo.class)
         .withExclusionAnnotation(TestExclude.class)
         .buildFactory();
-    verifyMatch__(dogTagNoSuperTE, t123456, t173456); // b
-    verifyMatch__(dogTagNoSuperTE, t123456, t723456); // a
-    verifyMatch__(dogTagNoSuperTE, t123456, t127456); // c
-    verifyMatch__(dogTagNoSuperTE, t123456, t123756); // d
-    verifyNoMatch(dogTagNoSuperTE, t123456, t123476); // e
-    verifyMatch__(dogTagNoSuperTE, t123456, t183759); // b, d, f
-    verifyMatch__(dogTagNoSuperTE, t123456, t183459); // b, f
-    verifyMatch__(dogTagNoSuperTE, t123456, t123757); // d, f
-    verifyMatch__(dogTagNoSuperTE, t123456, t888458); // a, b, c, f
-    verifyMatch__(dogTagNoSuperTE, t123456, t993959); // a, b, d, f
-    verifyNoMatch(dogTagNoSuperTE, t123456, t120406); // c, e
-    verifyNoMatch(dogTagNoSuperTE, t123456, t123886); // d, e
-    verifyNoMatch(dogTagNoSuperTE, t123456, t828886); // a, c, d, e
+    DogTag.Factory<TestClassTwo> dogTagNoSuperTELambda = DogTag.createByLambda(TestClassTwo.class)
+        .add(TestClassTwo::getEcho)
+        .buildFactory();
+    fList2 = Arrays.asList(dogTagNoSuperTEReflect, dogTagNoSuperTELambda);
+    for (DogTag.Factory<TestClassTwo> dogTagNoSuperTE : fList2) {
+      verifyMatch__(dogTagNoSuperTE, t123456, t173456); // b
+      verifyMatch__(dogTagNoSuperTE, t123456, t723456); // a
+      verifyMatch__(dogTagNoSuperTE, t123456, t127456); // c
+      verifyMatch__(dogTagNoSuperTE, t123456, t123756); // d
+      verifyNoMatch(dogTagNoSuperTE, t123456, t123476); // e
+      verifyMatch__(dogTagNoSuperTE, t123456, t183759); // b, d, f
+      verifyMatch__(dogTagNoSuperTE, t123456, t183459); // b, f
+      verifyMatch__(dogTagNoSuperTE, t123456, t123757); // d, f
+      verifyMatch__(dogTagNoSuperTE, t123456, t888458); // a, b, c, f
+      verifyMatch__(dogTagNoSuperTE, t123456, t993959); // a, b, d, f
+      verifyNoMatch(dogTagNoSuperTE, t123456, t120406); // c, e
+      verifyNoMatch(dogTagNoSuperTE, t123456, t123886); // d, e
+      verifyNoMatch(dogTagNoSuperTE, t123456, t828886); // a, c, d, e
+    }
 
-    DogTag.Factory<TestClassTwo> dogTagTestExclude2 = DogTag.create(t123456) // Exclude alpha, bravo, delta, foxtrot
+    DogTag.Factory<TestClassTwo> dogTagTestExclude2Reflect = DogTag.create(t123456) // Exclude alpha, bravo, delta, foxtrot
         .withExclusionAnnotation(TestExclude.class)
         .buildFactory();
+    DogTag.Factory<TestClassTwo> dogTagTestExclude2Lambda = DogTag.createByLambda(TestClassTwo.class)
+        .add(TestClassOne::getCharlie)
+        .add(TestClassTwo::getEcho)
+        .buildFactory();
 
-    verifyMatch__(dogTagTestExclude2, t123456, t173456); // b, f 
-    verifyMatch__(dogTagTestExclude2, t123456, t723456); // a
-    verifyNoMatch(dogTagTestExclude2, t123456, t127456); // c
-    verifyMatch__(dogTagTestExclude2, t123456, t123756); // d
-    verifyNoMatch(dogTagTestExclude2, t123456, t123476); // e
-    verifyMatch__(dogTagTestExclude2, t123456, t183759); // b, d, f
-    verifyMatch__(dogTagTestExclude2, t123456, t183459); // b, f
-    verifyMatch__(dogTagTestExclude2, t123456, t123757); // d, f
-    verifyNoMatch(dogTagTestExclude2, t123456, t888458); // a, b, c, f
-    verifyMatch__(dogTagTestExclude2, t123456, t993959); // a, b, d, f
-    verifyNoMatch(dogTagTestExclude2, t123456, t120406); // c, e
-    verifyNoMatch(dogTagTestExclude2, t123456, t123886); // d, e
-    verifyNoMatch(dogTagTestExclude2, t123456, t828886); // a, c, d, e
+    fList2 = Arrays.asList(dogTagTestExclude2Reflect, dogTagTestExclude2Lambda);
+    for (DogTag.Factory<TestClassTwo> dogTagTestExclude2 : fList2) {
+      verifyMatch__(dogTagTestExclude2, t123456, t173456); // b, f 
+      verifyMatch__(dogTagTestExclude2, t123456, t723456); // a
+      verifyNoMatch(dogTagTestExclude2, t123456, t127456); // c
+      verifyMatch__(dogTagTestExclude2, t123456, t123756); // d
+      verifyNoMatch(dogTagTestExclude2, t123456, t123476); // e
+      verifyMatch__(dogTagTestExclude2, t123456, t183759); // b, d, f
+      verifyMatch__(dogTagTestExclude2, t123456, t183459); // b, f
+      verifyMatch__(dogTagTestExclude2, t123456, t123757); // d, f
+      verifyNoMatch(dogTagTestExclude2, t123456, t888458); // a, b, c, f
+      verifyMatch__(dogTagTestExclude2, t123456, t993959); // a, b, d, f
+      verifyNoMatch(dogTagTestExclude2, t123456, t120406); // c, e
+      verifyNoMatch(dogTagTestExclude2, t123456, t123886); // d, e
+      verifyNoMatch(dogTagTestExclude2, t123456, t828886); // a, c, d, e
+    }
 
     // Test Inclusion Mode.
 
-    DogTag.Factory<TestClassOne> dogTagInclude = DogTag.createByInclusion(t123) // include charlie
+    DogTag.Factory<TestClassOne> dogTagIncludeReflect = DogTag.createByInclusion(t123) // include charlie
         .buildFactory();
-    verifyMatch__(dogTagInclude, t123, t153); // a, c match
-    verifyNoMatch(dogTagInclude, t123, t124); // a, b
-    verifyMatch__(dogTagInclude, t123, t623); // b, c
-    verifyNoMatch(dogTagInclude, t153, t124); // a
-    verifyNoMatch(dogTagInclude, t124, t623); // b
-    verifyMatch__(dogTagInclude, t153, t623); // c
+    DogTag.Factory<TestClassOne> dogTagIncludeLambda = DogTag.createByLambda(TestClassOne.class)
+        .add(TestClassOne::getCharlie)
+        .buildFactory();
+    fList = Arrays.asList(dogTagIncludeReflect, dogTagIncludeLambda);
+    for (DogTag.Factory<TestClassOne> dogTagInclude : fList) {
+      verifyMatch__(dogTagInclude, t123, t153); // a, c match
+      verifyNoMatch(dogTagInclude, t123, t124); // a, b
+      verifyMatch__(dogTagInclude, t123, t623); // b, c
+      verifyNoMatch(dogTagInclude, t153, t124); // a
+      verifyNoMatch(dogTagInclude, t124, t623); // b
+      verifyMatch__(dogTagInclude, t153, t623); // c
+    }
 
-    DogTag.Factory<TestClassOne> dogTagIncludeAnn = DogTag.createByInclusion(t123) // include alpha, charlie
+    DogTag.Factory<TestClassOne> dogTagIncludeAnnReflect = DogTag.createByInclusion(t123) // include alpha, charlie
         .withInclusionAnnotation(TestInclude.class)
         .buildFactory();
-    verifyMatch__(dogTagIncludeAnn, t123, t153); // a, c match
-    verifyNoMatch(dogTagIncludeAnn, t123, t124); // a, b
-    verifyNoMatch(dogTagIncludeAnn, t123, t623); // b, c
-    verifyNoMatch(dogTagIncludeAnn, t153, t124); // a
-    verifyNoMatch(dogTagIncludeAnn, t124, t623); // b
-    verifyNoMatch(dogTagIncludeAnn, t153, t623); // c
-
-
-    DogTag.Factory<TestClassTwo> dTIs = DogTag.createByInclusion(t123456) // include charlie, echo
+    DogTag.Factory<TestClassOne> dogTagIncludeAnnLambda = DogTag.createByLambda(TestClassOne.class)
+        .add(TestClassOne::getAlpha)
+        .add(TestClassOne::getCharlie)
         .buildFactory();
-    verifyMatch__(dTIs, t123456, t173456); // b, f differ
-    verifyMatch__(dTIs, t123456, t723456); // a
-    verifyNoMatch(dTIs, t123456, t127456); // c
-    verifyMatch__(dTIs, t123456, t123756); // d
-    verifyNoMatch(dTIs, t123456, t123476); // e
-    verifyMatch__(dTIs, t123456, t183759); // b, d, f
-    verifyMatch__(dTIs, t123456, t183459); // b, f
-    verifyMatch__(dTIs, t123456, t123756); // d, f
-    verifyNoMatch(dTIs, t123456, t888458); // a, b, c, f
-    verifyMatch__(dTIs, t123456, t993959); // a, b, d, f
-    verifyNoMatch(dTIs, t123456, t120406); // c, e
-    verifyNoMatch(dTIs, t123456, t123886); // d, e
-    verifyNoMatch(dTIs, t123456, t828886); // a, c, d, e
+    fList = Arrays.asList(dogTagIncludeAnnReflect, dogTagIncludeAnnLambda);
+    for (DogTag.Factory<TestClassOne> dogTagIncludeAnn : fList) {
+      verifyMatch__(dogTagIncludeAnn, t123, t153); // a, c match
+      verifyNoMatch(dogTagIncludeAnn, t123, t124); // a, b
+      verifyNoMatch(dogTagIncludeAnn, t123, t623); // b, c
+      verifyNoMatch(dogTagIncludeAnn, t153, t124); // a
+      verifyNoMatch(dogTagIncludeAnn, t124, t623); // b
+      verifyNoMatch(dogTagIncludeAnn, t153, t623); // c
+    }
+
+    DogTag.Factory<TestClassTwo> dTIsReflect = DogTag.createByInclusion(t123456) // include charlie, echo
+        .buildFactory();
+    DogTag.Factory<TestClassTwo> dTIsLambda = DogTag.createByLambda(TestClassTwo.class)
+        .add(TestClassTwo::getCharlie)
+        .add(TestClassTwo::getEcho)
+        .buildFactory();
+    
+    fList2 = Arrays.asList(dTIsReflect, dTIsLambda);
+    for (DogTag.Factory<TestClassTwo> dTIs : fList2) {
+      verifyMatch__(dTIs, t123456, t173456); // b, f differ
+      verifyMatch__(dTIs, t123456, t723456); // a
+      verifyNoMatch(dTIs, t123456, t127456); // c
+      verifyMatch__(dTIs, t123456, t123756); // d
+      verifyNoMatch(dTIs, t123456, t123476); // e
+      verifyMatch__(dTIs, t123456, t183759); // b, d, f
+      verifyMatch__(dTIs, t123456, t183459); // b, f
+      verifyMatch__(dTIs, t123456, t123756); // d, f
+      verifyNoMatch(dTIs, t123456, t888458); // a, b, c, f
+      verifyMatch__(dTIs, t123456, t993959); // a, b, d, f
+      verifyNoMatch(dTIs, t123456, t120406); // c, e
+      verifyNoMatch(dTIs, t123456, t123886); // d, e
+      verifyNoMatch(dTIs, t123456, t828886); // a, c, d, e
+    }
 
 
-    DogTag.Factory<TestClassTwo> dTI2s = DogTag.createByInclusion(t123456) // include alpha, charlie, delta, echo
+    DogTag.Factory<TestClassTwo> dTI2sReflect = DogTag.createByInclusion(t123456) // include alpha, charlie, delta, echo
         .withInclusionAnnotation(TestInclude.class)
         .buildFactory();
-    verifyMatch__(dTI2s, t123456, t173456); // b, f differ
-    verifyNoMatch(dTI2s, t123456, t723456); // a
-    verifyNoMatch(dTI2s, t123456, t127456); // c
-    verifyNoMatch(dTI2s, t123456, t123756); // d
-    verifyNoMatch(dTI2s, t123456, t123476); // e
-    verifyNoMatch(dTI2s, t123456, t183759); // b, d, f
-    verifyMatch__(dTI2s, t123456, t183459); // b, f
-    verifyNoMatch(dTI2s, t123456, t123756); // d, f
-    verifyNoMatch(dTI2s, t123456, t888458); // a, b, c, f
-    verifyNoMatch(dTI2s, t123456, t993959); // a, b, d, f
-    verifyNoMatch(dTI2s, t123456, t120406); // c, e
-    verifyNoMatch(dTI2s, t123456, t123886); // d, e
-    verifyNoMatch(dTI2s, t123456, t828886); // a, c, d, e
+    DogTag.Factory<TestClassTwo> dTI2sLambda = DogTag.createByLambda(TestClassTwo.class)
+        .add(TestClassTwo::getAlpha)
+        .add(TestClassTwo::getCharlie)
+        .add(TestClassTwo::getDelta)
+        .add(TestClassTwo::getEcho)
+        .buildFactory();
+    fList2 = Arrays.asList(dTI2sReflect, dTI2sLambda);
+    
+    for (DogTag.Factory<TestClassTwo> dTI2s: fList2) {
+      verifyMatch__(dTI2s, t123456, t173456); // b, f differ
+      verifyNoMatch(dTI2s, t123456, t723456); // a
+      verifyNoMatch(dTI2s, t123456, t127456); // c
+      verifyNoMatch(dTI2s, t123456, t123756); // d
+      verifyNoMatch(dTI2s, t123456, t123476); // e
+      verifyNoMatch(dTI2s, t123456, t183759); // b, d, f
+      verifyMatch__(dTI2s, t123456, t183459); // b, f
+      verifyNoMatch(dTI2s, t123456, t123756); // d, f
+      verifyNoMatch(dTI2s, t123456, t888458); // a, b, c, f
+      verifyNoMatch(dTI2s, t123456, t993959); // a, b, d, f
+      verifyNoMatch(dTI2s, t123456, t120406); // c, e
+      verifyNoMatch(dTI2s, t123456, t123886); // d, e
+      verifyNoMatch(dTI2s, t123456, t828886); // a, c, d, e
+    }
   }
 
   @SuppressWarnings("PackageVisibleField")
@@ -227,9 +312,21 @@ public class DogTagAnnotationTest {
     public boolean equals(Object that) {
       return dogTag.equals(that);
     }
+
+    public int getAlpha() {
+      return alpha;
+    }
+
+    public int getBravo() {
+      return bravo;
+    }
+
+    public int getCharlie() {
+      return charlie;
+    }
   }
 
-  @SuppressWarnings({"PackageVisibleField", "unused"})
+  @SuppressWarnings("unused")
   private static class TestClassTwo extends TestClassOne {
     @TestExclude
     @TestInclude
@@ -289,4 +386,23 @@ public class DogTagAnnotationTest {
   @interface TestInclude {
   }
 
+  
+  static class OrderedClass {
+    @DogTagInclude(order = 30)
+    private int third;
+    
+    @DogTagInclude
+    private int fourth;
+    
+    @DogTagInclude(order = 10)
+    private int first;
+    
+    @DogTagInclude(order = DogTag.DEFAULT_ORDER_VALUE + 10)
+    private int last;
+    
+    @DogTagInclude(order = 20)
+    private int second;
+    
+//    private static final DogTag.Factory<OrderedClass> factory = DogTag.createByInclusion()
+  }
 }

@@ -6,7 +6,11 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Annotate fields to mark them for inclusion from use by DogTags, when using inclusion mode.
+ * Annotate fields to mark them for inclusion from use by DogTags, when using inclusion mode. This also lets you specify an order for
+ * each field. Fields will be tested in the order specified. The values used for order need not be sequential. You may want to use
+ * values like 10, 20, 30, and so on, to make it easier to change the order without changing every number. The Order defaults to 1000. This
+ * way, if you use order values of 10, 20, 30, and so on, any unspecified orders will be grouped together at the end. So if you only need
+ * to specify the field to test first, just set its order to something lower than the default.
  * @see DogTag.DogTagInclusionBuilder
  * @see DogTag#createByInclusion(Object, String...)
  * <p>Created by IntelliJ IDEA.
@@ -18,5 +22,6 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.FIELD)
 public @interface DogTagInclude {
-  int order() default 0;
+  int DEFAULT_ORDER_VALUE =1000;
+  int order() default DEFAULT_ORDER_VALUE;
 }

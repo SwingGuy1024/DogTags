@@ -9,7 +9,7 @@ import static com.equals.TestUtility.*; // for verifyMatch__() and verifyNoMatch
 import static org.junit.Assert.*;
 
 // Todo: Write test of cached hash in inclusion mode
-@SuppressWarnings({"HardCodedStringLiteral", "MagicNumber", "MagicCharacter", "ImplicitNumericConversion", "UseOfClone", "AccessStaticViaInstance", "EqualsReplaceableByObjectsCall", "EqualsWhichDoesntCheckParameterClass", "ConstantConditions"})
+@SuppressWarnings({"HardCodedStringLiteral", "MagicNumber", "MagicCharacter", "UseOfClone", "AccessStaticViaInstance", "EqualsReplaceableByObjectsCall", "EqualsWhichDoesntCheckParameterClass"})
 public class DogTagTest {
   private static final String CHARLIE_INT = "charlieInt";
 
@@ -334,6 +334,23 @@ public class DogTagTest {
       fail();
     } catch (IllegalArgumentException e) {
       assertTrue(e.getMessage().contains("missing"));
+      assertTrue(e.getMessage().contains("E7:"));
+      throw e;
+    }
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testBadFieldName2() {
+    try {
+      DogTagTestTail tail = new DogTagTestTail();
+      // Include fields from all three classes
+      DogTag.create(tail, "kiloShort", "mikeFloat", "julietBoolean", "missing")
+          .withReflectUpTo(DogTagTestTail.class) // Differs here from previous test
+          .buildFactory();
+      fail();
+    } catch (IllegalArgumentException e) {
+      assertTrue(e.getMessage().contains("missing"));
+      assertTrue(e.getMessage().contains("E6:"));
       throw e;
     }
   }
@@ -563,7 +580,7 @@ public class DogTagTest {
     testNoMatch(pt4, pt5);
   }
 
-  @SuppressWarnings({"SimplifiableJUnitAssertion", "EqualsWithItself", "LiteralAsArgToStringEquals", "EqualsBetweenInconvertibleTypes"})
+  @SuppressWarnings({"SimplifiableJUnitAssertion", "EqualsWithItself", "EqualsBetweenInconvertibleTypes"})
   private void testMatch__(ParadigmTest a, ParadigmTest b) {
     assertTrue(a.equals(b));
     assertTrue(b.equals(a));
@@ -576,7 +593,7 @@ public class DogTagTest {
     assertEquals(a.hashCode(), b.hashCode());
   }
 
-  @SuppressWarnings({"SimplifiableJUnitAssertion", "EqualsWithItself", "LiteralAsArgToStringEquals", "EqualsBetweenInconvertibleTypes"})
+  @SuppressWarnings({"SimplifiableJUnitAssertion", "EqualsWithItself", "EqualsBetweenInconvertibleTypes"})
   private void testNoMatch(ParadigmTest a, ParadigmTest b) {
     assertFalse(a.equals(b));
     assertFalse(b.equals(a));
@@ -589,7 +606,7 @@ public class DogTagTest {
     assertNotEquals(a.hashCode(), b.hashCode());
   }
 
-  @SuppressWarnings({"ResultOfObjectAllocationIgnored", "InstantiationOfUtilityClass"})
+  @SuppressWarnings("ResultOfObjectAllocationIgnored")
   @Test(expected = AssertionError.class)
   public void testBadDogTag() {
     // Test for case where dogTag is static. This would not work, because each instance has to have its own DogTag,
@@ -599,7 +616,7 @@ public class DogTagTest {
     new ClassWithBadDogTag();
   }
 
-  @SuppressWarnings({"ResultOfObjectAllocationIgnored"})
+  @SuppressWarnings("ResultOfObjectAllocationIgnored")
   @Test(expected = AssertionError.class)
   public void testBadFactory() {
     // Test for case where Factory is not static. This would seriously slow down the equals and hashCode methods, since
@@ -611,7 +628,7 @@ public class DogTagTest {
 
   ////////////////////
 
-  @SuppressWarnings({"unused", "AssignmentOrReturnOfFieldWithMutableType",
+  @SuppressWarnings({"unused",
       "WeakerAccess", "PublicConstructorInNonPublicClass"})
   private static class DogTagTestBase {
     private final int alphaInt;
@@ -767,7 +784,7 @@ public class DogTagTest {
     private boolean[] tangoBooleanArray = { false, true, true, false, true, false, false, true, true, false };
     private float[] uniformFloatArray = { 1.4F, 2.0F, 2.8F, 4.0F, 5.6F, 8.0F, 11.0F, 16.0F, 22.0F};
     private double[] victorDoubleArray = { 0.1, 0.02, 0.003, 0.0004, 0.00005, 0.000006, 0.0000007, 0.00000008, 9.0 };
-    private Object[] whiskeyObjectArray = { new Point2D.Float(1.2f, 2.4f), "string", new HashSet() };
+    private Object[] whiskeyObjectArray = { new Point2D.Float(1.2f, 2.4f), "string", new HashSet<>() };
 
     public int[] getNovemberIntArray() {
       return novemberIntArray;
@@ -961,9 +978,7 @@ public class DogTagTest {
     }
   }
 
-  @SuppressWarnings("UtilityClassCanBeEnum")
   private static final class ClassWithBadDogTag {
-    @SuppressWarnings("InstantiationOfUtilityClass")
     private static final ClassWithBadDogTag badInstance = new ClassWithBadDogTag();
     private static final DogTag.DogTagExclusionBuilder<ClassWithBadDogTag> builder = DogTag.create(badInstance);
     private static final DogTag.Factory<ClassWithBadDogTag> dogTagFactory = builder.buildFactory(); // Should throw AssertionError
@@ -985,7 +1000,7 @@ public class DogTagTest {
     // something here that nobody should ever do in production.
     private static final DogTagTestBase rivalInstance = new DogTagTestBase(1, "b", 1, 1L);
     @SuppressWarnings("unused")
-    private DogTag.Factory<DogTagTestBase> factory = DogTag.create(rivalInstance).buildFactory();
+    private final DogTag.Factory<DogTagTestBase> factory = DogTag.create(rivalInstance).buildFactory();
 
     @Override
     public boolean equals(Object obj) {

@@ -4,6 +4,7 @@ import java.awt.geom.Point2D;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Objects;
+import java.util.function.BiFunction;
 import com.equals.DogTag;
 import com.equals.DogTagExclude;
 import com.equals.DogTagInclude;
@@ -36,7 +37,7 @@ public class PerformanceTest {
     TestClass t5 = t0.duplicate();
     t5.setEchoString("Repeat");
     TestClass t6 = t0.duplicate();
-    t6.setFoxtrotPoint(new Point2D.Double(88.4, 928.5));
+//    t6.setFoxtrotPoint(new Point2D.Double(88.4, 928.5));
     TestClass t7 = t0.duplicate();
     t7.setGolfInt(798);
     TestClass t8 = t0.duplicate();
@@ -71,12 +72,19 @@ public class PerformanceTest {
     t22.setVictorDoubleArray(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0);
     TestClass t23 = t0.duplicate();
     t23.setWhiskeyObjectArray("Whiskey", 33.5F, Boolean.FALSE);
-    TestClass[] instances = { t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16, t17, t18, t19, t20, t21, t22, t23, t0.duplicate() };
+    TestClass[] instances = {t0, t14, t15, t16, t17, t18, t19, t20, t21, t22, t23, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t0.duplicate()};
     reverse(instances);
 
-//    final BiFunction<TestClass, TestClass, Boolean> directEqual = PerformanceTest::isEqual;
-//    TimingUtility.runTestCycles(dogTag, t0, instances, directEqual, EMPTY_STRING_ARRAY);
+    DogTag.DogTagExclusionBuilder<TestClass> classDogTagExclusionBuilder = DogTag.create(t0);
+    DogTag.Factory<TestClass> dogTagfactory = classDogTagExclusionBuilder.buildFactory();
 
+    final BiFunction<TestClass, TestClass, Boolean> directEqual = TestClass::isEqual;
+    TimingUtility.runTestCycles(dogTagfactory, t0, instances, directEqual, EMPTY_STRING_ARRAY);
+  }
+  
+  public void testNoArrays() {
+
+    System.out.println("Test No Arrays. Comparing objects with 12 fields, all primitives or Strings");
     // Test 2: No Arrays
 //    final String[] excludedFields = {"novemberIntArray", "operaStringArray", "papaLongArray", "quebecShortArray",
 //        "romeoByteArray", "sierraCharArray", "tangoBooleanArray", "uniformFloatArray", "victorDoubleArray",
@@ -86,8 +94,32 @@ public class PerformanceTest {
 //        .getFactory();
     SingleValueTestClass dummy = new SingleValueTestClass(1, "x");
     DogTag.Factory<SingleValueTestClass> dogTagNoArrays = DogTag.create(dummy).buildFactory();
+    SingleValueTestClass t0 = new SingleValueTestClass(1, "bravo");
+    SingleValueTestClass t1 = new SingleValueTestClass(11, "bravo");
+//    SingleValueTestClass t2 = new SingleValueTestClass(1, "bravisimo");
+    SingleValueTestClass t3 = new SingleValueTestClass(1, "bravo");
+    t3.setCharlieInt(33);
+    SingleValueTestClass t4 = new SingleValueTestClass(1, "bravo");
+    t4.setDeltaLong(44L);
+    SingleValueTestClass t5 = new SingleValueTestClass(1, "bravo");
+    t5.setEchoString("ECHO");
+    SingleValueTestClass t6 = new SingleValueTestClass(1, "bravo");
+    t6.setGolfInt(77);
+    SingleValueTestClass t7 = new SingleValueTestClass(1, "bravo");
+    t7.setHotelByte((byte) 88);
+    SingleValueTestClass t8 = new SingleValueTestClass(1, "bravo");
+    t8.setIndigoChar('i');
+    SingleValueTestClass t9 = new SingleValueTestClass(1, "bravo");
+    t9.setJulietBoolean(true);
+    SingleValueTestClass t10 = new SingleValueTestClass(1, "bravo");
+    t10.setKiloShort((short) 111);
+    SingleValueTestClass t11 = new SingleValueTestClass(1, "bravo");
+    t11.setLimaDouble(120.0);
+    SingleValueTestClass t12 = new SingleValueTestClass(1, "bravo");
+    t12.setMikeFloat(130.013F);
+    SingleValueTestClass tDup = new SingleValueTestClass(1, "bravo");
 
-    TestClass[] pInstances = { t0.duplicate(), t13, t12, t11, t10, t9, t8, t7, t6, t5, t4, t3, t2, t1, t0 };
+    SingleValueTestClass[] pInstances = { tDup, t12, t11, t10, t9, t8, t7, t6, t5, t4, t3, /* t2,*/ t1, t0 };
 
     TimingUtility.runTestCycles(dogTagNoArrays, t0, pInstances, PerformanceTest::singleValueDirectEqual, EMPTY_STRING_ARRAY);
   }
@@ -99,11 +131,11 @@ public class PerformanceTest {
       return true;
     }
     return (t1.getAlphaInt() == t2.getAlphaInt())
-        && Objects.equals(t1.getBravoString(), t2.getBravoString())
+//        && Objects.equals(t1.getBravoString(), t2.getBravoString())
         && (t1.getCharlieInt() == t2.getCharlieInt())
         && (t1.getDeltaLong() == t2.getDeltaLong())
         && Objects.equals(t1.getEchoString(), t2.getEchoString())
-        && Objects.equals(t1.getFoxtrotPoint(), t2.getFoxtrotPoint())
+//        && Objects.equals(t1.getFoxtrotPoint(), t2.getFoxtrotPoint())
         && (t1.getHotelByte() == t2.getHotelByte())
         && (t1.isJulietBoolean() == t2.isJulietBoolean())
         && (t1.getKiloShort() == t2.getKiloShort())
@@ -111,8 +143,6 @@ public class PerformanceTest {
         && Objects.equals(Double.valueOf(t1.getLimaDouble()), t2.getLimaDouble())
         && Objects.equals(Float.valueOf(t1.getMikeFloat()), t2.getMikeFloat());
   }
-
-
 
   private static String dup(String s) {
     String s2 = '1' + s;
@@ -231,7 +261,7 @@ public class PerformanceTest {
     }
 
     public TestClass duplicate() {
-      return duplicate(getAlphaInt(), getBravoString());
+      return duplicate(getAlphaInt(), ""); //getBravoString());
     }
 
     public TestClass duplicate(int alpha, String bravo) {
@@ -239,7 +269,7 @@ public class PerformanceTest {
       tail.setCharlieInt(getCharlieInt());
       tail.setDeltaLong(getDeltaLong());
       tail.setEchoString(dup(getEchoString()));
-      tail.setFoxtrotPoint(new Point2D.Double(getFoxtrotPoint().getX(), getFoxtrotPoint().getY()));
+//      tail.setFoxtrotPoint(new Point2D.Double(getFoxtrotPoint().getX(), getFoxtrotPoint().getY()));
       tail.setGolfInt(getGolfInt());
       tail.setHotelByte(new Byte(getHotelByte())); // To avoid identity test
       tail.setIndigoChar(getIndigoChar());
@@ -267,11 +297,11 @@ public class PerformanceTest {
       TestClass tc = (TestClass) obj;
       return new EqualsBuilder()
           .append(getAlphaInt(), tc.getAlphaInt())
-          .append(getBravoString(), tc.getBravoString())
+//          .append(getBravoString(), tc.getBravoString())
           .append(getCharlieInt(), tc.getCharlieInt())
           .append(getDeltaLong(), tc.getDeltaLong())
           .append(getEchoString(), tc.getEchoString())
-          .append(getFoxtrotPoint(), tc.getFoxtrotPoint())
+//          .append(getFoxtrotPoint(), tc.getFoxtrotPoint())
           .append(getGolfInt(), tc.getGolfInt())
           .append(getHotelByte(), tc.getHotelByte())
           .append(getIndigoChar(), tc.getIndigoChar())
@@ -291,6 +321,36 @@ public class PerformanceTest {
           .append(getWhiskeyObjectArray(), tc.getWhiskeyObjectArray())
           .isEquals();
     }
+    
+    public static Boolean isEqual(TestClass thisOne, TestClass thatOne) {
+      //noinspection ObjectEquality
+      if (thisOne == thatOne) {
+        return true;
+      }
+      return (thisOne.getAlphaInt() == thatOne.getAlphaInt()) &&
+//          thisOne.getBravoString() == thatOne.getBravoString() &&
+          (thisOne.getCharlieInt() == thatOne.getCharlieInt()) &&
+          (thisOne.getDeltaLong() == thatOne.getDeltaLong()) &&
+          (thisOne.getEchoString().equals(thatOne.getEchoString())) &&
+//          thisOne.getFoxtrotPoint() == thatOne.getFoxtrotPoint() &&
+          (thisOne.getGolfInt() == thatOne.getGolfInt()) &&
+          (thisOne.getHotelByte() == thatOne.getHotelByte()) &&
+          (thisOne.getIndigoChar() == thatOne.getIndigoChar()) &&
+          (thisOne.isJulietBoolean() == thatOne.isJulietBoolean()) &&
+          (thisOne.getKiloShort() == thatOne.getKiloShort()) &&
+          (Double.compare(thisOne.getLimaDouble(), thatOne.getLimaDouble()) == 0) &&
+          (Float.compare(thisOne.getMikeFloat(), thatOne.getMikeFloat()) == 0) &&
+          (Arrays.equals(thisOne.getNovemberIntArray(), thatOne.getNovemberIntArray())) &&
+          (Arrays.equals(thisOne.getOperaStringArray(), thatOne.getOperaStringArray())) &&
+          (Arrays.equals(thisOne.getPapaLongArray(), thatOne.getPapaLongArray())) &&
+          (Arrays.equals(thisOne.getQuebecShortArray(), thatOne.getQuebecShortArray())) &&
+          (Arrays.equals(thisOne.getRomeoByteArray(), thatOne.getRomeoByteArray())) &&
+          (Arrays.equals(thisOne.getSierraCharArray(), thatOne.getSierraCharArray())) &&
+          (Arrays.equals(thisOne.getTangoBooleanArray(), thatOne.getTangoBooleanArray())) &&
+          (Arrays.equals(thisOne.getUniformFloatArray(), thatOne.getUniformFloatArray())) &&
+          (Arrays.equals(thisOne.getVictorDoubleArray(), thatOne.getVictorDoubleArray())) &&
+          (Arrays.equals(thisOne.getWhiskeyObjectArray(), thatOne.getWhiskeyObjectArray()));
+    }
   }
 
   @SuppressWarnings({"WeakerAccess", "EqualsAndHashcode"})
@@ -298,16 +358,16 @@ public class PerformanceTest {
     SingleValueTestClass(int alpha, String bravo) {
       alphaInt = alpha;
       // I use new String(String) to avoid the identity check when comparing two identical Strings. 
-      bravoString = new String(bravo);
+//      bravoString = new String(bravo);
     }
 
     private final int alphaInt;
-    private final String bravoString;
+//    private final String bravoString;
     private int charlieInt = 3;
     private long deltaLong = 4L;
     // I use new String(String) to avoid the identity check when comparing two identical Strings. 
     private String echoString = new String("echo");
-    private Point2D foxtrotPoint = new Point2D.Double(6.54, 4.56);
+//    private Point2D foxtrotPoint = new Point2D.Double(6.54, 4.56);
     private int golfInt = 7;
     private byte hotelByte = 8;
     private char indigoChar = 'I';
@@ -320,9 +380,9 @@ public class PerformanceTest {
       return alphaInt;
     }
 
-    public String getBravoString() {
-      return bravoString;
-    }
+//    public String getBravoString() {
+//      return bravoString;
+//    }
 
     public int getCharlieInt() {
       return charlieInt;
@@ -348,13 +408,13 @@ public class PerformanceTest {
       this.echoString = echoString;
     }
 
-    public Point2D getFoxtrotPoint() {
-      return foxtrotPoint;
-    }
-
-    public void setFoxtrotPoint(Point2D foxtrotPoint) {
-      this.foxtrotPoint = foxtrotPoint;
-    }
+//    public Point2D getFoxtrotPoint() {
+//      return foxtrotPoint;
+//    }
+//
+//    public void setFoxtrotPoint(Point2D foxtrotPoint) {
+//      this.foxtrotPoint = foxtrotPoint;
+//    }
 
     public int getGolfInt() {
       return golfInt;
@@ -423,11 +483,11 @@ public class PerformanceTest {
       return new EqualsBuilder()
           .appendSuper(super.equals(obj))
           .append(getAlphaInt(), rhs.getAlphaInt())
-          .append(getBravoString(), rhs.getBravoString())
+//          .append(getBravoString(), rhs.getBravoString())
           .append(getCharlieInt(), rhs.getCharlieInt())
           .append(getDeltaLong(), rhs.getDeltaLong())
           .append(getEchoString(), rhs.getEchoString())
-          .append(getFoxtrotPoint(), rhs.getFoxtrotPoint())
+//          .append(getFoxtrotPoint(), rhs.getFoxtrotPoint())
           .append(getGolfInt(), rhs.getGolfInt())
           .append(getHotelByte(), rhs.getHotelByte())
           .append(getIndigoChar(), rhs.getIndigoChar())
@@ -661,12 +721,13 @@ public class PerformanceTest {
 
   public static void main(String[] args) {
     PerformanceTest performanceTest = new PerformanceTest();
-    performanceTest.timeTest();
-    try {
-      performanceTest.test26();
-    } catch (CloneNotSupportedException e) {
-      e.printStackTrace();
-    }
-    performanceTest.testTwoStrings();
+//    performanceTest.timeTest();
+    performanceTest.testNoArrays();
+//    try {
+//      performanceTest.test26();
+//    } catch (CloneNotSupportedException e) {
+//      e.printStackTrace();
+//    }
+//    performanceTest.testTwoStrings();
   }
 }
