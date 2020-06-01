@@ -3,9 +3,10 @@ package com.equals;
 import java.awt.geom.Point2D;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import org.junit.Test;
 
-import static com.equals.TestUtility.*; // for verifyMatch__() and verifyNoMatch()
+import static com.equals.TestUtility.*;
 import static org.junit.Assert.*;
 
 // Todo: Write test of cached hash in inclusion mode
@@ -15,72 +16,116 @@ public class DogTagTest {
 
   @Test
   public void testEquals() {
-    DogTagTestBase baseTest1 = new DogTagTestBase(5, "bravo", 7, 5L);
-    DogTagTestBase baseTest2 = baseTest1.duplicate();
-    DogTagTestBase baseTest3 = new DogTagTestBase(90, "bravo", 7, 5L);
-    DogTagTestBase baseTest4 = new DogTagTestBase(5, "bravissimo", 7, 5L);
-    DogTagTestBase baseTest5 = new DogTagTestBase(5, "bravo", 44, 5L);
-    DogTagTestBase baseTest6 = new DogTagTestBase(5, "bravo", 7, 17L);
-    baseTest2.setCharlieInt(12);
+    DogTagTestBase baseTest5b75 = new DogTagTestBase(5, "bravo", 7, 5L);
+    DogTagTestBase baseTest5bx5 = baseTest5b75.duplicate();
+    DogTagTestBase baseTest9b75 = new DogTagTestBase(90, "bravo", 7, 5L);
+    DogTagTestBase baseTest5x75 = new DogTagTestBase(5, "bravissimo", 7, 5L);
+    DogTagTestBase baseTest5b45 = new DogTagTestBase(5, "bravo", 44, 5L);
+    DogTagTestBase baseTest5b7x = new DogTagTestBase(5, "bravo", 7, 17L);
+    DogTagTestBase baseTestDupl = new DogTagTestBase(5, "bravo", 7, 5L);
+    baseTest5bx5.setCharlieInt(12);
     
-    DogTag.Factory<DogTagTestBase> excludeC = DogTag.create(baseTest1, CHARLIE_INT)
+    DogTag.Factory<DogTagTestBase> excludeCReflect = DogTag.create(baseTest5b75, CHARLIE_INT)
+        .buildFactory();
+    DogTag.Factory<DogTagTestBase> excludeCLambda = DogTag.createByLambda(DogTagTestBase.class)
+        .add(DogTagTestBase::getAlphaInt)
+        .addObject(DogTagTestBase::getBravoString)
+        .add(DogTagTestBase::getDeltaLong)
         .buildFactory();
 
-    verifyMatch__(excludeC, baseTest1, baseTest2);
-    verifyNoMatch(excludeC, baseTest1, baseTest3);
-    verifyNoMatch(excludeC, baseTest1, baseTest4);
-    verifyMatch__(excludeC, baseTest1, baseTest5);
-    verifyNoMatch(excludeC, baseTest1, baseTest6);
-    verifyNoMatch(excludeC, baseTest2, baseTest3);
-    verifyNoMatch(excludeC, baseTest2, baseTest4);
-    verifyMatch__(excludeC, baseTest2, baseTest5);
-    verifyNoMatch(excludeC, baseTest2, baseTest6);
-    verifyNoMatch(excludeC, baseTest3, baseTest4);
-    verifyNoMatch(excludeC, baseTest3, baseTest5);
-    verifyNoMatch(excludeC, baseTest3, baseTest6);
-    verifyNoMatch(excludeC, baseTest4, baseTest5);
-    verifyNoMatch(excludeC, baseTest4, baseTest6);
-    verifyNoMatch(excludeC, baseTest5, baseTest6);
+    List<DogTag.Factory<DogTagTestBase>> dList = Arrays.asList(excludeCReflect, excludeCLambda);
+    
+    for (DogTag.Factory<DogTagTestBase> excludeC : dList){
+      verifyMatches(excludeC, baseTest5b75, baseTest5bx5);
+      verifyNoMatch(excludeC, baseTest5b75, baseTest9b75);
+      verifyNoMatch(excludeC, baseTest5b75, baseTest5x75);
+      verifyMatches(excludeC, baseTest5b75, baseTest5b45);
+      verifyNoMatch(excludeC, baseTest5b75, baseTest5b7x);
+      verifyNoMatch(excludeC, baseTest5bx5, baseTest9b75);
+      verifyNoMatch(excludeC, baseTest5bx5, baseTest5x75);
+      verifyMatches(excludeC, baseTest5bx5, baseTest5b45);
+      verifyNoMatch(excludeC, baseTest5bx5, baseTest5b7x);
+      verifyNoMatch(excludeC, baseTest9b75, baseTest5x75);
+      verifyNoMatch(excludeC, baseTest9b75, baseTest5b45);
+      verifyNoMatch(excludeC, baseTest9b75, baseTest5b7x);
+      verifyNoMatch(excludeC, baseTest5x75, baseTest5b45);
+      verifyNoMatch(excludeC, baseTest5x75, baseTest5b7x);
+      verifyNoMatch(excludeC, baseTest5b45, baseTest5b7x);
+      verifyMatches(excludeC, baseTest5b75, baseTestDupl);
+    }
 
-    DogTag.Factory<DogTagTestBase> includeBaseOnly = DogTag.create(baseTest1).buildFactory();
-    verifyNoMatch(includeBaseOnly, baseTest1, baseTest2);
-    assertFalse(includeBaseOnly.doEqualsTest(baseTest1, "String"));
-
-    baseTest1.setCharlieInt(12);
-    verifyMatch__(includeBaseOnly, baseTest1, baseTest2);
+    DogTag.Factory<DogTagTestBase> includeBaseOnlyReflect = DogTag.create(baseTest5b75).buildFactory();
+    DogTag.Factory<DogTagTestBase> includeBaseOnlyLambda = DogTag.createByLambda(DogTagTestBase.class)
+        .add(DogTagTestBase::getAlphaInt)
+        .add(DogTagTestBase::getDeltaLong)
+        .addObject(DogTagTestBase::getBravoString)
+        .add(DogTagTestBase::getCharlieInt)
+        .buildFactory();
+    
+    dList = Arrays.asList(includeBaseOnlyReflect, includeBaseOnlyLambda);
+    for (DogTag.Factory<DogTagTestBase> includeBaseOnly: dList) {
+      verifyNoMatch(includeBaseOnly, baseTest5b75, baseTest5bx5);
+      verifyNoMatch(includeBaseOnly, baseTest5b75, baseTest5bx5);
+      verifyNoMatch(includeBaseOnly, baseTest5b75, baseTest9b75);
+      verifyNoMatch(includeBaseOnly, baseTest5b75, baseTest5x75);
+      verifyNoMatch(includeBaseOnly, baseTest5b75, baseTest5b45);
+      verifyNoMatch(includeBaseOnly, baseTest5b75, baseTest5b7x);
+      verifyNoMatch(includeBaseOnly, baseTest5bx5, baseTest9b75);
+      verifyNoMatch(includeBaseOnly, baseTest5bx5, baseTest5x75);
+      verifyNoMatch(includeBaseOnly, baseTest5bx5, baseTest5b45);
+      verifyNoMatch(includeBaseOnly, baseTest5bx5, baseTest5b7x);
+      verifyNoMatch(includeBaseOnly, baseTest9b75, baseTest5x75);
+      verifyNoMatch(includeBaseOnly, baseTest9b75, baseTest5b45);
+      verifyNoMatch(includeBaseOnly, baseTest9b75, baseTest5b7x);
+      verifyNoMatch(includeBaseOnly, baseTest5x75, baseTest5b45);
+      verifyNoMatch(includeBaseOnly, baseTest5x75, baseTest5b7x);
+      verifyNoMatch(includeBaseOnly, baseTest5b45, baseTest5b7x);
+      verifyMatches(includeBaseOnly, baseTest5b75, baseTestDupl);
+    }
 
     DogTagTestMid midTest = new DogTagTestMid(5, "bravo", 7, 5L, "echo", 
         new Point2D.Double(14.2, 2.14), 44, (byte)12, 'I');
     DogTagTestMid midTest2 = midTest.duplicate();
-    verifyMatch__(includeBaseOnly, midTest, midTest2);
+    verifyMatches(includeBaseOnlyReflect, midTest, midTest2);
+    verifyMatches(includeBaseOnlyLambda, midTest, midTest2);
     midTest2.setIndigoChar('J');
     midTest2.setHotelByte((byte) 99);
     midTest2.setGolfIntTr(77);
     midTest2.setFoxtrotPoint(new Point2D.Double(88.8, 22.2));
     midTest2.setEchoString("Could you repeat that?");
-    verifyMatch__(includeBaseOnly, midTest, midTest2); // should still match,
-    
-    DogTag.Factory<DogTagTestBase> includeAllButC = DogTag.createByInclusion(baseTest1,
+    verifyMatches(includeBaseOnlyReflect, midTest, midTest2); // should still match,
+    verifyMatches(includeBaseOnlyLambda, midTest, midTest2); // should still match,
+
+    DogTag.Factory<DogTagTestBase> includeAllButCReflect = DogTag.createByInclusion(baseTest5b75,
             "alphaInt",
             "bravoString",
             "deltaLong"
         )
         .buildFactory();
-    verifyMatch__(includeAllButC, baseTest1, baseTest2);
-    verifyNoMatch(includeAllButC, baseTest1, baseTest3);
-    verifyNoMatch(includeAllButC, baseTest1, baseTest4);
-    verifyMatch__(includeAllButC, baseTest1, baseTest5);
-    verifyNoMatch(includeAllButC, baseTest1, baseTest6);
-    verifyNoMatch(includeAllButC, baseTest2, baseTest3);
-    verifyNoMatch(includeAllButC, baseTest2, baseTest4);
-    verifyMatch__(includeAllButC, baseTest2, baseTest5);
-    verifyNoMatch(includeAllButC, baseTest2, baseTest6);
-    verifyNoMatch(includeAllButC, baseTest3, baseTest4);
-    verifyNoMatch(includeAllButC, baseTest3, baseTest5);
-    verifyNoMatch(includeAllButC, baseTest3, baseTest6);
-    verifyNoMatch(includeAllButC, baseTest4, baseTest5);
-    verifyNoMatch(includeAllButC, baseTest4, baseTest6);
-    verifyNoMatch(includeAllButC, baseTest5, baseTest6);
+    DogTag.Factory<DogTagTestBase> includeAllButCLambda = DogTag.createByLambda(DogTagTestBase.class)
+        .add(DogTagTestBase::getAlphaInt)
+        .addObject(DogTagTestBase::getBravoString)
+        .add(DogTagTestBase::getDeltaLong)
+        .buildFactory();
+    dList = Arrays.asList(includeAllButCReflect, includeAllButCLambda);
+    
+    for (DogTag.Factory<DogTagTestBase> includeAllButC: dList) {
+      verifyMatches(includeAllButC, baseTest5b75, baseTest5bx5);
+      verifyNoMatch(includeAllButC, baseTest5b75, baseTest9b75);
+      verifyNoMatch(includeAllButC, baseTest5b75, baseTest5x75);
+      verifyMatches(includeAllButC, baseTest5b75, baseTest5b45);
+      verifyNoMatch(includeAllButC, baseTest5b75, baseTest5b7x);
+      verifyNoMatch(includeAllButC, baseTest5bx5, baseTest9b75);
+      verifyNoMatch(includeAllButC, baseTest5bx5, baseTest5x75);
+      verifyMatches(includeAllButC, baseTest5bx5, baseTest5b45);
+      verifyNoMatch(includeAllButC, baseTest5bx5, baseTest5b7x);
+      verifyNoMatch(includeAllButC, baseTest9b75, baseTest5x75);
+      verifyNoMatch(includeAllButC, baseTest9b75, baseTest5b45);
+      verifyNoMatch(includeAllButC, baseTest9b75, baseTest5b7x);
+      verifyNoMatch(includeAllButC, baseTest5x75, baseTest5b45);
+      verifyNoMatch(includeAllButC, baseTest5x75, baseTest5b7x);
+      verifyNoMatch(includeAllButC, baseTest5b45, baseTest5b7x);
+    }
   }
 
   @Test
@@ -89,7 +134,7 @@ public class DogTagTest {
     DogTagTestMid mid2 = mid1.duplicate();
     DogTag.Factory<DogTagTestMid> defaultFactory = DogTag.create(mid1).buildFactory(); // Tests may construct their own DogTags.
     mid2.setGolfIntTr(77); // transient value
-    verifyMatch__(defaultFactory, mid1, mid2);
+    verifyMatches(defaultFactory, mid1, mid2);
     
     mid2.setFoxtrotPoint(new Point2D.Double(3.3, 4.4));
     verifyNoMatch(defaultFactory, mid1, mid2);
@@ -100,7 +145,7 @@ public class DogTagTest {
     mid2.setFoxtrotPoint((Point2D) mid1.getFoxtrotPoint().clone()); // reset Point2D
     verifyNoMatch(FactoryWithTransients, mid1, mid2);
     mid2.setGolfIntTr(mid1.getGolfIntTr());
-    verifyMatch__(FactoryWithTransients, mid1, mid2);
+    verifyMatches(FactoryWithTransients, mid1, mid2);
 
     DogTagTestTail tail1 = new DogTagTestTail();
     DogTagTestTail tail2 = new DogTagTestTail();
@@ -116,7 +161,7 @@ public class DogTagTest {
     tail2.setGolfIntTr(-10); // tail2 now matches tail1 in this field
     tail2.setCharlieInt(1024); // Shouldn't affect equality. In super.super, but not in super.
     tail2.setDeltaLong(65537L*65537L);
-    verifyMatch__(FactoryTail, tail1, tail2);
+    verifyMatches(FactoryTail, tail1, tail2);
   }
   
   @Test
@@ -133,14 +178,14 @@ public class DogTagTest {
         .withFinalFieldsOnly(true)
         .buildFactory();
     
-    verifyMatch__(baseFactory, base1, base2);
+    verifyMatches(baseFactory, base1, base2);
     verifyNoMatch(baseFactory, base1, base3);
     verifyNoMatch(baseFactory, base1, base4);
-    verifyMatch__(baseFactory, base1, base5);
+    verifyMatches(baseFactory, base1, base5);
     verifyNoMatch(baseFactory, base1, base6);
     verifyNoMatch(baseFactory, base2, base3);
     verifyNoMatch(baseFactory, base2, base4);
-    verifyMatch__(baseFactory, base2, base5);    // transitivity test
+    verifyMatches(baseFactory, base2, base5);    // transitivity test
     verifyNoMatch(baseFactory, base2, base6);
     verifyNoMatch(baseFactory, base3, base4);
     verifyNoMatch(baseFactory, base3, base5);
@@ -148,7 +193,7 @@ public class DogTagTest {
     verifyNoMatch(baseFactory, base4, base5);
     verifyNoMatch(baseFactory, base4, base6);
     verifyNoMatch(baseFactory, base5, base6);
-    verifyMatch__(baseFactory, base6, base7);
+    verifyMatches(baseFactory, base6, base7);
     
     DogTag.Factory<DogTagTestBase> Factory2 = DogTag.create(base1, "bravoString")
         .buildFactory();
@@ -156,10 +201,10 @@ public class DogTagTest {
     verifyNoMatch(Factory2, base1, base2);
     verifyNoMatch(Factory2, base1, base3);
     verifyNoMatch(Factory2, base1, base4);
-    verifyMatch__(Factory2, base1, base5);
-    verifyMatch__(Factory2, base1, base6);
+    verifyMatches(Factory2, base1, base5);
+    verifyMatches(Factory2, base1, base6);
     verifyNoMatch(Factory2, base2, base3);
-    verifyMatch__(Factory2, base2, base4);
+    verifyMatches(Factory2, base2, base4);
     verifyNoMatch(Factory2, base2, base5);
     verifyNoMatch(Factory2, base2, base6);
     verifyNoMatch(Factory2, base3, base4);
@@ -167,27 +212,27 @@ public class DogTagTest {
     verifyNoMatch(Factory2, base3, base6);
     verifyNoMatch(Factory2, base4, base5);
     verifyNoMatch(Factory2, base4, base6);
-    verifyMatch__(Factory2, base5, base6);
+    verifyMatches(Factory2, base5, base6);
 
     DogTag.Factory<DogTagTestBase> factory3 = DogTag.create(base1, "alphaInt")
         .withFinalFieldsOnly(true)
         .buildFactory();
 
-    verifyMatch__(factory3, base1, base2);
-    verifyMatch__(factory3, base1, base3);
+    verifyMatches(factory3, base1, base2);
+    verifyMatches(factory3, base1, base3);
     verifyNoMatch(factory3, base1, base4);
-    verifyMatch__(factory3, base1, base5);
+    verifyMatches(factory3, base1, base5);
     verifyNoMatch(factory3, base1, base6);
-    verifyMatch__(factory3, base2, base3);    // transitivity test
+    verifyMatches(factory3, base2, base3);    // transitivity test
     verifyNoMatch(factory3, base2, base4);
-    verifyMatch__(factory3, base2, base5);    // transitivity test
+    verifyMatches(factory3, base2, base5);    // transitivity test
     verifyNoMatch(factory3, base2, base4);
     verifyNoMatch(factory3, base3, base6);
-    verifyMatch__(factory3, base3, base5);    // transitivity test
+    verifyMatches(factory3, base3, base5);    // transitivity test
     verifyNoMatch(factory3, base4, base5);
     verifyNoMatch(factory3, base4, base6);
     verifyNoMatch(factory3, base5, base6);
-    verifyMatch__(factory3, base6, base7);
+    verifyMatches(factory3, base6, base7);
   }
 
   @Test
@@ -220,7 +265,7 @@ public class DogTagTest {
         .withReflectUpTo(DogTagTestBase.class)
         .buildFactory();
 
-    verifyMatch__(factory, tail1, tail2);
+    verifyMatches(factory, tail1, tail2);
     verifyNoMatch(factory, tail1, tail3);
     verifyNoMatch(factory, tail1, tail4);
     verifyNoMatch(factory, tail1, tail5);
@@ -236,7 +281,7 @@ public class DogTagTest {
         .withReflectUpTo(Object.class)
         .buildFactory();
 
-    verifyMatch__(factoryToObject, tail1, tail2);
+    verifyMatches(factoryToObject, tail1, tail2);
     verifyNoMatch(factoryToObject, tail1, tail3);
     verifyNoMatch(factoryToObject, tail1, tail4);
     verifyNoMatch(factoryToObject, tail1, tail5);
@@ -254,30 +299,30 @@ public class DogTagTest {
     DogTag.Factory<DogTagTestTail> factoryToMid = DogTag.create(tail1, "kiloShort", "julietBoolean", "hotelByte", "indigoChar")
         .withReflectUpTo(DogTagTestMid.class)
         .buildFactory();
-    verifyMatch__(factoryToMid, tail1, tail2);
+    verifyMatches(factoryToMid, tail1, tail2);
     verifyNoMatch(factoryToMid, tail1, tail3);
     verifyNoMatch(factoryToMid, tail1, tail4);
     verifyNoMatch(factoryToMid, tail1, tail5);
     verifyNoMatch(factoryToMid, tail1, tail6);
     verifyNoMatch(factoryToMid, tail1, mid_1);
     verifyNoMatch(factoryToMid, tail1, mid_2);
-    verifyMatch__(factoryToMid, tail1, base1);
-    verifyMatch__(factoryToMid, tail1, base2);
+    verifyMatches(factoryToMid, tail1, base1);
+    verifyMatches(factoryToMid, tail1, base2);
 
     // -----
 
     DogTag.Factory<DogTagTestTail> factoryNoSuper = DogTag.create(tail1, "kiloShort", "julietBoolean")
         .withReflectUpTo(DogTagTestTail.class)
         .buildFactory();
-    verifyMatch__(factoryNoSuper, tail1, tail2);
+    verifyMatches(factoryNoSuper, tail1, tail2);
     verifyNoMatch(factoryNoSuper, tail1, tail3);
     verifyNoMatch(factoryNoSuper, tail1, tail4);
     verifyNoMatch(factoryNoSuper, tail1, tail5);
     verifyNoMatch(factoryNoSuper, tail1, tail6);
-    verifyMatch__(factoryNoSuper, tail1, mid_1);
-    verifyMatch__(factoryNoSuper, tail1, mid_2);
-    verifyMatch__(factoryNoSuper, tail1, base1);
-    verifyMatch__(factoryNoSuper, tail1, base2);
+    verifyMatches(factoryNoSuper, tail1, mid_1);
+    verifyMatches(factoryNoSuper, tail1, mid_2);
+    verifyMatches(factoryNoSuper, tail1, base1);
+    verifyMatches(factoryNoSuper, tail1, base2);
   }
 
   @Test
@@ -288,7 +333,7 @@ public class DogTagTest {
     DogTag.Factory<DogTagTestBase> factory = DogTag.create(base1, CHARLIE_INT)
         .buildFactory();
 
-    verifyMatch__(factory, base1, base2);
+    verifyMatches(factory, base1, base2);
     base2.setDeltaLong(88L);
     verifyNoMatch(factory, base1, base2);
   }
@@ -382,7 +427,7 @@ public class DogTagTest {
       for (float f2: notNumbers) {
         tail1.setMikeFloat(f1);
         tail2.setMikeFloat(f2);
-        verifyMatch__(factory, tail1, tail2);
+        verifyMatches(factory, tail1, tail2);
       }
     }
   }
@@ -414,7 +459,7 @@ public class DogTagTest {
       for (double f2: notNumbers) {
         tail1.setLimaDouble(f1);
         tail2.setLimaDouble(f2);
-        verifyMatch__(factory, tail1, tail2);
+        verifyMatches(factory, tail1, tail2);
       }
     }
   }
@@ -425,7 +470,7 @@ public class DogTagTest {
     DogTagTestTail tail2 = tail1.duplicate();
     DogTag.Factory<DogTagTestTail> factory = DogTag.create(tail1).buildFactory();
 
-    verifyMatch__(factory, tail1, tail2);
+    verifyMatches(factory, tail1, tail2);
 
     tail1.setNovemberIntArray(new int[] {1, 1, 2, 3, 5});
     verifyNoMatch(factory, tail1, tail2);
@@ -453,7 +498,7 @@ public class DogTagTest {
     // ints
     DogTagTestTail tail1 = new DogTagTestTail();
     DogTagTestTail tail2 = tail1.duplicate();
-    verifyMatch__(factory, tail1, tail2);
+    verifyMatches(factory, tail1, tail2);
     tail2.setNovemberIntArray(new int[] {3, 2, 1}); // different length
     verifyNoMatch(factory, tail1, tail2);
     tail2.setNovemberIntArray(new int[] { 9, 8, 7, 6, 5, 4, 3, 2, 1 }); // same length
@@ -547,7 +592,7 @@ public class DogTagTest {
     int[][] twoDInt = { {1, 2}, {3, 4}, {5, 6} };
     tail1.setWhiskeyObjectArray(twoDInt);
     tail2.setWhiskeyObjectArray(twoDInt);
-    verifyMatch__(factory, tail1, tail2);
+    verifyMatches(factory, tail1, tail2);
     int[][] twoDIntB = { {1, 2}, {3, 4}, {50, 60} };
     tail2.setWhiskeyObjectArray(twoDIntB);
     verifyNoMatch(factory, tail1, tail2);

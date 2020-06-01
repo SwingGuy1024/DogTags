@@ -5,6 +5,8 @@ import java.util.function.BiFunction;
 import com.equals.DogTag;
 import com.equals.TimingUtility;
 import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.junit.Ignore;
+import org.junit.Test;
 
 /**
  * <p>Created by IntelliJ IDEA.
@@ -23,6 +25,8 @@ public class PerformanceTestWithWrappersUnCached {
   @SuppressWarnings("NumericCastThatLosesPrecision")
   private static Byte toByte(int i) { return (byte) i; }
 
+  @Ignore
+  @Test
   public void timeTest() {
     System.out.printf("Java version = %s%n", System.getProperty("java.version"));
     TestClass t0 = new TestClass(1111, "bravo");
@@ -51,7 +55,7 @@ public class PerformanceTestWithWrappersUnCached {
     TestClass t13 = t0.duplicate();
     t13.setMikeFloat(423.97F);
 
-    TestClass[] instances = { t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, /* t14, t15, t16, t17, t18, t19, t20, t21, t22, t23, */ t0.duplicate() };
+    TestClass[] instances = { t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, /* t14, t15, t16, t17, t18, t19, t20, t21, t22, t23, */ t0.duplicate() };
     TimingUtility.reverse(instances);
 
     final BiFunction<TestClass, TestClass, Boolean> directEqual = PerformanceTestWithWrappersUnCached::isEqual;
@@ -81,7 +85,7 @@ public class PerformanceTestWithWrappersUnCached {
   }
 
 
-  @SuppressWarnings({"AssignmentOrReturnOfFieldWithMutableType", "WeakerAccess", "MagicCharacter", "MagicNumber", "HardCodedStringLiteral", "ImplicitNumericConversion", "EqualsAndHashcode"})
+  @SuppressWarnings({"WeakerAccess", "MagicCharacter", "MagicNumber", "HardCodedStringLiteral", "EqualsAndHashcode"})
   private static class TestClass {
 
     TestClass(Integer alpha, String bravo) {

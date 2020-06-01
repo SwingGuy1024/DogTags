@@ -7,7 +7,7 @@ import static org.junit.Assert.*;
 
 import org.junit.Test;
 
-@SuppressWarnings({"MagicNumber", "HardCodedStringLiteral", "ResultOfObjectAllocationIgnored", "EqualsWhichDoesntCheckParameterClass"})
+@SuppressWarnings({"MagicNumber", "HardCodedStringLiteral", "EqualsWhichDoesntCheckParameterClass"})
 public class DogTagHashTest {
   @Test
   public void testHashBuilder() {
@@ -61,7 +61,7 @@ public class DogTagHashTest {
     assertEquals(0, cachedField.getInt(t5.dogTag));
 
     // These verify methods don't use the cached hash. We're just testing that we didn't break the equals() method.
-    verifyMatch__(factoryFinal, t1, t2);
+    verifyMatches(factoryFinal, t1, t2);
     verifyNoMatch(factoryFinal, t1, t3);
     verifyNoMatch(factoryFinal, t1, t4);
     verifyNoMatch(factoryFinal, t1, t5);
@@ -70,7 +70,7 @@ public class DogTagHashTest {
     verifyNoMatch(factoryFinal, t2, t5);
     verifyNoMatch(factoryFinal, t3, t4);
     verifyNoMatch(factoryFinal, t3, t5);
-    verifyMatch__(factoryFinal, t4, t5);
+    verifyMatches(factoryFinal, t4, t5);
 
 
     int h1 = dt1.hashCode();
@@ -178,7 +178,7 @@ public class DogTagHashTest {
     }
   }
 
-  @SuppressWarnings({"unused"})
+  @SuppressWarnings("unused")
   private static class TestClassWithCache {
     private final int delta;
     private final int echo;

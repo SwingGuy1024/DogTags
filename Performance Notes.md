@@ -113,3 +113,8 @@ For comparison, using reflection gives these results:
          Eq.B: new EqualsBuilder()
 
 ![png](https://github.com/SwingGuy1024/DogTags/blob/master/LambdaPerformance.png)
+
+ReferenceEqual results were left out of this graph because they're an order of magnitude larger than most of the other figures.
+
+### Getters vs. Direct Access
+As I was wondering why the EqualsBuilder so dramatically outperforms the Lambda-based DogTags, it occurred to me that it accesses the different fields directly, while the DogTags had to use getter methods to retrieve the data. So I tried rewriting the EqualsBuilder to always retrieve the data using getter methods. But that didn't change the performance at all.

@@ -125,7 +125,6 @@ public abstract class DogTag<T> {
 
     abstract boolean doEqualsTest(T thisOneNeverNull, Object thatOneNullable);
     abstract int doHashCodeInternal(T thisOne);
-    abstract Class<T> getTargetClass();
 
     private final int startingHash;
     private final HashBuilder hashBuilder;
@@ -154,12 +153,12 @@ public abstract class DogTag<T> {
 
   public static final class ReflectiveFactory<T> extends Factory<T> {
     private final Class<T> targetClass;
-    private final List<FieldProcessor> fieldProcessors;
+    private final List<FieldProcessor<T>> fieldProcessors;
     private final Function<T, DogTag<T>> constructor;
 
     private ReflectiveFactory(
         Class<T> theClass,
-        List<FieldProcessor> getters,
+        List<FieldProcessor<T>> getters,
         int startingHash,
         HashBuilder hashBuilder,
         boolean useCache
@@ -170,11 +169,6 @@ public abstract class DogTag<T> {
       constructor = useCache?
           (t) -> new CachingDogTag<>(this, t) :
           (t) -> new NonCachingDogTag<>(this, t);
-    }
-
-    @Override
-    Class<T> getTargetClass() {
-      return targetClass;
     }
 
     public DogTag<T> tag(T t) {
@@ -205,7 +199,7 @@ public abstract class DogTag<T> {
 
       // Putting the try/catch here instead of inside the testForEquals() method doubles the speed.
       try {
-        for (FieldProcessor f : fieldProcessors) {
+        for (FieldProcessor<T> f : fieldProcessors) {
           if (!f.testForEquals(thisOneNeverNull, thatOneNeverNull)) {
             return false;
           }
@@ -228,7 +222,7 @@ public abstract class DogTag<T> {
 
       // Putting the try/catch here instead of inside the testForEquals() method doubles the speed.
       try {
-        for (FieldProcessor f : fieldProcessors) {
+        for (FieldProcessor<T> f : fieldProcessors) {
           hash = getHashBuilder().newHash(hash, f.getHashValue(thisOne));
         }
       } catch (IllegalAccessException e) { // Shouldn't happen: Field.accessible has been set to true.
@@ -414,7 +408,7 @@ public abstract class DogTag<T> {
     }
 
     @Override
-    protected Collection<FieldProcessorWrapper> createEmptyFieldProcessorList() {
+    protected Collection<FieldProcessorWrapper<T>> createEmptyFieldProcessorList() {
       return new TreeSet<>();
     }
 
@@ -515,7 +509,7 @@ public abstract class DogTag<T> {
     }
 
     @Override
-    protected Collection<FieldProcessorWrapper> createEmptyFieldProcessorList() {
+    protected Collection<FieldProcessorWrapper<T>> createEmptyFieldProcessorList() {
       return new LinkedList<>();
     }
 
@@ -550,7 +544,7 @@ public abstract class DogTag<T> {
       return factory;
     }
     
-    protected abstract Factory<T> buildFactory();
+    public abstract Factory<T> buildFactory();
 
 //    /**
 //     * Build the DogTag instance from the factory, creating the factory if it doesn't exist yet.
@@ -717,11 +711,11 @@ public abstract class DogTag<T> {
       return new ReflectiveFactory<>(getTargetClass(), makeGetterList(), getStartingHash(), getHashBuilder(), isUseCachedHash());
     }
 
-    protected List<FieldProcessor> makeGetterList() {
+    protected List<FieldProcessor<T>> makeGetterList() {
       collectMatchingFields(selectedFieldNames, selectedFields);
 
       // two different inclusion modes exist. Each requires a different kind of collection.
-      Collection<FieldProcessorWrapper> fieldProcessorList = createEmptyFieldProcessorList();
+      Collection<FieldProcessorWrapper<T>> fieldProcessorList = createEmptyFieldProcessorList();
       Class<? super T> theClass = getTargetClass();
       int index = 0;
 
@@ -760,10 +754,10 @@ public abstract class DogTag<T> {
               );
             }
             field.setAccessible(true); // move this into getFPForType?
-            FieldProcessor fieldProcessor = getFieldProcessorForType(field, fieldType);
+            FieldProcessor<T> fieldProcessor = getFieldProcessorForType(field, fieldType);
 
             //The wrapper contains ordering information for lists that specify an order
-            fieldProcessorList.add(new FieldProcessorWrapper(fieldProcessor, getOrderForField(field), index++));
+            fieldProcessorList.add(new FieldProcessorWrapper<>(fieldProcessor, getOrderForField(field), index++));
           }
         }
         if (theClass == lastSuperClass) {
@@ -774,25 +768,25 @@ public abstract class DogTag<T> {
       }
 
       // Now that they're in the proper order, we extract them from the list of wrappers and add them to the final list.
-      List<FieldProcessor> finalList = new LinkedList<>();
-      for (FieldProcessorWrapper wrapper: fieldProcessorList) {
+      List<FieldProcessor<T>> finalList = new LinkedList<>();
+      for (FieldProcessorWrapper<T> wrapper: fieldProcessorList) {
         finalList.add(wrapper.getFieldProcessor());
       }
       return finalList;
     }
 
     // Todo: Test annotated field overridden by non-annotated field. What should it do?
-    private FieldProcessor getFieldProcessorForType(Field field, Class<?> fieldType) {
-      FieldProcessor fieldProcessor;
+    private FieldProcessor<T> getFieldProcessorForType(Field field, Class<?> fieldType) {
+      FieldProcessor<T> fieldProcessor;
       if (fieldType.isArray()) {
         fieldProcessor = getProcessorForArray(field, fieldType);
       } else if (fieldType.isPrimitive()) {
         fieldProcessor = getProcessorForPrimitive(field, fieldType);
       } else {
-        ToBooleanBiFunction<Object> objectToBooleanBiFunction
+        ToBooleanBiFunction<T> objectToBooleanBiFunction
             = (thisOne, thatOne) -> Objects.equals(field.get(thisOne), (field.get(thatOne)));
-        ToIntThrowingFunction<Object> hashFunction = (t) -> Objects.hashCode(field.get(t));
-        fieldProcessor = new FieldProcessor(objectToBooleanBiFunction, hashFunction);
+        ToIntThrowingFunction<T> hashFunction = (t) -> Objects.hashCode(field.get(t));
+        fieldProcessor = new FieldProcessor<>(objectToBooleanBiFunction, hashFunction);
       }
       return fieldProcessor;
     }
@@ -815,7 +809,7 @@ public abstract class DogTag<T> {
      */
     protected abstract boolean isFieldUsed(final Field theField);
 
-    protected abstract Collection<FieldProcessorWrapper> createEmptyFieldProcessorList();
+    protected abstract Collection<FieldProcessorWrapper<T>> createEmptyFieldProcessorList();
 
     protected abstract int getOrderForField(Field field);
     
@@ -844,159 +838,46 @@ public abstract class DogTag<T> {
      * @param fieldType The type of the field
      * @return A field processor for the specified field.
      */
-    @SuppressWarnings({"Convert2Lambda", "Anonymous2MethodRef"})
-    private static FieldProcessor getProcessorForPrimitive(Field primitiveField, Class<?> fieldType) {
-      ToBooleanBiFunction<Object> primitiveEquals = null;
-      ToIntThrowingFunction<Object> primitiveHash = null;
+    private static <T> FieldProcessor<T> getProcessorForPrimitive(Field primitiveField, Class<?> fieldType) {
+
+      ToBooleanBiFunction<T> primitiveEquals = null;
+      ToIntThrowingFunction<T> primitiveHash = null;
 
       // I can't use a switch statement, because fieldType isn't a number, String, or enum!
       if (fieldType == Integer.TYPE) {
-        primitiveEquals = new ToBooleanBiFunction<Object>() {
-          @Override
-          public boolean eval(final Object thisOne, final Object thatOne) throws IllegalAccessException {
-            return primitiveField.getInt(thisOne) == primitiveField.getInt(thatOne);
-          }
-        };
-        primitiveHash = new ToIntThrowingFunction<Object>() {
-          @Override
-          public int get(final Object obj) throws IllegalAccessException {
-            return primitiveField.getInt(obj);
-          }
-        };
+        primitiveEquals = (thisOne, thatOne) -> primitiveField.getInt(thisOne) == primitiveField.getInt(thatOne);
+        primitiveHash = primitiveField::getInt;
       } else if (fieldType == Long.TYPE) {
-        primitiveEquals = new ToBooleanBiFunction<Object>() {
-          @Override
-          public boolean eval(final Object thisOne, final Object thatOne) throws IllegalAccessException {
-            return primitiveField.getLong(thisOne) == primitiveField.getLong(thatOne);
-          }
-        };
-        primitiveHash = new ToIntThrowingFunction<Object>() {
-          @Override
-          public int get(final Object instance) throws IllegalAccessException {
-            return Long.hashCode(primitiveField.getLong(instance));
-          }
-        };
+        primitiveEquals = (thisOne, thatOne) -> primitiveField.getLong(thisOne) == primitiveField.getLong(thatOne);
+        primitiveHash = (instance) -> Long.hashCode(primitiveField.getLong(instance));
       } else if (fieldType == Short.TYPE) {
-        primitiveEquals = new ToBooleanBiFunction<Object>() {
-          @Override
-          public boolean eval(final Object thisOne, final Object thatOne) throws IllegalAccessException {
-            return primitiveField.getShort(thisOne) == primitiveField.getShort(thatOne);
-          }
-        };
-        primitiveHash = new ToIntThrowingFunction<Object>() {
-          @Override
-          public int get(final Object obj) throws IllegalAccessException {
-            return primitiveField.getShort(obj);
-          }
-        };
+        primitiveEquals = (thisOne, thatOne) -> primitiveField.getShort(thisOne) == primitiveField.getShort(thatOne);
+        primitiveHash = primitiveField::getShort;
       } else if (fieldType == Character.TYPE) {
-        primitiveEquals = new ToBooleanBiFunction<Object>() {
-          @Override
-          public boolean eval(final Object thisOne, final Object thatOne) throws IllegalAccessException {
-            return primitiveField.getChar(thisOne) == primitiveField.getChar(thatOne);
-          }
-        };
-        primitiveHash = new ToIntThrowingFunction<Object>() {
-          @Override
-          public int get(final Object instance) throws IllegalAccessException {
-            return Character.hashCode(primitiveField.getChar(instance));
-          }
-        };
+        primitiveEquals = (thisOne, thatOne) -> primitiveField.getChar(thisOne) == primitiveField.getChar(thatOne);
+        primitiveHash = (instance) -> Character.hashCode(primitiveField.getChar(instance));
       } else if (fieldType == Byte.TYPE) {
-        primitiveEquals = new ToBooleanBiFunction<Object>() {
-          @Override
-          public boolean eval(final Object thisOne, final Object thatOne) throws IllegalAccessException {
-            return primitiveField.getByte(thisOne) == primitiveField.getByte(thatOne);
-          }
-        };
-        primitiveHash = new ToIntThrowingFunction<Object>() {
-          @Override
-          public int get(final Object obj) throws IllegalAccessException {
-            return primitiveField.getByte(obj);
-          }
-        };
+        primitiveEquals = (thisOne, thatOne) -> primitiveField.getByte(thisOne) == primitiveField.getByte(thatOne);
+        primitiveHash = primitiveField::getByte;
       } else if (fieldType == Double.TYPE) {
-        primitiveEquals = new ToBooleanBiFunction<Object>() {
-          @Override
-          public boolean eval(final Object thisOne, final Object thatOne) throws IllegalAccessException {
-            return Double.doubleToLongBits(primitiveField.getDouble(thisOne))
-                == Double.doubleToLongBits(primitiveField.getDouble(thatOne));
-          }
-        };
-        primitiveHash = new ToIntThrowingFunction<Object>() {
-          @Override
-          public int get(final Object instance) throws IllegalAccessException {
-            return Double.hashCode(primitiveField.getDouble(instance));
-          }
-        };
+        primitiveEquals = (thisOne, thatOne) -> Double.doubleToLongBits(primitiveField.getDouble(thisOne))
+            == Double.doubleToLongBits(primitiveField.getDouble(thatOne));
+        primitiveHash = (instance) -> Double.hashCode(primitiveField.getDouble(instance));
       } else if (fieldType == Float.TYPE) {
-        primitiveEquals = new ToBooleanBiFunction<Object>() {
-          @Override
-          public boolean eval(final Object thisOne, final Object thatOne) throws IllegalAccessException {
-            return Float.floatToIntBits(primitiveField.getFloat(thisOne)) == Float.floatToIntBits(primitiveField.getFloat(thatOne));
-          }
-        };
-        primitiveHash = new ToIntThrowingFunction<Object>() {
-          @Override
-          public int get(final Object instance) throws IllegalAccessException {
-            return Float.hashCode(primitiveField.getFloat(instance));
-          }
-        };
+        primitiveEquals = (thisOne, thatOne) -> Float.floatToIntBits(primitiveField.getFloat(thisOne)) == Float.floatToIntBits(primitiveField.getFloat(thatOne));
+        primitiveHash = (instance) -> Float.hashCode(primitiveField.getFloat(instance));
       } else if (fieldType == Boolean.TYPE) {
-        primitiveEquals = new ToBooleanBiFunction<Object>() {
-          @Override
-          public boolean eval(final Object thisOne, final Object thatOne) throws IllegalAccessException {
-            return primitiveField.getBoolean(thisOne) == primitiveField.getBoolean(thatOne);
-          }
-        };
-        primitiveHash = new ToIntThrowingFunction<Object>() {
-          @Override
-          public int get(final Object instance) throws IllegalAccessException {
-            return Boolean.hashCode(primitiveField.getBoolean(instance));
-          }
-        };
+        primitiveEquals = (thisOne, thatOne) -> primitiveField.getBoolean(thisOne) == primitiveField.getBoolean(thatOne);
+        primitiveHash = (instance) -> Boolean.hashCode(primitiveField.getBoolean(instance));
       }
       assert primitiveEquals != null : fieldType; // implies primitiveHash is also not null
-      return new FieldProcessor(primitiveEquals, primitiveHash);
-
-//      ToBooleanBiFunction<Object> primitiveEquals = null;
-//      ToIntThrowingFunction<Object> primitiveHash = null;
-//
-//      // I can't use a switch statement, because fieldType isn't a number, String, or enum!
-//      if (fieldType == Integer.TYPE) {
-//        primitiveEquals = (thisOne, thatOne) -> primitiveField.getInt(thisOne) == primitiveField.getInt(thatOne);
-//        primitiveHash = primitiveField::getInt;
-//      } else if (fieldType == Long.TYPE) {
-//        primitiveEquals = (thisOne, thatOne) -> primitiveField.getLong(thisOne) == primitiveField.getLong(thatOne);
-//        primitiveHash = (instance) -> Long.hashCode(primitiveField.getLong(instance));
-//      } else if (fieldType == Short.TYPE) {
-//        primitiveEquals = (thisOne, thatOne) -> primitiveField.getShort(thisOne) == primitiveField.getShort(thatOne);
-//        primitiveHash = primitiveField::getShort;
-//      } else if (fieldType == Character.TYPE) {
-//        primitiveEquals = (thisOne, thatOne) -> primitiveField.getChar(thisOne) == primitiveField.getChar(thatOne);
-//        primitiveHash = (instance) -> Character.hashCode(primitiveField.getChar(instance));
-//      } else if (fieldType == Byte.TYPE) {
-//        primitiveEquals = (thisOne, thatOne) -> primitiveField.getByte(thisOne) == primitiveField.getByte(thatOne);
-//        primitiveHash = primitiveField::getByte;
-//      } else if (fieldType == Double.TYPE) {
-//        primitiveEquals = (thisOne, thatOne) -> Double.doubleToLongBits(primitiveField.getDouble(thisOne))
-//            == Double.doubleToLongBits(primitiveField.getDouble(thatOne));
-//        primitiveHash = (instance) -> Double.hashCode(primitiveField.getDouble(instance));
-//      } else if (fieldType == Float.TYPE) {
-//        primitiveEquals = (thisOne, thatOne) -> Float.floatToIntBits(primitiveField.getFloat(thisOne)) == Float.floatToIntBits(primitiveField.getFloat(thatOne));
-//        primitiveHash = (instance) -> Float.hashCode(primitiveField.getFloat(instance));
-//      } else if (fieldType == Boolean.TYPE) {
-//        primitiveEquals = (thisOne, thatOne) -> primitiveField.getBoolean(thisOne) == primitiveField.getBoolean(thatOne);
-//        primitiveHash = (instance) -> Boolean.hashCode(primitiveField.getBoolean(instance));
-//      }
-//      assert primitiveEquals != null : fieldType; // implies primitiveHash is also not null
-//      return new FieldProcessor(primitiveEquals, primitiveHash);
+      return new FieldProcessor<>(primitiveEquals, primitiveHash);
     }
 
-    private static FieldProcessor getProcessorForArray(Field field, Class<?> fieldType) {
+    private static <T> FieldProcessor<T> getProcessorForArray(Field field, Class<?> fieldType) {
       Class<?> componentType = fieldType.getComponentType();
-      ToBooleanBiFunction<Object> arrayEquals;
-      ToIntThrowingFunction<Object> arrayHash;
+      ToBooleanBiFunction<T> arrayEquals;
+      ToIntThrowingFunction<T> arrayHash;
 
       // I can't use a switch statement, because fieldType isn't a number, String, or enum!
       if (componentType == Integer.TYPE) {
@@ -1030,7 +911,7 @@ public abstract class DogTag<T> {
         arrayEquals = (thisOne, thatOne) -> Arrays.equals((Object[]) field.get(thisOne), (Object[]) field.get(thatOne));
         arrayHash = (array) -> Arrays.hashCode((Object[]) field.get(array));
       }
-      return new FieldProcessor(arrayEquals, arrayHash);
+      return new FieldProcessor<>(arrayEquals, arrayHash);
     }
 
     /**
@@ -1120,37 +1001,37 @@ public abstract class DogTag<T> {
    * returning Objects. This class holds the methods for equals and hash code. The appropriate methods are passed in to
    * the constructor.
    */
-  static final class FieldProcessor {
-    private final ToBooleanBiFunction<Object> compareFieldMethod; //
-    private final ToIntThrowingFunction<Object> hashMethod; // This will be from either Arrays or Objects::hashCode
+  static final class FieldProcessor<T> {
+    private final ToBooleanBiFunction<T> compareFieldMethod; //
+    private final ToIntThrowingFunction<T> hashMethod; // This will be from either Arrays or Objects::hashCode
     
-    private FieldProcessor(ToBooleanBiFunction<Object> equalMethod, ToIntThrowingFunction<Object> hashMethod) {
+    private FieldProcessor(ToBooleanBiFunction<T> equalMethod, ToIntThrowingFunction<T> hashMethod) {
       compareFieldMethod = equalMethod;
       this.hashMethod = hashMethod;
     }
     
-    private boolean testForEquals(Object thisOne, Object thatOne) throws IllegalAccessException {
+    private boolean testForEquals(T thisOne, T thatOne) throws IllegalAccessException {
       return compareFieldMethod.eval(thisOne, thatOne);
     }
     
-    private int getHashValue(Object thisOne) throws IllegalAccessException {
+    private int getHashValue(T thisOne) throws IllegalAccessException {
       return hashMethod.get(thisOne);
     }
 
   }
 
-  private static final class FieldProcessorWrapper implements Comparable<FieldProcessorWrapper> {
-    private final FieldProcessor fieldProcessor;
+  private static final class FieldProcessorWrapper<T> implements Comparable<FieldProcessorWrapper<T>> {
+    private final FieldProcessor<T> fieldProcessor;
     private final int order;
     private final int index;
-    private FieldProcessorWrapper(FieldProcessor fieldProcessor, int order, int index) {
+    private FieldProcessorWrapper(FieldProcessor<T> fieldProcessor, int order, int index) {
       this.fieldProcessor = fieldProcessor;
       this.order = order;
       this.index = index;
     }
 
     @Override
-    public int compareTo(final FieldProcessorWrapper that) {
+    public int compareTo(final FieldProcessorWrapper<T> that) {
 
       int orderCmp = Integer.compare(this.order, that.order);
       return (orderCmp == 0) ? Integer.compare(this.index, that.index) : orderCmp;
@@ -1159,7 +1040,8 @@ public abstract class DogTag<T> {
     @Override
     public boolean equals(final Object obj) {
       if (obj instanceof FieldProcessorWrapper) {
-        FieldProcessorWrapper that = (FieldProcessorWrapper) obj;
+        @SuppressWarnings("unchecked")
+        FieldProcessorWrapper<T> that = (FieldProcessorWrapper<T>) obj;
         return (this.order == that.order) && (this.fieldProcessor == that.fieldProcessor);
       }
       return false;
@@ -1170,7 +1052,7 @@ public abstract class DogTag<T> {
       return fieldProcessor.hashCode();
     }
 
-    FieldProcessor getFieldProcessor() { return fieldProcessor; }
+    FieldProcessor<T> getFieldProcessor() { return fieldProcessor; }
   }
 
   private static final class NonCachingDogTag<N> extends DogTag<N> {
@@ -1227,33 +1109,38 @@ public abstract class DogTag<T> {
     }
   }
 
-  private abstract static class FieldHandler<T> {
-    abstract boolean doEqual(T thisOne, T thatOne);
-    abstract int doHashCode(T thisOne);
+  public static <T> LambdaFactory.LambdaBuilder<T> createByLambda(Class<T> targetClass) {
+    return new LambdaFactory.LambdaBuilder<>(targetClass);
   }
 
   public static final class LambdaFactory<T> extends Factory<T> {
-    private final List<FieldHandler<T>> fieldHandlerList;
+//    private final List<FieldHandler<T>> fieldHandlerList;
+    private final List<EqualHandler<T>> equalHandlerList;
+    private final List<HashHandler<T>> hashHandlerList;
     private final Class<T> targetClass;
 //    private final Function<T, DogTag<T>> constructor;
 
+    @SuppressWarnings("AssignmentOrReturnOfFieldWithMutableType")
     LambdaFactory(
         Class<T> theClass,
         int startingHash,
         HashBuilder hashBuilder,
         boolean useCache,
-        List<FieldHandler<T>> handlerList
+        List<EqualHandler<T>> equalHandlerList,
+        List<HashHandler<T>> hashHandlerList
     ) {
       super(hashBuilder, startingHash);
       targetClass = theClass;
       //noinspection AssignmentOrReturnOfFieldWithMutableType
-      fieldHandlerList = handlerList;
+      this.equalHandlerList = equalHandlerList;
+      this.hashHandlerList = hashHandlerList;
     }
-    
-    // TODO: Handle this using Iterable
-    List<FieldHandler<T>> getFieldHandlerList() { return fieldHandlerList; }
 
-    @Override
+    // TODO: Handle this using Iterable
+    List<EqualHandler<T>> getEqualHandlerList() { return equalHandlerList; }
+
+    List<HashHandler<T>> getHashHandlerList() { return hashHandlerList; }
+
     Class<T> getTargetClass() {
       return targetClass;
     }
@@ -1275,325 +1162,170 @@ public abstract class DogTag<T> {
       if (!thisClass.isAssignableFrom(thatOne.getClass())) {
         return false;
       }
-      List<FieldHandler<T>> fieldHandlers = getFieldHandlerList();
       T thatOneNotNull = thisClass.cast(thatOne);
-      for (FieldHandler<T> handler : fieldHandlers) {
+      List<EqualHandler<T>> equalHandlers = getEqualHandlerList();
+
+      /* This imperitive loop outperforms the stream expression that's commented out below. */
+      for (EqualHandler<T> handler : equalHandlers) {
         if (!handler.doEqual(thisOne, thatOneNotNull)) {
           return false;
         }
       }
       return true;
+
+      /* This stream expression takes anywhere from 45% to 150% longer than the old-fashioned imperative implementation above. */
+//      return equalHandlers.stream()
+//          .allMatch(tFieldHandler -> tFieldHandler.doEqual(thisOne, thatOneNotNull));
     }
-    
+
     public int doHashCodeInternal(T thisOne) {
       List<Integer> hashValues = new LinkedList<>();
-      List<FieldHandler<T>> fieldHandlers = getFieldHandlerList();
-      for (FieldHandler<T> fieldHandler : fieldHandlers) {
-        hashValues.add(fieldHandler.doHashCode(thisOne));
+      List<HashHandler<T>> hashHandlers = getHashHandlerList();
+      for (HashHandler<T> hashHandler : hashHandlers) {
+        hashValues.add(hashHandler.doHashCode(thisOne));
       }
       return Arrays.deepHashCode(hashValues.toArray());
     }
-    
+
     public static class LambdaBuilder<T> extends DogTagBaseBuilder<T> {
-      private final List<FieldHandler<T>> fieldHandlerList = new LinkedList<>();
-      
+//      private final List<FieldHandler<T>> fieldHandlerList = new LinkedList<>();
+      private final List<EqualHandler<T>> equalHandlerList = new LinkedList<>();
+      private final List<HashHandler<T>> hashHandlerList = new LinkedList<>();
+
       LambdaBuilder(Class<T> theClass) {
         super(theClass);
       }
 
       public LambdaBuilder<T> add(final ToIntFunction<T> intFunction) {
-        fieldHandlerList.add(new FieldHandler<T>() {
-          @Override
-          boolean doEqual(final T thisOne, final T thatOne) {
-            return intFunction.applyAsInt(thisOne) == intFunction.applyAsInt(thatOne);
-          }
-
-          @Override
-          int doHashCode(final T thisOne) {
-            return intFunction.applyAsInt(thisOne);
-          }
-        });
+        equalHandlerList.add((thisOne, thatOne) -> intFunction.applyAsInt(thisOne) == intFunction.applyAsInt(thatOne));
+        hashHandlerList.add(intFunction::applyAsInt);
         return this;
       }
 
       public LambdaBuilder<T> add(final ToLongFunction<T> longFunction) {
-        fieldHandlerList.add(new FieldHandler<T>() {
-          @Override
-          boolean doEqual(final T thisOne, final T thatOne) {
-            return longFunction.applyAsLong(thisOne) == longFunction.applyAsLong(thatOne);
-          }
-
-          @Override
-          int doHashCode(final T thisOne) {
-            return Long.hashCode(longFunction.applyAsLong(thisOne));
-          }
-        });
+        equalHandlerList.add((thisOne, thatOne) -> longFunction.applyAsLong(thisOne) == longFunction.applyAsLong(thatOne));
+        hashHandlerList.add(thisOne -> Long.hashCode(longFunction.applyAsLong(thisOne)));
         return this;
       }
 
       public LambdaBuilder<T> add(final ToCharFunction<T> charFunction) {
-        fieldHandlerList.add(new FieldHandler<T>() {
-          @Override
-          boolean doEqual(final T thisOne, final T thatOne) {
-            return charFunction.applyAsChar(thisOne) == charFunction.applyAsChar(thatOne);
-          }
-
-          @Override
-          int doHashCode(final T thisOne) {
-            return Character.hashCode(charFunction.applyAsChar(thisOne));
-          }
-        });
+        equalHandlerList.add((thisOne, thatOne) -> charFunction.applyAsChar(thisOne) == charFunction.applyAsChar(thatOne));
+        hashHandlerList.add(thisOne -> Character.hashCode(charFunction.applyAsChar(thisOne)));
         return this;
       }
 
       public LambdaBuilder<T> add(final ToByteFunction<T> byteFunction) {
-        fieldHandlerList.add(new FieldHandler<T>() {
-          @Override
-          boolean doEqual(final T thisOne, final T thatOne) {
-            return byteFunction.applyAsByte(thisOne) == byteFunction.applyAsByte(thatOne);
-          }
-
-          @Override
-          int doHashCode(final T thisOne) {
-            return Byte.hashCode(byteFunction.applyAsByte(thisOne));
-          }
-        });
+        equalHandlerList.add((thisOne, thatOne) -> byteFunction.applyAsByte(thisOne) == byteFunction.applyAsByte(thatOne));
+        hashHandlerList.add(thisOne -> Byte.hashCode(byteFunction.applyAsByte(thisOne)));
         return this;
       }
 
       public LambdaBuilder<T> add(final ToShortFunction<T> shortFunction) {
-        fieldHandlerList.add(new FieldHandler<T>() {
-          @Override
-          boolean doEqual(final T thisOne, final T thatOne) {
-            return shortFunction.applyAsShort(thisOne) == shortFunction.applyAsShort(thatOne);
-          }
-
-          @Override
-          int doHashCode(final T thisOne) {
-            return Short.hashCode(shortFunction.applyAsShort(thisOne));
-          }
-        });
+        equalHandlerList.add((thisOne, thatOne) -> shortFunction.applyAsShort(thisOne) == shortFunction.applyAsShort(thatOne));
+        hashHandlerList.add(thisOne -> Short.hashCode(shortFunction.applyAsShort(thisOne)));
         return this;
       }
 
       public LambdaBuilder<T> add(final ToFloatFunction<T> floatFunction) {
-        fieldHandlerList.add(new FieldHandler<T>() {
-          @Override
-          boolean doEqual(final T thisOne, final T thatOne) {
-            return Float.compare(floatFunction.applyAsFloat(thisOne), floatFunction.applyAsFloat(thatOne)) == 0;
-          }
-
-          @Override
-          int doHashCode(final T thisOne) {
-            return Float.hashCode(floatFunction.applyAsFloat(thisOne));
-          }
-        });
+        equalHandlerList.add((thisOne, thatOne) -> Float.floatToIntBits(floatFunction.applyAsFloat(thisOne)) == Float.floatToIntBits(floatFunction.applyAsFloat(thatOne)));
+        hashHandlerList.add(thisOne -> Float.hashCode(floatFunction.applyAsFloat(thisOne)));
         return this;
       }
 
       public LambdaBuilder<T> add(final ToDoubleFunction<T> doubleFunction) {
-        fieldHandlerList.add(new FieldHandler<T>() {
-          @Override
-          boolean doEqual(final T thisOne, final T thatOne) {
-            return Double.compare(doubleFunction.applyAsDouble(thisOne), doubleFunction.applyAsDouble(thatOne)) == 0;
-          }
-
-          @Override
-          int doHashCode(final T thisOne) {
-            return Double.hashCode(doubleFunction.applyAsDouble(thisOne));
-          }
-        });
+        equalHandlerList.add((thisOne, thatOne) -> Double.doubleToLongBits(doubleFunction.applyAsDouble(thisOne)) == Double.doubleToLongBits(doubleFunction.applyAsDouble(thatOne)));
+        hashHandlerList.add(thisOne -> Double.hashCode(doubleFunction.applyAsDouble(thisOne)));
         return this;
       }
 
-      public LambdaBuilder<T> add(final ToObjectFunction<T> objectFunction) {
-        fieldHandlerList.add(new FieldHandler<T>() {
-          @Override
-          boolean doEqual(final T thisOne, final T thatOne) {
-            return objectFunction.applyAsObject(thisOne).equals(objectFunction.applyAsObject(thatOne));
-          }
-
-          @Override
-          int doHashCode(final T thisOne) {
-            return (objectFunction.applyAsObject(thisOne)).hashCode();
-          }
-        });
+      public LambdaBuilder<T> addObject(final ToObjectFunction<T> objectFunction) {
+        equalHandlerList.add((thisOne, thatOne) -> objectFunction.applyAsObject(thisOne).equals(objectFunction.applyAsObject(thatOne)));
+        hashHandlerList.add(thisOne -> (objectFunction.applyAsObject(thisOne)).hashCode());
         return this;
       }
 
       public LambdaBuilder<T> add(final ToBooleanFunction<T> booleanFunction) {
-        fieldHandlerList.add(new FieldHandler<T>() {
-          @Override
-          boolean doEqual(final T thisOne, final T thatOne) {
-            return booleanFunction.applyAsBoolean(thisOne) == booleanFunction.applyAsBoolean(thatOne);
-          }
-
-          @Override
-          int doHashCode(final T thisOne) {
-            return Boolean.hashCode(booleanFunction.applyAsBoolean(thisOne));
-          }
-        });
+        equalHandlerList.add((thisOne, thatOne) -> booleanFunction.applyAsBoolean(thisOne) == booleanFunction.applyAsBoolean(thatOne));
+        hashHandlerList.add(thisOne -> Boolean.hashCode(booleanFunction.applyAsBoolean(thisOne)));
         return this;
       }
-
+      
       public LambdaBuilder<T> add(final ToIntArrayFunction<T> intArrayFunction) {
-        fieldHandlerList.add(new FieldHandler<T>() {
-          @Override
-          boolean doEqual(final T thisOne, final T thatOne) {
-            return Arrays.equals(intArrayFunction.applyAsIntArray(thisOne), intArrayFunction.applyAsIntArray(thatOne));
-          }
-
-          @Override
-          int doHashCode(final T thisOne) {
-            return Arrays.hashCode(intArrayFunction.applyAsIntArray(thisOne));
-          }
-        });
+        equalHandlerList.add((thisOne, thatOne) -> Arrays.equals(intArrayFunction.applyAsIntArray(thisOne), intArrayFunction.applyAsIntArray(thatOne)));
+        hashHandlerList.add((thisOne) -> Arrays.hashCode(intArrayFunction.applyAsIntArray(thisOne)));
         return this;
       }
 
       public LambdaBuilder<T> add(final ToLongArrayFunction<T> longArrayFunction) {
-        fieldHandlerList.add(new FieldHandler<T>() {
-          @Override
-          boolean doEqual(final T thisOne, final T thatOne) {
-            return Arrays.equals(longArrayFunction.applyAsLongArray(thisOne), longArrayFunction.applyAsLongArray(thatOne));
-          }
-
-          @Override
-          int doHashCode(final T thisOne) {
-            return Arrays.hashCode(longArrayFunction.applyAsLongArray(thisOne));
-          }
-        });
+        equalHandlerList.add((thisOne, thatOne) -> Arrays.equals(longArrayFunction.applyAsLongArray(thisOne), longArrayFunction.applyAsLongArray(thatOne)));
+        hashHandlerList.add((thisOne) -> Arrays.hashCode(longArrayFunction.applyAsLongArray(thisOne)));
         return this;
       }
 
-      public LambdaBuilder<T> add(final ToCharArrayFunction<T> charArrayFunction) {
-        fieldHandlerList.add(new FieldHandler<T>() {
-          @Override
-          boolean doEqual(final T thisOne, final T thatOne) {
-            return Arrays.equals(charArrayFunction.applyAsCharArray(thisOne), charArrayFunction.applyAsCharArray(thatOne));
-          }
 
-          @Override
-          int doHashCode(final T thisOne) {
-            return Arrays.hashCode(charArrayFunction.applyAsCharArray(thisOne));
-          }
-        });
+      public LambdaBuilder<T> add(final ToCharArrayFunction<T> charArrayFunction) {
+        equalHandlerList.add((thisOne, thatOne) -> Arrays.equals(charArrayFunction.applyAsCharArray(thisOne), charArrayFunction.applyAsCharArray(thatOne)));
+        hashHandlerList.add((thisOne) -> Arrays.hashCode(charArrayFunction.applyAsCharArray(thisOne)));
         return this;
       }
 
       public LambdaBuilder<T> add(final ToByteArrayFunction<T> byteArrayFunction) {
-        fieldHandlerList.add(new FieldHandler<T>() {
-          @Override
-          boolean doEqual(final T thisOne, final T thatOne) {
-            return Arrays.equals(byteArrayFunction.applyAsByteArray(thisOne), byteArrayFunction.applyAsByteArray(thatOne));
-          }
-
-          @Override
-          int doHashCode(final T thisOne) {
-            return Arrays.hashCode(byteArrayFunction.applyAsByteArray(thisOne));
-          }
-        });
+        equalHandlerList.add((thisOne, thatOne) -> Arrays.equals(byteArrayFunction.applyAsByteArray(thisOne), byteArrayFunction.applyAsByteArray(thatOne)));
+        hashHandlerList.add((thisOne) -> Arrays.hashCode(byteArrayFunction.applyAsByteArray(thisOne)));
         return this;
       }
 
       public LambdaBuilder<T> add(final ToShortArrayFunction<T> shortArrayFunction) {
-        fieldHandlerList.add(new FieldHandler<T>() {
-          @Override
-          boolean doEqual(final T thisOne, final T thatOne) {
-            return Arrays.equals(shortArrayFunction.applyAsShortArray(thisOne), shortArrayFunction.applyAsShortArray(thatOne));
-          }
-
-          @Override
-          int doHashCode(final T thisOne) {
-            return Arrays.hashCode(shortArrayFunction.applyAsShortArray(thisOne));
-          }
-        });
+        equalHandlerList.add((thisOne, thatOne) -> Arrays.equals(shortArrayFunction.applyAsShortArray(thisOne), shortArrayFunction.applyAsShortArray(thatOne)));
+        hashHandlerList.add((thisOne) -> Arrays.hashCode(shortArrayFunction.applyAsShortArray(thisOne)));
         return this;
       }
 
       public LambdaBuilder<T> add(final ToFloatArrayFunction<T> floatArrayFunction) {
-        fieldHandlerList.add(new FieldHandler<T>() {
-          @Override
-          boolean doEqual(final T thisOne, final T thatOne) {
-            return Arrays.equals(floatArrayFunction.applyAsFloatArray(thisOne), floatArrayFunction.applyAsFloatArray(thatOne));
-          }
-
-          @Override
-          int doHashCode(final T thisOne) {
-            return Arrays.hashCode(floatArrayFunction.applyAsFloatArray(thisOne));
-          }
-        });
+        equalHandlerList.add((thisOne, thatOne) -> Arrays.equals(floatArrayFunction.applyAsFloatArray(thisOne), floatArrayFunction.applyAsFloatArray(thatOne)));
+        hashHandlerList.add((thisOne) -> Arrays.hashCode(floatArrayFunction.applyAsFloatArray(thisOne)));
         return this;
       }
 
       public LambdaBuilder<T> add(final ToDoubleArrayFunction<T> doubleArrayFunction) {
-        fieldHandlerList.add(new FieldHandler<T>() {
-          @Override
-          boolean doEqual(final T thisOne, final T thatOne) {
-            return Arrays.equals(doubleArrayFunction.applyAsDoubleArray(thisOne), doubleArrayFunction.applyAsDoubleArray(thatOne));
-          }
-
-          @Override
-          int doHashCode(final T thisOne) {
-            return Arrays.hashCode(doubleArrayFunction.applyAsDoubleArray(thisOne));
-          }
-        });
+        equalHandlerList.add((thisOne, thatOne) -> Arrays.equals(doubleArrayFunction.applyAsDoubleArray(thisOne), doubleArrayFunction.applyAsDoubleArray(thatOne)));
+        hashHandlerList.add((thisOne) -> Arrays.hashCode(doubleArrayFunction.applyAsDoubleArray(thisOne)));
         return this;
       }
 
       public LambdaBuilder<T> add(final ToBooleanArrayFunction<T> booleanArrayFunction) {
-        fieldHandlerList.add(new FieldHandler<T>() {
-          @Override
-          boolean doEqual(final T thisOne, final T thatOne) {
-            return Arrays.equals(booleanArrayFunction.applyAsBooleanArray(thisOne), booleanArrayFunction.applyAsBooleanArray(thatOne));
-          }
-
-          @Override
-          int doHashCode(final T thisOne) {
-            return Arrays.hashCode(booleanArrayFunction.applyAsBooleanArray(thisOne));
-          }
-        });
+        equalHandlerList.add((thisOne, thatOne) -> Arrays.equals(booleanArrayFunction.applyAsBooleanArray(thisOne), booleanArrayFunction.applyAsBooleanArray(thatOne)));
+        hashHandlerList.add((thisOne) -> Arrays.hashCode(booleanArrayFunction.applyAsBooleanArray(thisOne)));
         return this;
       }
 
-      public LambdaBuilder<T> addArray(ToObjectArrayFunction<T> objectArrayFunction) {
-        fieldHandlerList.add(new FieldHandler<T>() {
-          @Override
-          boolean doEqual(final T thisOne, final T thatOne) {
-            return Arrays.equals(objectArrayFunction.applyAsObjectArray(thisOne), objectArrayFunction.applyAsObjectArray(thatOne));
-          }
-
-          @Override
-          int doHashCode(final T thisOne) {
-            return Arrays.hashCode(objectArrayFunction.applyAsObjectArray(thisOne));
-          }
-        });
+      public LambdaBuilder<T> addArray(final ToObjectArrayFunction<T> objectArrayFunction) {
+        equalHandlerList.add((thisOne, thatOne) -> Arrays.equals(objectArrayFunction.applyAsObjectArray(thisOne), objectArrayFunction.applyAsObjectArray(thatOne)));
+        hashHandlerList.add((thisOne) -> Arrays.hashCode(objectArrayFunction.applyAsObjectArray(thisOne)));
         return this;
       }
 
-      public LambdaBuilder<T> addDeepArray(ToObjectArrayFunction<T> objectArrayFunction) {
-        fieldHandlerList.add(new FieldHandler<T>() {
-          @Override
-          boolean doEqual(final T thisOne, final T thatOne) {
-            return Arrays.deepEquals(objectArrayFunction.applyAsObjectArray(thisOne), objectArrayFunction.applyAsObjectArray(thatOne));
-          }
-
-          @Override
-          int doHashCode(final T thisOne) {
-            return Arrays.deepHashCode(objectArrayFunction.applyAsObjectArray(thisOne));
-          }
-        });
+      public LambdaBuilder<T> addDeepArray(final ToObjectArrayFunction<T> objectArrayFunction) {
+        equalHandlerList.add((thisOne, thatOne) -> Arrays.deepEquals(objectArrayFunction.applyAsObjectArray(thisOne), objectArrayFunction.applyAsObjectArray(thatOne)));
+        hashHandlerList.add((thisOne) -> Arrays.deepHashCode(objectArrayFunction.applyAsObjectArray(thisOne)));
         return this;
       }
 
       @Override
-      protected Factory<T> buildFactory() {
-        return new LambdaFactory<>(getTargetClass(), getStartingHash(), getHashBuilder(), isUseCachedHash(), fieldHandlerList);
+      public Factory<T> buildFactory() {
+        return new LambdaFactory<>(getTargetClass(), getStartingHash(), getHashBuilder(), isUseCachedHash(), equalHandlerList, hashHandlerList);
       }
     }
   }
-
-  public static <T> LambdaFactory.LambdaBuilder<T> createByLambda(Class<T> targetClass) {
-    return new LambdaFactory.LambdaBuilder<>(targetClass);
+  
+  @FunctionalInterface
+  private interface EqualHandler<T> {
+    boolean doEqual(T thisOne, T thatOne);
   }
+  
+  @FunctionalInterface
+  private interface HashHandler<T> {
+    int doHashCode(T t);
+  }
+
 }

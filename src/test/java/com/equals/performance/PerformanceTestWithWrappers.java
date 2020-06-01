@@ -5,6 +5,8 @@ import java.util.function.BiFunction;
 import com.equals.DogTag;
 import com.equals.TimingUtility;
 import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.junit.Ignore;
+import org.junit.Test;
 
 /**
  * This is a test of a class that returns the wrapper classes such as Integer and Double, rather than the primitives int and double. This 
@@ -25,6 +27,8 @@ public class PerformanceTestWithWrappers {
   @SuppressWarnings("NumericCastThatLosesPrecision")
   private static Byte toByte(int i) { return (byte) i; }
 
+  @Ignore
+  @Test
   public void timeTest() {
     System.out.printf("Java version = %s%n", System.getProperty("java.version"));
     TestClass t0 = new TestClass(1, "bravo");
@@ -52,7 +56,7 @@ public class PerformanceTestWithWrappers {
     t12.setLimaDouble(798.23);
     TestClass t13 = t0.duplicate();
     t13.setMikeFloat(423.97F);
-    TestClass[] instances = { t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t0.duplicate() };
+    TestClass[] instances = { t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t0.duplicate() };
     TimingUtility.reverse(instances);
 
     final BiFunction<TestClass, TestClass, Boolean> directEqual = PerformanceTestWithWrappers::isEqual;
