@@ -10,6 +10,8 @@ import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import static com.equals.DogTag.classFrom;
+
 /**
  * <p>Created by IntelliJ IDEA.
  * <p>Date: 9/19/19
@@ -80,7 +82,7 @@ public class PerformanceTestPrimitiveArrays {
     TimingUtility.reverse(instances);
 
     final BiFunction<TestClass, TestClass, Boolean> directEqual = PerformanceTestPrimitiveArrays::isEqual;
-    DogTag.Factory<TestClass> dogTag = DogTag.create(t0).buildFactory();
+    DogTag.Factory<TestClass> dogTag = DogTag.create(classFrom(t0)).buildFactory();
     TimingUtility.runTestCycles(dogTag, t0, instances, directEqual, EMPTY_STRING_ARRAY);
   }
 
@@ -356,7 +358,7 @@ public class PerformanceTestPrimitiveArrays {
       return tail;
     }
 
-      @SuppressWarnings({"ObjectInstantiationInEqualsHashCode"})
+      @SuppressWarnings("ObjectInstantiationInEqualsHashCode")
       @Override
       public boolean equals (Object obj) {
         if (this == obj) {

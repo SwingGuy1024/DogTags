@@ -7,22 +7,24 @@ import static org.junit.Assert.*;
 
 import org.junit.Test;
 
+import static com.equals.DogTag.classFrom;
+
 @SuppressWarnings({"MagicNumber", "HardCodedStringLiteral", "EqualsWhichDoesntCheckParameterClass"})
 public class DogTagHashTest {
   @Test
   public void testHashBuilder() {
     TestClassOne tc1 = new TestClassOne(1, 2, 3);
-    DogTag.Factory<TestClassOne> factory = DogTag.create(tc1).buildFactory();
+    DogTag.Factory<TestClassOne> factory = DogTag.create(classFrom(tc1)).buildFactory();
     DogTag<TestClassOne> tag = factory.tag(tc1);
     assertEquals(30817, tag.hashCode());
 
-    DogTag.Factory<TestClassOne> revisedFactory = DogTag.create(tc1)
+    DogTag.Factory<TestClassOne> revisedFactory = DogTag.create(classFrom(tc1))
         .withHashBuilder(1, (int i, Object v) -> (i * 4567) + v.hashCode())
         .buildFactory();
     DogTag<TestClassOne> revisedTag = revisedFactory.tag(tc1);
     assertEquals(787738377, revisedTag.hashCode());
 
-    DogTag.Factory<TestClassOne> inclusionFactory = DogTag.createByInclusion(tc1, "alpha", "bravo", "charlie")
+    DogTag.Factory<TestClassOne> inclusionFactory = DogTag.createByInclusion(classFrom(tc1), "alpha", "bravo", "charlie")
         .withHashBuilder(1, (int i, Object v) -> (i * 4567) + v.hashCode())
         .buildFactory();
     DogTag<TestClassOne>  inclusionTag = inclusionFactory.tag(tc1);
@@ -39,7 +41,7 @@ public class DogTagHashTest {
     TestClassWithCache t4 = new TestClassWithCache(5, 2, 3);
     TestClassWithCache t5 = new TestClassWithCache(5, 2, 4);
 
-    DogTag.Factory<TestClassWithCache> factoryFinal = DogTag.create(t1, "foxTrot")
+    DogTag.Factory<TestClassWithCache> factoryFinal = DogTag.create(classFrom(t1), "foxTrot")
         .withCachedHash(true)
         .getFactory();
 
@@ -122,7 +124,7 @@ public class DogTagHashTest {
 
     // Test cache in inclusion mode
 
-    DogTag.Factory<TestClassWithCache> factoryInclusion = DogTag.createByInclusion(t1, "delta", "echo")
+    DogTag.Factory<TestClassWithCache> factoryInclusion = DogTag.createByInclusion(classFrom(t1), "delta", "echo")
         .withCachedHash(true)
         .getFactory();
 
@@ -137,7 +139,7 @@ public class DogTagHashTest {
   @Test(expected = AssertionError.class)
   public void testNonFinalCache() {
     TestClassWithCache tc1 = new TestClassWithCache(1, 2, 3);
-    DogTag.create(tc1)
+    DogTag.create(classFrom(tc1))
         .withCachedHash(true)
         .buildFactory();
   }
@@ -206,7 +208,7 @@ public class DogTagHashTest {
       this.foxTrot = foxTrot;
     }
 
-    private final DogTag<TestClassWithCache> dogTag = DogTag.create(this)
+    private final DogTag<TestClassWithCache> dogTag = DogTag.create(classFrom(this))
         .withFinalFieldsOnly(true) // This should implicitly set withCachedHash to true 
         .buildFactory()
         .tag(this);

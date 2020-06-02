@@ -8,6 +8,7 @@ import org.junit.Test;
 
 import static com.equals.TestUtility.*;
 import static org.junit.Assert.*;
+import static com.equals.DogTag.classFrom;
 
 // Todo: Write test of cached hash in inclusion mode
 @SuppressWarnings({"HardCodedStringLiteral", "MagicNumber", "MagicCharacter", "UseOfClone", "AccessStaticViaInstance", "EqualsReplaceableByObjectsCall", "EqualsWhichDoesntCheckParameterClass"})
@@ -25,7 +26,7 @@ public class DogTagTest {
     DogTagTestBase baseTestDupl = new DogTagTestBase(5, "bravo", 7, 5L);
     baseTest5bx5.setCharlieInt(12);
     
-    DogTag.Factory<DogTagTestBase> excludeCReflect = DogTag.create(baseTest5b75, CHARLIE_INT)
+    DogTag.Factory<DogTagTestBase> excludeCReflect = DogTag.create(classFrom(baseTest5b75), CHARLIE_INT)
         .buildFactory();
     DogTag.Factory<DogTagTestBase> excludeCLambda = DogTag.createByLambda(DogTagTestBase.class)
         .add(DogTagTestBase::getAlphaInt)
@@ -54,14 +55,14 @@ public class DogTagTest {
       verifyMatches(excludeC, baseTest5b75, baseTestDupl);
     }
 
-    DogTag.Factory<DogTagTestBase> includeBaseOnlyReflect = DogTag.create(baseTest5b75).buildFactory();
+    DogTag.Factory<DogTagTestBase> includeBaseOnlyReflect = DogTag.create(classFrom(baseTest5b75)).buildFactory();
     DogTag.Factory<DogTagTestBase> includeBaseOnlyLambda = DogTag.createByLambda(DogTagTestBase.class)
         .add(DogTagTestBase::getAlphaInt)
         .add(DogTagTestBase::getDeltaLong)
         .addObject(DogTagTestBase::getBravoString)
         .add(DogTagTestBase::getCharlieInt)
         .buildFactory();
-    
+
     dList = Arrays.asList(includeBaseOnlyReflect, includeBaseOnlyLambda);
     for (DogTag.Factory<DogTagTestBase> includeBaseOnly: dList) {
       verifyNoMatch(includeBaseOnly, baseTest5b75, baseTest5bx5);
@@ -95,8 +96,8 @@ public class DogTagTest {
     midTest2.setEchoString("Could you repeat that?");
     verifyMatches(includeBaseOnlyReflect, midTest, midTest2); // should still match,
     verifyMatches(includeBaseOnlyLambda, midTest, midTest2); // should still match,
-
-    DogTag.Factory<DogTagTestBase> includeAllButCReflect = DogTag.createByInclusion(baseTest5b75,
+    
+    DogTag.Factory<DogTagTestBase> includeAllButCReflect = DogTag.createByInclusion(classFrom(baseTest5b75),
             "alphaInt",
             "bravoString",
             "deltaLong"
@@ -132,14 +133,14 @@ public class DogTagTest {
   public void testTransient() {
     DogTagTestMid mid1 = new DogTagTestMid(12, "bravo", 3, 4L, "echo", new Point2D.Double(14.2, 2.14), 7, (byte)8, 'I');
     DogTagTestMid mid2 = mid1.duplicate();
-    DogTag.Factory<DogTagTestMid> defaultFactory = DogTag.create(mid1).buildFactory(); // Tests may construct their own DogTags.
+    DogTag.Factory<DogTagTestMid> defaultFactory = DogTag.create(classFrom(mid1)).buildFactory(); // Tests may construct their own DogTags.
     mid2.setGolfIntTr(77); // transient value
     verifyMatches(defaultFactory, mid1, mid2);
     
     mid2.setFoxtrotPoint(new Point2D.Double(3.3, 4.4));
     verifyNoMatch(defaultFactory, mid1, mid2);
 
-    DogTag.Factory<DogTagTestMid> FactoryWithTransients = DogTag.create(mid1)
+    DogTag.Factory<DogTagTestMid> FactoryWithTransients = DogTag.create(classFrom(mid1))
         .withTransients(true)
         .buildFactory();
     mid2.setFoxtrotPoint((Point2D) mid1.getFoxtrotPoint().clone()); // reset Point2D
@@ -150,7 +151,7 @@ public class DogTagTest {
     DogTagTestTail tail1 = new DogTagTestTail();
     DogTagTestTail tail2 = new DogTagTestTail();
 
-    DogTag.Factory<DogTagTestTail> FactoryTail = DogTag.create(tail1)
+    DogTag.Factory<DogTagTestTail> FactoryTail = DogTag.create(classFrom(tail1))
         .withReflectUpTo(DogTagTestMid.class)
         .withTransients(true)
         .buildFactory();
@@ -174,7 +175,7 @@ public class DogTagTest {
     DogTagTestBase base6 = new DogTagTestBase(1, null, 2, 3L);
     DogTagTestBase base7 = new DogTagTestBase(1, null, 2, 3L);
 
-    DogTag.Factory<DogTagTestBase> baseFactory = DogTag.create(base1)
+    DogTag.Factory<DogTagTestBase> baseFactory = DogTag.create(classFrom(base1))
         .withFinalFieldsOnly(true)
         .buildFactory();
     
@@ -195,7 +196,7 @@ public class DogTagTest {
     verifyNoMatch(baseFactory, base5, base6);
     verifyMatches(baseFactory, base6, base7);
     
-    DogTag.Factory<DogTagTestBase> Factory2 = DogTag.create(base1, "bravoString")
+    DogTag.Factory<DogTagTestBase> Factory2 = DogTag.create(classFrom(base1), "bravoString")
         .buildFactory();
 
     verifyNoMatch(Factory2, base1, base2);
@@ -214,7 +215,7 @@ public class DogTagTest {
     verifyNoMatch(Factory2, base4, base6);
     verifyMatches(Factory2, base5, base6);
 
-    DogTag.Factory<DogTagTestBase> factory3 = DogTag.create(base1, "alphaInt")
+    DogTag.Factory<DogTagTestBase> factory3 = DogTag.create(classFrom(base1), "alphaInt")
         .withFinalFieldsOnly(true)
         .buildFactory();
 
@@ -261,7 +262,7 @@ public class DogTagTest {
     base1.setCharlieInt(7654);
     base2.setDeltaLong(96L);
 
-    DogTag.Factory<DogTagTestTail> factory = DogTag.create(tail1, "kiloShort", "julietBoolean")
+    DogTag.Factory<DogTagTestTail> factory = DogTag.create(classFrom(tail1), "kiloShort", "julietBoolean")
         .withReflectUpTo(DogTagTestBase.class)
         .buildFactory();
 
@@ -277,7 +278,7 @@ public class DogTagTest {
 
     // -----
 
-    DogTag.Factory<DogTagTestTail> factoryToObject = DogTag.create(tail1, "kiloShort", "julietBoolean")
+    DogTag.Factory<DogTagTestTail> factoryToObject = DogTag.create(classFrom(tail1), "kiloShort", "julietBoolean")
         .withReflectUpTo(Object.class)
         .buildFactory();
 
@@ -296,7 +297,7 @@ public class DogTagTest {
     tail2.setIndigoChar('X');
     tail2.setHotelByte((byte) 126);
 
-    DogTag.Factory<DogTagTestTail> factoryToMid = DogTag.create(tail1, "kiloShort", "julietBoolean", "hotelByte", "indigoChar")
+    DogTag.Factory<DogTagTestTail> factoryToMid = DogTag.create(classFrom(tail1), "kiloShort", "julietBoolean", "hotelByte", "indigoChar")
         .withReflectUpTo(DogTagTestMid.class)
         .buildFactory();
     verifyMatches(factoryToMid, tail1, tail2);
@@ -311,7 +312,7 @@ public class DogTagTest {
 
     // -----
 
-    DogTag.Factory<DogTagTestTail> factoryNoSuper = DogTag.create(tail1, "kiloShort", "julietBoolean")
+    DogTag.Factory<DogTagTestTail> factoryNoSuper = DogTag.create(classFrom(tail1), "kiloShort", "julietBoolean")
         .withReflectUpTo(DogTagTestTail.class)
         .buildFactory();
     verifyMatches(factoryNoSuper, tail1, tail2);
@@ -330,7 +331,7 @@ public class DogTagTest {
     DogTagTestBase base1 = new DogTagTestBase(5, "bravo", 6, 8L);
     DogTagTestBase base2 = base1.duplicate();
     base2.setCharlieInt(12);
-    DogTag.Factory<DogTagTestBase> factory = DogTag.create(base1, CHARLIE_INT)
+    DogTag.Factory<DogTagTestBase> factory = DogTag.create(classFrom(base1), CHARLIE_INT)
         .buildFactory();
 
     verifyMatches(factory, base1, base2);
@@ -341,7 +342,7 @@ public class DogTagTest {
   @Test(expected=IllegalArgumentException.class)
   public void testBadExcludedFieldName() {
     DogTagTestTail tail = new DogTagTestTail();
-    DogTag.create(tail, CHARLIE_INT)
+    DogTag.create(classFrom(tail), CHARLIE_INT)
         .withReflectUpTo(DogTagTestTail.class)// CHARLIE_INT is a superclass method, but the superclass wasn't included.
         .buildFactory();
   }
@@ -349,7 +350,7 @@ public class DogTagTest {
   @Test(expected=IllegalArgumentException.class)
   public void testBadExcludedFieldName2() {
     DogTagTestTail tail = new DogTagTestTail();
-    DogTag.create(tail, "hotelByte")
+    DogTag.create(classFrom(tail), "hotelByte")
         .withReflectUpTo(DogTagTestTail.class)
         .buildFactory();
   }
@@ -373,7 +374,7 @@ public class DogTagTest {
     try {
       DogTagTestTail tail = new DogTagTestTail();
       // Include fields from all three classes
-      DogTag.create(tail, "kiloShort", "indigoChar", "alphaInt", "missing")
+      DogTag.create(classFrom(tail), "kiloShort", "indigoChar", "alphaInt", "missing")
           .withReflectUpTo(Object.class)
           .buildFactory();
       fail();
@@ -389,7 +390,7 @@ public class DogTagTest {
     try {
       DogTagTestTail tail = new DogTagTestTail();
       // Include fields from all three classes
-      DogTag.create(tail, "kiloShort", "mikeFloat", "julietBoolean", "missing")
+      DogTag.create(classFrom(tail), "kiloShort", "mikeFloat", "julietBoolean", "missing")
           .withReflectUpTo(DogTagTestTail.class) // Differs here from previous test
           .buildFactory();
       fail();
@@ -421,7 +422,7 @@ public class DogTagTest {
 
     DogTagTestTail tail1 = new DogTagTestTail();
     DogTagTestTail tail2 = tail1.duplicate();
-    DogTag.Factory<DogTagTestTail> factory = DogTag.create(tail1, "novemberIntArray", "operaStringArray")
+    DogTag.Factory<DogTagTestTail> factory = DogTag.create(classFrom(tail1), "novemberIntArray", "operaStringArray")
         .buildFactory();
     for (float f1: notNumbers) {
       for (float f2: notNumbers) {
@@ -453,7 +454,7 @@ public class DogTagTest {
 
     DogTagTestTail tail1 = new DogTagTestTail();
     DogTagTestTail tail2 = tail1.duplicate();
-    DogTag.Factory<DogTagTestTail> factory = DogTag.create(tail1, "novemberIntArray", "operaStringArray")
+    DogTag.Factory<DogTagTestTail> factory = DogTag.create(classFrom(tail1), "novemberIntArray", "operaStringArray")
         .buildFactory();
     for (double f1: notNumbers) {
       for (double f2: notNumbers) {
@@ -468,7 +469,7 @@ public class DogTagTest {
   public void testIntArrays() {
     DogTagTestTail tail1 = new DogTagTestTail();
     DogTagTestTail tail2 = tail1.duplicate();
-    DogTag.Factory<DogTagTestTail> factory = DogTag.create(tail1).buildFactory();
+    DogTag.Factory<DogTagTestTail> factory = DogTag.create(classFrom(tail1)).buildFactory();
 
     verifyMatches(factory, tail1, tail2);
 
@@ -482,7 +483,7 @@ public class DogTagTest {
     DogTagTestTail tail2 = new DogTagTestTail();
     tail2.setFoxtrotPoint(null);
 
-    DogTag.Factory<DogTagTestTail> factory = DogTag.create(tail1)
+    DogTag.Factory<DogTagTestTail> factory = DogTag.create(classFrom(tail1))
         .withReflectUpTo(DogTagTestBase.class)
         .buildFactory();
     verifyNoMatch(factory, tail1, tail2);
@@ -493,7 +494,7 @@ public class DogTagTest {
   @Test
   public void testArrays() {
     DogTagTestTail tail = new DogTagTestTail();
-    DogTag.Factory<DogTagTestTail> factory = DogTag.create(tail).buildFactory();
+    DogTag.Factory<DogTagTestTail> factory = DogTag.create(classFrom(tail)).buildFactory();
 
     // ints
     DogTagTestTail tail1 = new DogTagTestTail();
@@ -1006,7 +1007,7 @@ public class DogTagTest {
       deltaString = delta;
     }
     
-    private final DogTag<ParadigmTest2> dogTag = DogTag.create(this)
+    private final DogTag<ParadigmTest2> dogTag = DogTag.create(classFrom(this))
         .withTransients(true)
         .buildFactory()
         .tag(this);
@@ -1025,7 +1026,7 @@ public class DogTagTest {
 
   private static final class ClassWithBadDogTag {
     private static final ClassWithBadDogTag badInstance = new ClassWithBadDogTag();
-    private static final DogTag.DogTagExclusionBuilder<ClassWithBadDogTag> builder = DogTag.create(badInstance);
+    private static final DogTag.DogTagExclusionBuilder<ClassWithBadDogTag> builder = DogTag.create(classFrom(badInstance));
     private static final DogTag.Factory<ClassWithBadDogTag> dogTagFactory = builder.buildFactory(); // Should throw AssertionError
     @SuppressWarnings("unused")
     private static final DogTag<ClassWithBadDogTag> dogTag = dogTagFactory.tag(badInstance); // STATIC!
@@ -1045,7 +1046,7 @@ public class DogTagTest {
     // something here that nobody should ever do in production.
     private static final DogTagTestBase rivalInstance = new DogTagTestBase(1, "b", 1, 1L);
     @SuppressWarnings("unused")
-    private final DogTag.Factory<DogTagTestBase> factory = DogTag.create(rivalInstance).buildFactory();
+    private final DogTag.Factory<DogTagTestBase> factory = DogTag.create(classFrom(rivalInstance)).buildFactory();
 
     @Override
     public boolean equals(Object obj) {

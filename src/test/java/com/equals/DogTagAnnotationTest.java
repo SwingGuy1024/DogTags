@@ -9,6 +9,7 @@ import java.util.List;
 import org.junit.Test;
 
 import static com.equals.TestUtility.*;
+import static com.equals.DogTag.classFrom;
 
 /**
  * <p>Created by IntelliJ IDEA.
@@ -32,7 +33,7 @@ public class DogTagAnnotationTest {
     TestClassOne t199 = new TestClassOne(1, 9, 9); // bravo & charlie differ
     TestClassOne t453 = new TestClassOne(4, 5, 3); // alpha & bravo differ
 
-    DogTag.Factory<TestClassOne> dogTag1Reflect = DogTag.create(t123).buildFactory(); // Exclude bravo
+    DogTag.Factory<TestClassOne> dogTag1Reflect = DogTag.create(classFrom(t123)).buildFactory(); // Exclude bravo
     DogTag.Factory<TestClassOne> dogTag1Lambda = DogTag.createByLambda(TestClassOne.class)
         .add(TestClassOne::getAlpha)
         .add(TestClassOne::getCharlie)
@@ -49,7 +50,7 @@ public class DogTagAnnotationTest {
       verifyNoMatch(dogTag1, t124, t453); // nothing
     }
 
-    DogTag.Factory<TestClassOne> dt2Reflect = DogTag.create(t123, "charlie") // exclude bravo, charlie
+    DogTag.Factory<TestClassOne> dt2Reflect = DogTag.create(classFrom(t123), "charlie") // exclude bravo, charlie
         .buildFactory();
     DogTag.Factory<TestClassOne> dt2Lambda = DogTag.createByLambda(TestClassOne.class)
         .add(TestClassOne::getAlpha)
@@ -66,7 +67,7 @@ public class DogTagAnnotationTest {
       verifyNoMatch(dt2, t124, t453); // nothing
     }
 
-    DogTag.Factory<TestClassOne> dogTagTestExcludeReflect = DogTag.create(t123) // exclude alpha, bravo
+    DogTag.Factory<TestClassOne> dogTagTestExcludeReflect = DogTag.create(classFrom(t123)) // exclude alpha, bravo
         .withExclusionAnnotation(TestExclude.class)
         .buildFactory();
     DogTag.Factory<TestClassOne> dogTagTestExcludeLambda = DogTag.createByLambda(TestClassOne.class)
@@ -101,7 +102,7 @@ public class DogTagAnnotationTest {
     TestClassTwo t765432 = new TestClassTwo(7, 6, 5, 4, 3, 2); // a, b, c, d, e, f
 
     // These two factories use the same fields
-    DogTag.Factory<TestClassTwo> dt3Reflect = DogTag.create(t123456) // Exclude bravo, foxtrot, Include a, c, d, e
+    DogTag.Factory<TestClassTwo> dt3Reflect = DogTag.create(classFrom(t123456)) // Exclude bravo, foxtrot, Include a, c, d, e
         .buildFactory();
     DogTag.Factory<TestClassTwo> dt3Lambda = DogTag.createByLambda(TestClassTwo.class)
         .add(TestClassTwo::getAlpha)
@@ -127,7 +128,7 @@ public class DogTagAnnotationTest {
       verifyNoMatch(dt3, t123456, t765432); // a, b, c, d, e, f
     }
 
-    DogTag.Factory<TestClassTwo> dogTagNoSuperReflect = DogTag.create(t123456)  // Exclude alpha, bravo, charlie, foxtrot, Include d, e
+    DogTag.Factory<TestClassTwo> dogTagNoSuperReflect = DogTag.create(classFrom(t123456))  // Exclude alpha, bravo, charlie, foxtrot, Include d, e
         .withReflectUpTo(TestClassTwo.class)
         .buildFactory();
     DogTag.Factory<TestClassTwo> dogTagNoSuperLambda = DogTag.createByLambda(TestClassTwo.class)
@@ -152,7 +153,7 @@ public class DogTagAnnotationTest {
       verifyNoMatch(dogTagNoSuper, t123456, t765432); // a, b, c, d, e, f
     }
 
-    DogTag.Factory<TestClassTwo> dogTagNoSuperTEReflect = DogTag.create(t123456) // Exclude alpha, bravo, charlie, delta, foxtrot
+    DogTag.Factory<TestClassTwo> dogTagNoSuperTEReflect = DogTag.create(classFrom(t123456)) // Exclude alpha, bravo, charlie, delta, foxtrot
         .withReflectUpTo(TestClassTwo.class)
         .withExclusionAnnotation(TestExclude.class)
         .buildFactory();
@@ -177,7 +178,7 @@ public class DogTagAnnotationTest {
       verifyNoMatch(dogTagNoSuperTE, t123456, t765432); // a, b, c, d, e, f
     }
 
-    DogTag.Factory<TestClassTwo> dogTagTestExclude2Reflect = DogTag.create(t123456) // Exclude alpha, bravo, delta, foxtrot
+    DogTag.Factory<TestClassTwo> dogTagTestExclude2Reflect = DogTag.create(classFrom(t123456)) // Exclude alpha, bravo, delta, foxtrot
         .withExclusionAnnotation(TestExclude.class)
         .buildFactory();
     DogTag.Factory<TestClassTwo> dogTagTestExclude2Lambda = DogTag.createByLambda(TestClassTwo.class)
@@ -205,7 +206,7 @@ public class DogTagAnnotationTest {
 
     // Test Inclusion Mode.
 
-    DogTag.Factory<TestClassOne> dogTagIncludeReflect = DogTag.createByInclusion(t123) // include charlie
+    DogTag.Factory<TestClassOne> dogTagIncludeReflect = DogTag.createByInclusion(classFrom(t123)) // include charlie
         .buildFactory();
     DogTag.Factory<TestClassOne> dogTagIncludeLambda = DogTag.createByLambda(TestClassOne.class)
         .add(TestClassOne::getCharlie)
@@ -221,7 +222,7 @@ public class DogTagAnnotationTest {
       verifyNoMatch(dogTagInclude, t124, t453); // nothing
     }
 
-    DogTag.Factory<TestClassOne> dogTagIncludeAnnReflect = DogTag.createByInclusion(t123) // include alpha, charlie
+    DogTag.Factory<TestClassOne> dogTagIncludeAnnReflect = DogTag.createByInclusion(classFrom(t123)) // include alpha, charlie
         .withInclusionAnnotation(TestInclude.class)
         .buildFactory();
     DogTag.Factory<TestClassOne> dogTagIncludeAnnLambda = DogTag.createByLambda(TestClassOne.class)
@@ -239,7 +240,7 @@ public class DogTagAnnotationTest {
       verifyNoMatch(dogTagIncludeAnn, t124, t453); // nothing
     }
 
-    DogTag.Factory<TestClassTwo> dTIsReflect = DogTag.createByInclusion(t123456) // include charlie, echo
+    DogTag.Factory<TestClassTwo> dTIsReflect = DogTag.createByInclusion(classFrom(t123456)) // include charlie, echo
         .buildFactory();
     DogTag.Factory<TestClassTwo> dTIsLambda = DogTag.createByLambda(TestClassTwo.class)
         .add(TestClassTwo::getCharlie)
@@ -265,7 +266,7 @@ public class DogTagAnnotationTest {
     }
 
 
-    DogTag.Factory<TestClassTwo> dTI2sReflect = DogTag.createByInclusion(t123456) // include alpha, charlie, delta, echo
+    DogTag.Factory<TestClassTwo> dTI2sReflect = DogTag.createByInclusion(classFrom(t123456)) // include alpha, charlie, delta, echo
         .withInclusionAnnotation(TestInclude.class)
         .buildFactory();
     DogTag.Factory<TestClassTwo> dTI2sLambda = DogTag.createByLambda(TestClassTwo.class)
@@ -369,7 +370,7 @@ public class DogTagAnnotationTest {
       this.foxTrot = foxTrot;
     }
 
-    private final DogTag<TestClassTwo> dogTag = DogTag.create(this)
+    private final DogTag<TestClassTwo> dogTag = DogTag.create(classFrom(this))
         .withFinalFieldsOnly(true) // This should implicitly set withCachedHash to true 
         .buildFactory()
         .tag(this);

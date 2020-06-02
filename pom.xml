@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>reflect</groupId>
+  <groupId>com.dogtags</groupId>
   <artifactId>equals.support</artifactId>
   <version>1.0-SNAPSHOT</version>
   <name>dogTags</name>
@@ -16,7 +16,7 @@
       <version>4.12</version>
       <scope>test</scope>
     </dependency>
-    <dependency>
+    <dependency>  
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-lang3</artifactId>
       <version>3.0</version>

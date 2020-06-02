@@ -8,6 +8,8 @@ import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import static com.equals.DogTag.classFrom;
+
 /**
  * <p>Created by IntelliJ IDEA.
  * <p>Date: 9/19/19
@@ -59,7 +61,7 @@ public class PerformanceTestWithWrappersUnCached {
     TimingUtility.reverse(instances);
 
     final BiFunction<TestClass, TestClass, Boolean> directEqual = PerformanceTestWithWrappersUnCached::isEqual;
-    DogTag.Factory<TestClass> dogTag = DogTag.create(t0).buildFactory();
+    DogTag.Factory<TestClass> dogTag = DogTag.create(classFrom(t0)).buildFactory();
     TimingUtility.runTestCycles(dogTag, t0, instances, directEqual, EMPTY_STRING_ARRAY);
   }
 

@@ -171,6 +171,7 @@ public abstract class DogTag<T> {
           (t) -> new NonCachingDogTag<>(this, t);
     }
 
+    @Override
     public DogTag<T> tag(T t) {
       return constructor.apply(t); // Call the DogTag constructor that was specified in the Factory constructor
     }
@@ -182,6 +183,7 @@ public abstract class DogTag<T> {
      * @param thatOneNullable  {@code 'other'} in the equals() method
      * @return true if the objects are equal, false otherwise
      */
+    @Override
     @SuppressWarnings("ObjectEquality")
     boolean doEqualsTest(T thisOneNeverNull, Object thatOneNullable) {
       assert thisOneNeverNull != null : "Always pass 'this' to the first parameter of this method!";
@@ -216,6 +218,7 @@ public abstract class DogTag<T> {
      * @param thisOne The instance wrapped by the DogTag should get passed to this parameter
      * @return The hashCode
      */
+    @Override
     int doHashCodeInternal(T thisOne) {
       assert thisOne != null : "Always pass 'this' to this method! That guarantees it won't be null.";
       int hash = getStartingHash();
@@ -260,31 +263,28 @@ public abstract class DogTag<T> {
 
   /**
    * Instantiate a builder for a DogTag for class T, specifying an optional list of names of fields to be excluded. The
-   * fields must be in the class specified by the type parameter for the DogTag, or any superclass included by the 
+   * fields must be in the class specified by the type parameter for the DogTag, or any superclass included by the
    * {@code withReflectUpTo()} option. Defaults to an empty array.
    * <p>
    * This builder allows you to specify options before building your DogTag. The getFactory() method generates the DogTag.
-   * All of the default options used by the {@code from()} method are used here, but they may be overridden. All the 
+   * All of the default options used by the {@code from()} method are used here, but they may be overridden. All the
    * methods to set options begin with the word "with."
    * <p>
-   *   For example:
-   *   <pre>
+   * For example:
+   * <pre>
    *     private final{@literal DogTag<MyClass>} dogTag = DogTag.create(this, "date", "source")
    *         .withTransients(true) // options are specified here
    *         .build();
    *   </pre>
    * <p>
-   *   Options may be specified in any order.
-   * @param instance The instance of the enclosing class
+   * Options may be specified in any order.
+   *
+   * @param theClass           The class of type T
    * @param excludedFieldNames The names of fields to exclude from the equals and hash code calculations
-   * @param <T> The type of the enclosing class.
+   * @param <T>                The type of the enclosing class.
    * @return A builder for a {@literal DogTag<T>}, from which you can set options and build your DogTag.
    */
-  public static <T> DogTagExclusionBuilder<T> create(T instance, String... excludedFieldNames) {
-    return new DogTagExclusionBuilder<>(classFrom(instance), excludedFieldNames);
-  }
-  
-  public static <T> DogTagExclusionBuilder<T> createFromClass(Class<T> theClass, String... excludedFieldNames) {
+  public static <T> DogTagExclusionBuilder<T> create(Class<T> theClass, String... excludedFieldNames) {
     return new DogTagExclusionBuilder<>(theClass, excludedFieldNames);
   }
 
@@ -294,15 +294,15 @@ public abstract class DogTag<T> {
    * @param <T> The inferred type of the object
    * @return the class of T, as a {@literal Class<T>} object
    */
-  private static <T> Class<T> classFrom(T t) {
+  public static <T> Class<T> classFrom(T t) {
     @SuppressWarnings("unchecked")
     Class<T> targetClass = (Class<T>) t.getClass(); // I need to cast this because the getClass() method returns Class<?>
     return targetClass;
   }
   
   /**
-   * Instantiate a builder for a DogTag for class T using inclusion mode, specifying a list of names of fields to be 
-   * included. The fields must be in the class specified by the type parameter for the DogTag, or any superclass. 
+   * Instantiate a builder for a DogTag for class T using inclusion mode, specifying a list of names of fields to be
+   * included. The fields must be in the class specified by the type parameter for the DogTag, or any superclass.
    * Defaults to an empty array.
    * <p>
    * In Inclusion mode, none of the fields are included by default. They must be included by specifying their
@@ -310,7 +310,7 @@ public abstract class DogTag<T> {
    * choice. Fields are searched first in the Target class T, then in its most immediate superclasses, and on through
    * the superclasses until it reaches Object.class.
    * <p>
-   * The builder allows you to specify options before building your DogTag. The build() method generates the 
+   * The builder allows you to specify options before building your DogTag. The build() method generates the
    * DogTag. All the methods to set options begin with the word "with."
    * <p>
    * For example:
@@ -322,24 +322,24 @@ public abstract class DogTag<T> {
    * <p>
    * Options may be specified in any order.
    *
-   * @param instance   The instance of enclosing class. Pass {@code this} to this parameter.
+   * @param theClass   The class of type T
    * @param fieldNames The names of fields to exclude from the equals and hash code calculations
    * @param <T>        The type of the enclosing class.
    * @return A builder for a {@literal DogTag<T>}, from which you can set options and build your DogTag.
    */
-  public static <T> DogTagInclusionBuilder<T>   createByInclusion(T instance, String... fieldNames) {
-    return createByInclusion(classFrom(instance), fieldNames);
-  }
-  
   public static <T> DogTagInclusionBuilder<T> createByInclusion(Class<T> theClass, String... fieldNames) {
     return new DogTagInclusionBuilder<>(theClass, fieldNames);
   }
   
-  public static <T> DogTagInclusionBuilder<T> createByInclusion(T instance, Class<? extends Annotation> annotationClass) {
-    return new DogTagInclusionBuilder<>(classFrom(instance)).withInclusionAnnotation(annotationClass);
+  public static <T> DogTagInclusionBuilder<T> createByInclusion(Class<T> theClass, Class<? extends Annotation> annotationClass) {
+    return new DogTagInclusionBuilder<>(theClass).withInclusionAnnotation(annotationClass);
   }
 
-  static final class DogTagInclusionBuilder<T> extends DogTagReflectiveBuilder<T> {
+  public static <T> LambdaFactory.LambdaBuilder<T> createByLambda(Class<T> targetClass) {
+    return new LambdaFactory.LambdaBuilder<>(targetClass);
+  }
+
+  public static final class DogTagInclusionBuilder<T> extends DogTagReflectiveBuilder<T> {
     private final Map<Field, Integer> orderMap = new HashMap<>();
 
     DogTagInclusionBuilder(Class<T> theClass, String... includedFields) {
@@ -347,14 +347,14 @@ public abstract class DogTag<T> {
     }
 
     // TODO: Write unit test
-    public static <T> DogTagInclusionBuilder<T> createByPersistenceId(T instance) {
-      return createByNamedAnnotation(instance, "javax.persistence.Id"); // NON-NLS
+    public static <T> DogTagInclusionBuilder<T> createByPersistenceId(Class<T> theClass) {
+      return createByNamedAnnotation(theClass, "javax.persistence.Id"); // NON-NLS
     }
     
     // TODO Write unit test
-    public static <T> DogTagInclusionBuilder<T> createByNamedAnnotation(T instance, String annotationClassName) {
+    public static <T> DogTagInclusionBuilder<T> createByNamedAnnotation(Class<T> theClass, String annotationClassName) {
       try {
-        return createByInclusion(instance, validateAnnotationClass(Class.forName(annotationClassName)));
+        return createByInclusion(theClass, validateAnnotationClass(Class.forName(annotationClassName)));
       } catch (ClassNotFoundException e) {
         throw new IllegalArgumentException(String.format("E4: Not found: %s", annotationClassName), e);
       }
@@ -519,7 +519,7 @@ public abstract class DogTag<T> {
     }
   }
 
-  public abstract static class DogTagBaseBuilder<T> {
+  abstract static class DogTagBaseBuilder<T> {
     private final Class<T> targetClass;
     private int startingHash = 1;
     private boolean useCachedHash = false;
@@ -587,7 +587,7 @@ public abstract class DogTag<T> {
     }
   }
 
-  public abstract static class DogTagReflectiveBuilder<T> extends DogTagBaseBuilder<T> {
+  abstract static class DogTagReflectiveBuilder<T> extends DogTagBaseBuilder<T> {
 
     // fields initialized in constructor
     private final boolean useInclusionMode;
@@ -1109,16 +1109,10 @@ public abstract class DogTag<T> {
     }
   }
 
-  public static <T> LambdaFactory.LambdaBuilder<T> createByLambda(Class<T> targetClass) {
-    return new LambdaFactory.LambdaBuilder<>(targetClass);
-  }
-
   public static final class LambdaFactory<T> extends Factory<T> {
-//    private final List<FieldHandler<T>> fieldHandlerList;
     private final List<EqualHandler<T>> equalHandlerList;
     private final List<HashHandler<T>> hashHandlerList;
     private final Class<T> targetClass;
-//    private final Function<T, DogTag<T>> constructor;
 
     @SuppressWarnings("AssignmentOrReturnOfFieldWithMutableType")
     LambdaFactory(
@@ -1150,6 +1144,7 @@ public abstract class DogTag<T> {
       return new LambdaDogTag<>(this, t);
     }
 
+    @Override
     boolean doEqualsTest(final T thisOne, final Object thatOne) {
       //noinspection ObjectEquality
       if (thisOne == thatOne) {
@@ -1165,7 +1160,7 @@ public abstract class DogTag<T> {
       T thatOneNotNull = thisClass.cast(thatOne);
       List<EqualHandler<T>> equalHandlers = getEqualHandlerList();
 
-      /* This imperitive loop outperforms the stream expression that's commented out below. */
+      /* This imperative loop outperforms the stream expression that's commented out below. */
       for (EqualHandler<T> handler : equalHandlers) {
         if (!handler.doEqual(thisOne, thatOneNotNull)) {
           return false;
@@ -1175,9 +1170,10 @@ public abstract class DogTag<T> {
 
       /* This stream expression takes anywhere from 45% to 150% longer than the old-fashioned imperative implementation above. */
 //      return equalHandlers.stream()
-//          .allMatch(tFieldHandler -> tFieldHandler.doEqual(thisOne, thatOneNotNull));
+//          .allMatch(h -> h.doEqual(thisOne, thatOneNotNull));
     }
 
+    @Override
     public int doHashCodeInternal(T thisOne) {
       List<Integer> hashValues = new LinkedList<>();
       List<HashHandler<T>> hashHandlers = getHashHandlerList();

@@ -8,6 +8,8 @@ import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import static com.equals.DogTag.classFrom;
+
 /**
  * This is a test of a class that returns the wrapper classes such as Integer and Double, rather than the primitives int and double. This 
  * improves the performance of the DogTags, but it's still not a recommended pracice.
@@ -60,7 +62,7 @@ public class PerformanceTestWithWrappers {
     TimingUtility.reverse(instances);
 
     final BiFunction<TestClass, TestClass, Boolean> directEqual = PerformanceTestWithWrappers::isEqual;
-    DogTag.Factory<TestClass> dogTag = DogTag.create(t0).buildFactory();
+    DogTag.Factory<TestClass> dogTag = DogTag.create(classFrom(t0)).buildFactory();
     TimingUtility.runTestCycles(dogTag, t0, instances, directEqual, EMPTY_STRING_ARRAY);
   }
 

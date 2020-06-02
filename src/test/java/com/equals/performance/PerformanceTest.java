@@ -13,6 +13,7 @@ import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import static com.equals.DogTag.classFrom;
 import static com.equals.TimingUtility.*;
 
 /**
@@ -79,7 +80,7 @@ public class PerformanceTest {
     TestClass[] instances = {t14, t15, t16, t17, t18, t19, t20, t21, t22, t23, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t0.duplicate()};
     reverse(instances);
 
-    DogTag.DogTagExclusionBuilder<TestClass> classDogTagExclusionBuilder = DogTag.create(t0);
+    DogTag.DogTagExclusionBuilder<TestClass> classDogTagExclusionBuilder = DogTag.create(classFrom(t0));
     DogTag.Factory<TestClass> dogTagfactory = classDogTagExclusionBuilder.buildFactory();
 
     final BiFunction<TestClass, TestClass, Boolean> directEqual = TestClass::isEqual;
@@ -122,11 +123,11 @@ public class PerformanceTest {
 //    final String[] excludedFields = {"novemberIntArray", "operaStringArray", "papaLongArray", "quebecShortArray",
 //        "romeoByteArray", "sierraCharArray", "tangoBooleanArray", "uniformFloatArray", "victorDoubleArray",
 //        "whiskeyObjectArray"};
-//    DogTag<SingleValueTestClass> dogTagNoArrays = DogTag.create(SingleValueTestClass.class)
+//    DogTag<SingleValueTestClass> dogTagNoArrays = DogTag.createFromClass(SingleValueTestClass.class)
 //        .withExcludedFields(excludedFields)
 //        .getFactory();
     SingleValueTestClass dummy = new SingleValueTestClass(1, "x");
-    DogTag.Factory<SingleValueTestClass> dogTagNoArrays = DogTag.create(dummy).buildFactory();
+    DogTag.Factory<SingleValueTestClass> dogTagNoArrays = DogTag.create(classFrom(dummy)).buildFactory();
     SingleValueTestClass t0 = new SingleValueTestClass(1, "bravo");
     SingleValueTestClass t1 = new SingleValueTestClass(11, "bravo");
 //    SingleValueTestClass t2 = new SingleValueTestClass(1, "bravisimo");
@@ -590,7 +591,7 @@ public class PerformanceTest {
     TwoStringClass t2 = new TwoStringClass("alpha", "bravo");
     TwoStringClass t3 = new TwoStringClass("iALPHA".substring(1), "iBRAVO".substring(1));
 
-    DogTag.Factory<TwoStringClass> dogTag = DogTag.create(t0).buildFactory();
+    DogTag.Factory<TwoStringClass> dogTag = DogTag.create(classFrom(t0)).buildFactory();
     TwoStringClass[] array = { t3, t2, t1 };
     TimingUtility.runTestCycles(dogTag, t0, array, PerformanceTest::handCoded, EMPTY_STRING_ARRAY);
   }
@@ -765,7 +766,7 @@ public class PerformanceTest {
     @SuppressWarnings("UseOfClone")
     S26 clone = original.clone();
 
-    DogTag.Factory<S26> dogTag = DogTag.create(zz).buildFactory();
+    DogTag.Factory<S26> dogTag = DogTag.create(classFrom(zz)).buildFactory();
 
     S26[] i = {aa, bb, cc, dd, ee, ff, gg, hh, ii, jj, kk, ll, mm, nn, oo, pp, qq, rr, ss, tt, uu, vv, ww, xx, yy, zz, clone };
     reverse(i);
@@ -774,6 +775,9 @@ public class PerformanceTest {
   }
 
   public static void main(String[] args) {
+    S26 s1 = new S26();
+    S26 s2 = new S26();
+    
     PerformanceTest performanceTest = new PerformanceTest();
     performanceTest.timeTest();
     performanceTest.testNoArrays();
