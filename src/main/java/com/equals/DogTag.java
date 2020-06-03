@@ -165,7 +165,7 @@ public abstract class DogTag<T> {
     ) {
       super(hashBuilder, startingHash);
       targetClass = theClass;
-      fieldProcessors = getters;
+      fieldProcessors = Collections.unmodifiableList(getters);
       constructor = useCache?
           (t) -> new CachingDogTag<>(this, t) :
           (t) -> new NonCachingDogTag<>(this, t);
@@ -361,8 +361,8 @@ public abstract class DogTag<T> {
     }
 
     @Override
-    protected boolean isFieldUsed(final Field theField) {
-      return isSelected(theField);
+    protected boolean isFieldUsed(final Set<Field> selectedFields, final Field theField) {
+      return isSelected(selectedFields, theField);
     }
 
     /**
@@ -491,8 +491,8 @@ public abstract class DogTag<T> {
     }
 
     @Override
-    protected boolean isFieldUsed(final Field theField) {
-      return !isSelected(theField);
+    protected boolean isFieldUsed(final Set<Field> selectedFields, final Field theField) {
+      return !isSelected(selectedFields, theField);
     }
 
   // All inherited "with<Option> methods must be overridden to return DogTagExclusionBuilder instead of the
@@ -600,8 +600,6 @@ public abstract class DogTag<T> {
     @SuppressWarnings("BooleanVariableAlwaysNegated")
     private boolean finalFieldsOnly = false;
 
-    // Todo: Get rid of this. It can be a local variable.
-    private final Set<Field> selectedFields = new HashSet<>();
     private boolean testTransients = false;
 
     protected DogTagReflectiveBuilder(Class<T> theClass, boolean inclusionMode, Class<? extends Annotation> defaultSelectionAnnotation, String[] selectedFieldNames) {
@@ -712,6 +710,7 @@ public abstract class DogTag<T> {
     }
 
     protected List<FieldProcessor<T>> makeGetterList() {
+      Set<Field> selectedFields = new HashSet<>();
       collectMatchingFields(selectedFieldNames, selectedFields);
 
       // two different inclusion modes exist. Each requires a different kind of collection.
@@ -745,7 +744,7 @@ public abstract class DogTag<T> {
               // transients are tested only in exclusion mode
               && (testTransients || useInclusionMode || !Modifier.isTransient(modifiers))
               && (!finalFieldsOnly || useInclusionMode || fieldIsFinal)
-              && isFieldUsed(field)
+              && isFieldUsed(selectedFields, field)
               && (field.getName().indexOf('$') < 0) // disallow anonymous inner class fields
           ) {
             if (isUseCachedHash() && !fieldIsFinal) {
@@ -798,16 +797,18 @@ public abstract class DogTag<T> {
       }
     }
 
-    protected boolean isSelected(Field theField) {
+    protected boolean isSelected(Set<Field> selectedFields, Field theField) {
       return selectedFields.contains(theField) || isAnnotatedWith(theField, annotationList);
     }
 
     /**
      * tests the field to determine if was explicitly included or excluded;
+     *
+     * @param selectedFields The specified selectedFields
      * @param theField The field to test for inclusion
      * @return true if it to be included, false otherwise.
      */
-    protected abstract boolean isFieldUsed(final Field theField);
+    protected abstract boolean isFieldUsed(final Set<Field> selectedFields, final Field theField);
 
     protected abstract Collection<FieldProcessorWrapper<T>> createEmptyFieldProcessorList();
 
@@ -1114,7 +1115,6 @@ public abstract class DogTag<T> {
     private final List<HashHandler<T>> hashHandlerList;
     private final Class<T> targetClass;
 
-    @SuppressWarnings("AssignmentOrReturnOfFieldWithMutableType")
     LambdaFactory(
         Class<T> theClass,
         int startingHash,
@@ -1125,15 +1125,14 @@ public abstract class DogTag<T> {
     ) {
       super(hashBuilder, startingHash);
       targetClass = theClass;
-      //noinspection AssignmentOrReturnOfFieldWithMutableType
-      this.equalHandlerList = equalHandlerList;
-      this.hashHandlerList = hashHandlerList;
+      this.equalHandlerList = Collections.unmodifiableList(equalHandlerList);
+      this.hashHandlerList = Collections.unmodifiableList(hashHandlerList);
     }
 
     // TODO: Handle this using Iterable
-    List<EqualHandler<T>> getEqualHandlerList() { return equalHandlerList; }
+    Collection<EqualHandler<T>> getEqualHandlerList() { return equalHandlerList; }
 
-    List<HashHandler<T>> getHashHandlerList() { return hashHandlerList; }
+    Collection<HashHandler<T>> getHashHandlerList() { return hashHandlerList; }
 
     Class<T> getTargetClass() {
       return targetClass;
@@ -1158,7 +1157,7 @@ public abstract class DogTag<T> {
         return false;
       }
       T thatOneNotNull = thisClass.cast(thatOne);
-      List<EqualHandler<T>> equalHandlers = getEqualHandlerList();
+      Collection<EqualHandler<T>> equalHandlers = getEqualHandlerList();
 
       /* This imperative loop outperforms the stream expression that's commented out below. */
       for (EqualHandler<T> handler : equalHandlers) {
@@ -1176,7 +1175,7 @@ public abstract class DogTag<T> {
     @Override
     public int doHashCodeInternal(T thisOne) {
       List<Integer> hashValues = new LinkedList<>();
-      List<HashHandler<T>> hashHandlers = getHashHandlerList();
+      Collection<HashHandler<T>> hashHandlers = getHashHandlerList();
       for (HashHandler<T> hashHandler : hashHandlers) {
         hashValues.add(hashHandler.doHashCode(thisOne));
       }
@@ -1235,8 +1234,8 @@ public abstract class DogTag<T> {
       }
 
       public LambdaBuilder<T> addObject(final ToObjectFunction<T> objectFunction) {
-        equalHandlerList.add((thisOne, thatOne) -> objectFunction.applyAsObject(thisOne).equals(objectFunction.applyAsObject(thatOne)));
-        hashHandlerList.add(thisOne -> (objectFunction.applyAsObject(thisOne)).hashCode());
+        equalHandlerList.add((thisOne, thatOne) -> Objects.equals(objectFunction.applyAsObject(thisOne), objectFunction.applyAsObject(thatOne)));
+        hashHandlerList.add(thisOne -> (Objects.hashCode(objectFunction.applyAsObject(thisOne))));
         return this;
       }
 

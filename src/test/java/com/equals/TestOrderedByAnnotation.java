@@ -2,6 +2,7 @@ package com.equals;
 
 import java.lang.reflect.Field;
 import java.util.LinkedList;
+import java.util.List;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
@@ -48,7 +49,7 @@ public class TestOrderedByAnnotation {
       Field fieldProcessorField = DogTag.ReflectiveFactory.class.getDeclaredField("fieldProcessors");
       fieldProcessorField.setAccessible(true);
       @SuppressWarnings("unchecked")
-      LinkedList<Object> fieldProcessors = (LinkedList<Object>) fieldProcessorField.get(factory);
+      List<Object> fieldProcessors = (List<Object>) fieldProcessorField.get(factory);
       int expectedValue = 0;
       for (Object fieldProcessor : fieldProcessors) {
         DogTag.FieldProcessor fp0 = (DogTag.FieldProcessor) fieldProcessor;
