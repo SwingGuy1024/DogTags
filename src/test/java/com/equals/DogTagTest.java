@@ -167,15 +167,15 @@ public class DogTagTest {
   
   @Test
   public void testFinalOnly() {
-    DogTagTestBase base1 = new DogTagTestBase(1, "bravo", 2, 3L);
-    DogTagTestBase base2 = new DogTagTestBase(1, "bravo", 22, 4L);
-    DogTagTestBase base3 = new DogTagTestBase(2, "bravo", 2, 3);
-    DogTagTestBase base4 = new DogTagTestBase(1, "Boo!", 22, 4L);
-    DogTagTestBase base5 = new DogTagTestBase(1, "bravo", 2, 3L);
-    DogTagTestBase base6 = new DogTagTestBase(1, null, 2, 3L);
-    DogTagTestBase base7 = new DogTagTestBase(1, null, 2, 3L);
+    DogTagTestBase b1b23 = new DogTagTestBase(1, "bravo", 2, 3L);
+    DogTagTestBase b1bx4 = new DogTagTestBase(1, "bravo", 22, 4L);
+    DogTagTestBase b2b23 = new DogTagTestBase(2, "bravo", 2, 3);
+    DogTagTestBase b1Xx4 = new DogTagTestBase(1, "Boo!", 22, 4L);
+    DogTagTestBase D1b23 = new DogTagTestBase(1, "bravo", 2, 3L);
+    DogTagTestBase b1n23 = new DogTagTestBase(1, null, 2, 3L);
+    DogTagTestBase D1n23 = new DogTagTestBase(1, null, 2, 3L);
 
-    DogTag.Factory<DogTagTestBase> baseFactoryEx = DogTag.create(classFrom(base1))
+    DogTag.Factory<DogTagTestBase> baseFactoryEx = DogTag.create(classFrom(b1b23)) // include alpha, bravo
         .withFinalFieldsOnly(true)
         .buildFactory();
     DogTag.Factory<DogTagTestBase> lambdaBaseFactory = DogTag.createByLambda(DogTagTestBase.class)
@@ -186,25 +186,25 @@ public class DogTagTest {
     List<DogTag.Factory<DogTagTestBase>> factories = Arrays.asList(baseFactoryEx, lambdaBaseFactory);
 
     for (DogTag.Factory<DogTagTestBase> baseFactory : factories) {
-      verifyMatches(baseFactory, base1, base2);
-      verifyNoMatch(baseFactory, base1, base3);
-      verifyNoMatch(baseFactory, base1, base4);
-      verifyMatches(baseFactory, base1, base5);
-      verifyNoMatch(baseFactory, base1, base6);
-      verifyNoMatch(baseFactory, base2, base3);
-      verifyNoMatch(baseFactory, base2, base4);
-      verifyMatches(baseFactory, base2, base5);    // transitivity test
-      verifyNoMatch(baseFactory, base2, base6);
-      verifyNoMatch(baseFactory, base3, base4);
-      verifyNoMatch(baseFactory, base3, base5);
-      verifyNoMatch(baseFactory, base3, base6);
-      verifyNoMatch(baseFactory, base4, base5);
-      verifyNoMatch(baseFactory, base4, base6);
-      verifyNoMatch(baseFactory, base5, base6);
-      verifyMatches(baseFactory, base6, base7);
+      verifyMatches(baseFactory, b1b23, b1bx4); // c, d differ
+      verifyNoMatch(baseFactory, b1b23, b2b23); // a
+      verifyNoMatch(baseFactory, b1b23, b1Xx4); // b, c, d
+      verifyMatches(baseFactory, b1b23, D1b23); // -
+      verifyNoMatch(baseFactory, b1b23, b1n23); // b
+      verifyNoMatch(baseFactory, b1bx4, b2b23); // a, c, d
+      verifyNoMatch(baseFactory, b1bx4, b1Xx4); // b
+      verifyMatches(baseFactory, b1bx4, D1b23); // c, d   // transitivity test
+      verifyNoMatch(baseFactory, b1bx4, b1n23); // b, c, d
+      verifyNoMatch(baseFactory, b2b23, b1Xx4); // a, b, c, d
+      verifyNoMatch(baseFactory, b2b23, D1b23); // a
+      verifyNoMatch(baseFactory, b2b23, b1n23); // a, b
+      verifyNoMatch(baseFactory, b1Xx4, D1b23); // b, c, d
+      verifyNoMatch(baseFactory, b1Xx4, b1n23); // b, c, d
+      verifyNoMatch(baseFactory, D1b23, b1n23); // b
+      verifyMatches(baseFactory, b1n23, D1n23); // -
     }
 
-    DogTag.Factory<DogTagTestBase> factoryBase2 = DogTag.create(classFrom(base1), "bravoString")
+    DogTag.Factory<DogTagTestBase> factoryBase2 = DogTag.create(classFrom(b1b23), "bravoString") // include a, c, d
         .buildFactory();
     lambdaBaseFactory = DogTag.createByLambda(DogTagTestBase.class)
         .add(DogTagTestBase::getAlphaInt)
@@ -214,24 +214,24 @@ public class DogTagTest {
     factories = Arrays.asList(factoryBase2, lambdaBaseFactory);
 
     for (DogTag.Factory<DogTagTestBase> factory2 : factories) {
-      verifyNoMatch(factory2, base1, base2);
-      verifyNoMatch(factory2, base1, base3);
-      verifyNoMatch(factory2, base1, base4);
-      verifyMatches(factory2, base1, base5);
-      verifyMatches(factory2, base1, base6);
-      verifyNoMatch(factory2, base2, base3);
-      verifyMatches(factory2, base2, base4);
-      verifyNoMatch(factory2, base2, base5);
-      verifyNoMatch(factory2, base2, base6);
-      verifyNoMatch(factory2, base3, base4);
-      verifyNoMatch(factory2, base3, base5);
-      verifyNoMatch(factory2, base3, base6);
-      verifyNoMatch(factory2, base4, base5);
-      verifyNoMatch(factory2, base4, base6);
-      verifyMatches(factory2, base5, base6);
+      verifyNoMatch(factory2, b1b23, b1bx4);
+      verifyNoMatch(factory2, b1b23, b2b23);
+      verifyNoMatch(factory2, b1b23, b1Xx4);
+      verifyMatches(factory2, b1b23, D1b23);
+      verifyMatches(factory2, b1b23, b1n23);
+      verifyNoMatch(factory2, b1bx4, b2b23);
+      verifyMatches(factory2, b1bx4, b1Xx4);
+      verifyNoMatch(factory2, b1bx4, D1b23);
+      verifyNoMatch(factory2, b1bx4, b1n23);
+      verifyNoMatch(factory2, b2b23, b1Xx4);
+      verifyNoMatch(factory2, b2b23, D1b23);
+      verifyNoMatch(factory2, b2b23, b1n23);
+      verifyNoMatch(factory2, b1Xx4, D1b23);
+      verifyNoMatch(factory2, b1Xx4, b1n23);
+      verifyMatches(factory2, D1b23, b1n23);
     }
 
-    DogTag.Factory<DogTagTestBase> factory3Base = DogTag.create(classFrom(base1), "alphaInt")
+    DogTag.Factory<DogTagTestBase> factory3Base = DogTag.create(classFrom(b1b23), "alphaInt")
         .withFinalFieldsOnly(true)
         .buildFactory();
     lambdaBaseFactory = DogTag.createByLambda(DogTagTestBase.class)
@@ -240,21 +240,21 @@ public class DogTagTest {
     factories = Arrays.asList(factory3Base, lambdaBaseFactory);
 
     for (DogTag.Factory<DogTagTestBase> factory3 : factories) {
-      verifyMatches(factory3, base1, base2);
-      verifyMatches(factory3, base1, base3);
-      verifyNoMatch(factory3, base1, base4);
-      verifyMatches(factory3, base1, base5);
-      verifyNoMatch(factory3, base1, base6);
-      verifyMatches(factory3, base2, base3);    // transitivity test
-      verifyNoMatch(factory3, base2, base4);
-      verifyMatches(factory3, base2, base5);    // transitivity test
-      verifyNoMatch(factory3, base2, base4);
-      verifyNoMatch(factory3, base3, base6);
-      verifyMatches(factory3, base3, base5);    // transitivity test
-      verifyNoMatch(factory3, base4, base5);
-      verifyNoMatch(factory3, base4, base6);
-      verifyNoMatch(factory3, base5, base6);
-      verifyMatches(factory3, base6, base7);
+      verifyMatches(factory3, b1b23, b1bx4);
+      verifyMatches(factory3, b1b23, b2b23);
+      verifyNoMatch(factory3, b1b23, b1Xx4);
+      verifyMatches(factory3, b1b23, D1b23);
+      verifyNoMatch(factory3, b1b23, b1n23);
+      verifyMatches(factory3, b1bx4, b2b23);    // transitivity test
+      verifyNoMatch(factory3, b1bx4, b1Xx4);
+      verifyMatches(factory3, b1bx4, D1b23);    // transitivity test
+      verifyNoMatch(factory3, b1bx4, b1Xx4);
+      verifyNoMatch(factory3, b2b23, b1n23);
+      verifyMatches(factory3, b2b23, D1b23);    // transitivity test
+      verifyNoMatch(factory3, b1Xx4, D1b23);
+      verifyNoMatch(factory3, b1Xx4, b1n23);
+      verifyNoMatch(factory3, D1b23, b1n23);
+      verifyMatches(factory3, b1n23, D1n23);
     }
   }
 
@@ -267,6 +267,7 @@ public class DogTagTest {
     DogTagTestTail tail4 = new DogTagTestTail();
     DogTagTestTail tail5 = new DogTagTestTail();
     DogTagTestTail tail6 = new DogTagTestTail();
+    DogTagTestTail tail7 = new DogTagTestTail();
     DogTagTestTail mid_1 = new DogTagTestTail();
     DogTagTestTail mid_2 = new DogTagTestTail();
     DogTagTestTail base1 = new DogTagTestTail();
@@ -279,6 +280,7 @@ public class DogTagTest {
     tail4.setPapaLongArray(new long[] {9L, 8L});
     tail5.setVictorDoubleArray(new double[] { 5.3, 4.9 });
     tail6.setLimaDouble(2.718281828);
+    tail7.setPapaLongArray(null);
     mid_1.setEchoString("mid_1 string");
     mid_2.setFoxtrotPoint(new Point2D.Double(98.7, 65.4));
     base1.setCharlieInt(7654);
@@ -318,6 +320,7 @@ public class DogTagTest {
       verifyNoMatch(factory, tail1, tail4);
       verifyNoMatch(factory, tail1, tail5);
       verifyNoMatch(factory, tail1, tail6);
+      verifyNoMatch(factory, tail1, tail7);
       verifyNoMatch(factory, tail1, mid_1);
       verifyNoMatch(factory, tail1, mid_2);
       verifyNoMatch(factory, tail1, base1);
@@ -1173,4 +1176,68 @@ public class DogTagTest {
     }
   }
 
+  @Test
+  public void testDeepArrays() {
+    int[] iArray1a = { 1, 2, 3 };
+    int[] iArray_2 = { 1, 2, 4 };
+    int[] iArray1b = { 1, 2, 3 };
+    int[] iArray_3 = { 1, 2, 3, 4 };
+    int[] iArrayNl = null;
+    String[] sArray1a = { "Whiskey", "Tango", "Foxtrot" };
+    String[] sArray2_ = { "Whiskey", "Tango", "Hotel" };
+    String[] sArray1b = { "Whiskey", "Tango", "Foxtrot" };
+    String[] sArray3_ = { "Whiskey", "Tango", "Foxtrot", "Echo" };
+    String[] sArrayNl = { "Whiskey", null, "Foxtrot" };
+    String[] sArrayN2 = null;
+
+    DogTagTestTail i1a = new DogTagTestTail();
+    DogTagTestTail i2_ = new DogTagTestTail();
+    DogTagTestTail i1b = new DogTagTestTail();
+    DogTagTestTail i3_ = new DogTagTestTail();
+    DogTagTestTail iNl = new DogTagTestTail();
+    DogTagTestTail a1a = new DogTagTestTail();
+    DogTagTestTail a2_ = new DogTagTestTail();
+    DogTagTestTail a1b = new DogTagTestTail();
+    DogTagTestTail a3_ = new DogTagTestTail();
+    DogTagTestTail aNl = new DogTagTestTail();
+    DogTagTestTail aN2 = new DogTagTestTail();
+
+
+    i1a.setWhiskeyObjectArray(of("alpha", iArray1a, "bravo"));
+    i2_.setWhiskeyObjectArray(of("alpha", iArray_2, "bravo"));
+    i3_.setWhiskeyObjectArray(of("alpha", iArray_3, "bravo"));
+    i1b.setWhiskeyObjectArray(of("alpha", iArray1b, "bravo"));
+    iNl.setWhiskeyObjectArray(of("alpha", iArrayNl, "bravo"));
+    a1a.setWhiskeyObjectArray(of("alpha", sArray1a, "bravo"));
+    a2_.setWhiskeyObjectArray(of("alpha", sArray2_, "bravo"));
+    a1b.setWhiskeyObjectArray(of("alpha", sArray1b, "bravo"));
+    a3_.setWhiskeyObjectArray(of("alpha", sArray3_, "bravo"));
+    aNl.setWhiskeyObjectArray(of("alpha", sArrayNl, "bravo"));
+    aN2.setWhiskeyObjectArray(of("alpha", sArrayN2, "bravo"));
+
+    DogTag.Factory<DogTagTestTail> deepFactory = DogTag.createByInclusion(DogTagTestTail.class, "whiskeyObjectArray", "alphaInt")
+        .buildFactory();
+    DogTag.Factory<DogTagTestTail> deepExFactory = DogTag.create(DogTagTestTail.class).buildFactory();
+    DogTag.Factory<DogTagTestTail> lambdaFactory = DogTag.createByLambda(DogTagTestTail.class)
+        .add(DogTagTestTail::getAlphaInt)
+        .addDeepArray(DogTagTestTail::getWhiskeyObjectArray)
+        .buildFactory();
+    
+    List<DogTag.Factory<DogTagTestTail>> factories = Arrays.asList(deepFactory, deepExFactory, lambdaFactory);
+    for (DogTag.Factory<DogTagTestTail> factory: factories) {
+      verifyNoMatch(factory, i1a, i2_);
+      verifyMatches(factory, i1a, i1b);
+      verifyNoMatch(factory, i1a, i3_);
+      verifyNoMatch(factory, i1a, a1a);
+      verifyNoMatch(factory, i1a, iNl);
+      verifyNoMatch(factory, i1a, aNl);
+      verifyNoMatch(factory, a1a, a2_);
+      verifyMatches(factory, a1a, a1b);
+      verifyNoMatch(factory, a1a, a3_);
+      verifyNoMatch(factory, a1a, aNl);
+      verifyNoMatch(factory, a1a, aN2);
+    }
+  }
+  
+  private static Object[] of(Object... data) { return data; }
 }

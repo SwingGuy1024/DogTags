@@ -909,8 +909,8 @@ public abstract class DogTag<T> {
         // componentType is Object.class or some subclass of it. It is not a primitive. It may be an array, if the
         // field is a multi-dimensional array.
         assert !componentType.isPrimitive() : componentType;
-        arrayEquals = (thisOne, thatOne) -> Arrays.equals((Object[]) field.get(thisOne), (Object[]) field.get(thatOne));
-        arrayHash = (array) -> Arrays.hashCode((Object[]) field.get(array));
+        arrayEquals = (thisOne, thatOne) -> Arrays.deepEquals((Object[]) field.get(thisOne), (Object[]) field.get(thatOne));
+        arrayHash = (array) -> Arrays.deepHashCode((Object[]) field.get(array));
       }
       return new FieldProcessor<>(arrayEquals, arrayHash);
     }
