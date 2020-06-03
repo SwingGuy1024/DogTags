@@ -1091,10 +1091,10 @@ public class DogTagTest {
   }
   
   @SuppressWarnings("unused")
-  private class ParadigmTest {
-    private String alphaString;
-    private int bravoInt;
-    private float charlieFloat;
+  private static class ParadigmTest {
+    private final String alphaString;
+    private final int bravoInt;
+    private final float charlieFloat;
     
     ParadigmTest(String alpha, int bravo, float charlie) {
       alphaString = alpha;
@@ -1114,19 +1114,32 @@ public class DogTagTest {
     public boolean equals(final Object obj) {
       return dogTag.equals(obj);
     }
+
+    public String getAlphaString() {
+      return alphaString;
+    }
+
+    public int getBravoInt() {
+      return bravoInt;
+    }
+
+    public float getCharlieFloat() {
+      return charlieFloat;
+    }
   }
   
-  private class ParadigmTest2 extends ParadigmTest {
-    private String deltaString;
+  private static class ParadigmTest2 extends ParadigmTest {
+    private final String deltaString;
 
     ParadigmTest2(String alpha, int bravo, float charlie, String delta) {
       super(alpha, bravo, charlie);
       deltaString = delta;
     }
-    
-    private final DogTag<ParadigmTest2> dogTag = DogTag.create(classFrom(this))
+
+    private static final DogTag.Factory<ParadigmTest2> paradigmTest2Factory = DogTag.create(ParadigmTest2.class)
         .withTransients(true)
-        .buildFactory()
+        .buildFactory();
+    private final DogTag<ParadigmTest2> dogTag = paradigmTest2Factory
         .tag(this);
 
     @SuppressWarnings("EqualsWhichDoesntCheckParameterClass")
