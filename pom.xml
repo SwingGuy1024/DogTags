@@ -21,7 +21,8 @@
       <artifactId>commons-lang3</artifactId>
       <version>3.0</version>
       <scope>test</scope>
-    </dependency>  </dependencies>
+    </dependency>
+  </dependencies>
 
   <build>
     <plugins>

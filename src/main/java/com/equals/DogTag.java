@@ -4,6 +4,8 @@ import java.lang.annotation.Annotation;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Target;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.Collection;
@@ -339,25 +341,25 @@ public abstract class DogTag<T> {
     return new LambdaFactory.LambdaBuilder<>(targetClass);
   }
 
+  // TODO: Write unit test
+  public static <T> DogTagInclusionBuilder<T> createByPersistenceId(Class<T> theClass) {
+    return createByNamedAnnotation(theClass, "javax.persistence.Id"); // NON-NLS
+  }
+
+  // TODO Write unit test
+  public static <T> DogTagInclusionBuilder<T> createByNamedAnnotation(Class<T> theClass, String annotationClassName) {
+    try {
+      return createByInclusion(theClass, validateAnnotationClass(Class.forName(annotationClassName)));
+    } catch (ClassNotFoundException e) {
+      throw new IllegalArgumentException(String.format("E4: Not found: %s", annotationClassName), e);
+    }
+  }
+
   public static final class DogTagInclusionBuilder<T> extends DogTagReflectiveBuilder<T> {
     private final Map<Field, Integer> orderMap = new HashMap<>();
 
     DogTagInclusionBuilder(Class<T> theClass, String... includedFields) {
       super(theClass, false, DogTagInclude.class, includedFields);
-    }
-
-    // TODO: Write unit test
-    public static <T> DogTagInclusionBuilder<T> createByPersistenceId(Class<T> theClass) {
-      return createByNamedAnnotation(theClass, "javax.persistence.Id"); // NON-NLS
-    }
-    
-    // TODO Write unit test
-    public static <T> DogTagInclusionBuilder<T> createByNamedAnnotation(Class<T> theClass, String annotationClassName) {
-      try {
-        return createByInclusion(theClass, validateAnnotationClass(Class.forName(annotationClassName)));
-      } catch (ClassNotFoundException e) {
-        throw new IllegalArgumentException(String.format("E4: Not found: %s", annotationClassName), e);
-      }
     }
 
     @Override
@@ -397,14 +399,21 @@ public abstract class DogTag<T> {
         order = field.getAnnotation(DogTagInclude.class).order();
       } else if (nullableAnnotationClass != null) {
         Annotation annotation = field.getAnnotation(nullableAnnotationClass);
-        try {
-          Field orderField = annotation.annotationType().getDeclaredField("order");
-          if ((orderField.getType() == Integer.class) || (orderField.getType() == Integer.TYPE)) {
-            order = field.getInt(annotation);
-          }
-        } catch (NoSuchFieldException | IllegalAccessException ignored) { /* No order field is present. Leave order at default value; */ }
+        Object orderValue = getOrderFromUnknownAnnotation(annotation);
+        if (orderValue instanceof Number) {
+          order = ((Number) orderValue).intValue();
+        }
       }
       orderMap.put(field, order);
+    }
+    
+    private Object getOrderFromUnknownAnnotation(Annotation annotation) {
+      try {
+        Method method = annotation.getClass().getMethod("order");
+        return method.invoke(annotation);
+      } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException ignored) {
+        return null;
+      }
     }
 
     @Override
@@ -572,10 +581,6 @@ public abstract class DogTag<T> {
 
     protected void setUseCachedHash(final boolean useCachedHash) {
       this.useCachedHash = useCachedHash;
-    }
-
-    protected static HashBuilder getDefaultHashBuilder() {
-      return defaultHashBuilder;
     }
 
     protected HashBuilder getHashBuilder() {
@@ -823,8 +828,7 @@ public abstract class DogTag<T> {
           return true;
         }
       }
-      recordOrder(field, null);
-      return false;
+     return false;
     }
 
     /**
@@ -1038,6 +1042,7 @@ public abstract class DogTag<T> {
       return (orderCmp == 0) ? Integer.compare(this.index, that.index) : orderCmp;
     }
 
+    // These two methods don't get executed, but I keep them because later maintenance may find a use for them.
     @Override
     public boolean equals(final Object obj) {
       if (obj instanceof FieldProcessorWrapper) {
@@ -1295,14 +1300,10 @@ public abstract class DogTag<T> {
       }
 
       public LambdaBuilder<T> addArray(final ToObjectArrayFunction<T> objectArrayFunction) {
-        equalHandlerList.add((thisOne, thatOne) -> Arrays.equals(objectArrayFunction.applyAsObjectArray(thisOne), objectArrayFunction.applyAsObjectArray(thatOne)));
-        hashHandlerList.add((thisOne) -> Arrays.hashCode(objectArrayFunction.applyAsObjectArray(thisOne)));
-        return this;
-      }
-
-      public LambdaBuilder<T> addDeepArray(final ToObjectArrayFunction<T> objectArrayFunction) {
-        equalHandlerList.add((thisOne, thatOne) -> Arrays.deepEquals(objectArrayFunction.applyAsObjectArray(thisOne), objectArrayFunction.applyAsObjectArray(thatOne)));
-        hashHandlerList.add((thisOne) -> Arrays.deepHashCode(objectArrayFunction.applyAsObjectArray(thisOne)));
+        // Because this could be a multi-dimensional array, we call the deep version of equals and hashCode.
+          equalHandlerList.add((thisOne, thatOne) 
+              -> Arrays.deepEquals(objectArrayFunction.applyAsObjectArray(thisOne), objectArrayFunction.applyAsObjectArray(thatOne)));
+          hashHandlerList.add((thisOne) -> Arrays.deepHashCode(objectArrayFunction.applyAsObjectArray(thisOne)));
         return this;
       }
 
