@@ -373,13 +373,24 @@ public class PerformanceTest {
           .append(getMikeFloat(), tc.getMikeFloat())
           .isEquals();
     }
-    
+
     public static Boolean isEqual(TestClass thisOne, TestClass thatOne) {
       //noinspection ObjectEquality
       if (thisOne == thatOne) {
         return true;
       }
-      return (thisOne.getAlphaInt() == thatOne.getAlphaInt()) &&
+      return
+          (Arrays.equals(thisOne.getNovemberIntArray(), thatOne.getNovemberIntArray())) &&
+          (Arrays.equals(thisOne.getOperaStringArray(), thatOne.getOperaStringArray())) &&
+          (Arrays.equals(thisOne.getPapaLongArray(), thatOne.getPapaLongArray())) &&
+          (Arrays.equals(thisOne.getQuebecShortArray(), thatOne.getQuebecShortArray())) &&
+          (Arrays.equals(thisOne.getRomeoByteArray(), thatOne.getRomeoByteArray())) &&
+          (Arrays.equals(thisOne.getSierraCharArray(), thatOne.getSierraCharArray())) &&
+          (Arrays.equals(thisOne.getTangoBooleanArray(), thatOne.getTangoBooleanArray())) &&
+          (Arrays.equals(thisOne.getUniformFloatArray(), thatOne.getUniformFloatArray())) &&
+          (Arrays.equals(thisOne.getVictorDoubleArray(), thatOne.getVictorDoubleArray())) &&
+          (Arrays.equals(thisOne.getWhiskeyObjectArray(), thatOne.getWhiskeyObjectArray())) &&
+          (thisOne.getAlphaInt() == thatOne.getAlphaInt()) &&
           (thisOne.getBravoString().equals(thatOne.getBravoString())) &&
           (thisOne.getCharlieInt() == thatOne.getCharlieInt()) &&
           (thisOne.getDeltaLong() == thatOne.getDeltaLong()) &&
@@ -391,17 +402,7 @@ public class PerformanceTest {
           (thisOne.isJulietBoolean() == thatOne.isJulietBoolean()) &&
           (thisOne.getKiloShort() == thatOne.getKiloShort()) &&
           (Double.compare(thisOne.getLimaDouble(), thatOne.getLimaDouble()) == 0) &&
-          (Float.compare(thisOne.getMikeFloat(), thatOne.getMikeFloat()) == 0) &&
-          (Arrays.equals(thisOne.getNovemberIntArray(), thatOne.getNovemberIntArray())) &&
-          (Arrays.equals(thisOne.getOperaStringArray(), thatOne.getOperaStringArray())) &&
-          (Arrays.equals(thisOne.getPapaLongArray(), thatOne.getPapaLongArray())) &&
-          (Arrays.equals(thisOne.getQuebecShortArray(), thatOne.getQuebecShortArray())) &&
-          (Arrays.equals(thisOne.getRomeoByteArray(), thatOne.getRomeoByteArray())) &&
-          (Arrays.equals(thisOne.getSierraCharArray(), thatOne.getSierraCharArray())) &&
-          (Arrays.equals(thisOne.getTangoBooleanArray(), thatOne.getTangoBooleanArray())) &&
-          (Arrays.equals(thisOne.getUniformFloatArray(), thatOne.getUniformFloatArray())) &&
-          (Arrays.equals(thisOne.getVictorDoubleArray(), thatOne.getVictorDoubleArray())) &&
-          (Arrays.equals(thisOne.getWhiskeyObjectArray(), thatOne.getWhiskeyObjectArray()));
+          (Float.compare(thisOne.getMikeFloat(), thatOne.getMikeFloat()) == 0);
     }
   }
 

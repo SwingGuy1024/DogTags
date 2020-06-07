@@ -123,32 +123,38 @@ public abstract class DogTag<T> {
   }
   
   public abstract static class Factory<T> {
-    public abstract DogTag<T> tag(T t);
+    public final DogTag<T> tag(T t) {
+      return constructor.apply(t); // Call the DogTag constructor that was specified in the Factory constructor
+    }
 
-    abstract boolean doEqualsTest(T thisOneNeverNull, Object thatOneNullable);
-    abstract int doHashCodeInternal(T thisOne);
+
+    protected abstract boolean doEqualsTest(T thisOneNeverNull, Object thatOneNullable);
+    protected abstract int doHashCodeInternal(T thisOne);
+    protected abstract Function<T, DogTag<T>> chooseConstructor(boolean useCache);
 
     private final int startingHash;
     private final HashBuilder hashBuilder;
+    private final Function<T, DogTag<T>> constructor;
 
     @SuppressWarnings("AccessingNonPublicFieldOfAnotherObject")
-    int doCachedHashCode(final T thisOne, DogTag<T> dogTag) {
+    final int doCachedHashCode(final T thisOne, DogTag<T> dogTag) {
       if (dogTag.cachedHash == 0) {
         dogTag.cachedHash = doHashCodeInternal(thisOne);
       }
       return dogTag.cachedHash;
     }
     
-    protected Factory(HashBuilder hashBuilder, int startingHash) {
+    protected Factory(boolean useCache, HashBuilder hashBuilder, int startingHash) {
+      this.constructor = chooseConstructor(useCache);
       this.hashBuilder = hashBuilder;
       this.startingHash = startingHash;
     }
 
-    protected int getStartingHash() {
+    protected final int getStartingHash() {
       return startingHash;
     }
 
-    protected HashBuilder getHashBuilder() {
+    protected final HashBuilder getHashBuilder() {
       return hashBuilder;
     }
   }
@@ -156,7 +162,6 @@ public abstract class DogTag<T> {
   public static final class ReflectiveFactory<T> extends Factory<T> {
     private final Class<T> targetClass;
     private final List<FieldProcessor<T>> fieldProcessors;
-    private final Function<T, DogTag<T>> constructor;
 
     private ReflectiveFactory(
         Class<T> theClass,
@@ -165,17 +170,15 @@ public abstract class DogTag<T> {
         HashBuilder hashBuilder,
         boolean useCache
     ) {
-      super(hashBuilder, startingHash);
+      super(useCache, hashBuilder, startingHash);
       targetClass = theClass;
       fieldProcessors = Collections.unmodifiableList(getters);
-      constructor = useCache?
+    }
+    
+    protected final Function<T, DogTag<T>> chooseConstructor(boolean useCache) {
+      return useCache ?
           (t) -> new CachingDogTag<>(this, t) :
           (t) -> new NonCachingDogTag<>(this, t);
-    }
-
-    @Override
-    public DogTag<T> tag(T t) {
-      return constructor.apply(t); // Call the DogTag constructor that was specified in the Factory constructor
     }
 
     /**
@@ -187,7 +190,7 @@ public abstract class DogTag<T> {
      */
     @Override
     @SuppressWarnings("ObjectEquality")
-    boolean doEqualsTest(T thisOneNeverNull, Object thatOneNullable) {
+    protected boolean doEqualsTest(T thisOneNeverNull, Object thatOneNullable) {
       assert thisOneNeverNull != null : "Always pass 'this' to the first parameter of this method!";
       if (thisOneNeverNull == thatOneNullable) {
         return true;
@@ -221,7 +224,7 @@ public abstract class DogTag<T> {
      * @return The hashCode
      */
     @Override
-    int doHashCodeInternal(T thisOne) {
+    protected int doHashCodeInternal(T thisOne) {
       assert thisOne != null : "Always pass 'this' to this method! That guarantees it won't be null.";
       int hash = getStartingHash();
 
@@ -1022,7 +1025,6 @@ public abstract class DogTag<T> {
     private int getHashValue(T thisOne) throws IllegalAccessException {
       return hashMethod.get(thisOne);
     }
-
   }
 
   private static final class FieldProcessorWrapper<T> implements Comparable<FieldProcessorWrapper<T>> {
@@ -1079,6 +1081,7 @@ public abstract class DogTag<T> {
     }
 
   }
+
   private static final class CachingDogTag<N> extends DogTag<N> {
 
     private CachingDogTag(final Factory<N> factory, final N instance) {
@@ -1115,6 +1118,24 @@ public abstract class DogTag<T> {
     }
   }
 
+  private static final class CachingLambdaDogTag<X> extends DogTag<X> {
+
+    private CachingLambdaDogTag(final Factory<X> factory, final X instance) {
+      super(factory, instance);
+    }
+
+    @SuppressWarnings("EqualsWhichDoesntCheckParameterClass")
+    @Override
+    public boolean equals(final Object that) {
+      return getFactory().doEqualsTest(getInstance(), that);
+    }
+
+    @Override
+    public int hashCode() {
+      return getFactory().doCachedHashCode(getInstance(), this);
+    }
+  }
+
   public static final class LambdaFactory<T> extends Factory<T> {
     private final List<EqualHandler<T>> equalHandlerList;
     private final List<HashHandler<T>> hashHandlerList;
@@ -1128,10 +1149,17 @@ public abstract class DogTag<T> {
         List<EqualHandler<T>> equalHandlerList,
         List<HashHandler<T>> hashHandlerList
     ) {
-      super(hashBuilder, startingHash);
+      super(useCache, hashBuilder, startingHash);
       targetClass = theClass;
       this.equalHandlerList = Collections.unmodifiableList(equalHandlerList);
       this.hashHandlerList = Collections.unmodifiableList(hashHandlerList);
+    }
+
+    @Override
+    protected Function<T, DogTag<T>> chooseConstructor(final boolean useCache) {
+      return useCache ?
+          (t) -> new CachingLambdaDogTag<>(this, t) :
+          (t) -> new LambdaDogTag<>(this, t);
     }
 
     // TODO: Handle this using Iterable
@@ -1144,12 +1172,7 @@ public abstract class DogTag<T> {
     }
 
     @Override
-    public DogTag<T> tag(final T t) {
-      return new LambdaDogTag<>(this, t);
-    }
-
-    @Override
-    boolean doEqualsTest(final T thisOne, final Object thatOne) {
+    protected boolean doEqualsTest(final T thisOne, final Object thatOne) {
       //noinspection ObjectEquality
       if (thisOne == thatOne) {
         return true;
@@ -1194,6 +1217,26 @@ public abstract class DogTag<T> {
 
       LambdaBuilder(Class<T> theClass) {
         super(theClass);
+      }
+
+      /**
+       * Cache the hash value when only final fields are used to build the DogTag. Enabling the
+       * finalFieldsOnly option automatically enables this option, but you may use this method to set it manually.
+       * <p>
+       * This option should be used with extreme caution. Even if you specify only final fields, this will fail if, for
+       * example, the final fields are themselves mutable. For a hashCode to be eligible for the correct use of this
+       * option, the following two conditions must be true of every field you include in your DogTag:
+       * <br>
+       * 1. It must not be possible to change the value once the owning object has been constructed.<br>
+       * 2. If the field is an Object, All if its internal fields used in its hash code calculation must meet both of these conditions.
+       * <p>
+       * The second, of course, makes this recursive. In other words, if any field anywhere in the object tree of any
+       * field is used to calculate a hash code, that field cannot change value once the outermost element of the tree
+       * is constructed.
+       */
+      public LambdaBuilder<T> withCachedHash(boolean useCachedHash) {
+        setUseCachedHash(useCachedHash);
+        return this;
       }
 
       public LambdaBuilder<T> add(final ToIntFunction<T> intFunction) {

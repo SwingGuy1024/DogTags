@@ -135,6 +135,50 @@ public class DogTagHashTest {
     setEcho(t1, 98); // If the hash code is cached, changing an included field shouldn't change the hash code.
     assertEquals(h1, dtOne.hashCode());
   }
+  
+  @Test
+  public void testLambdaWithHash() {
+    TestClassWithCache c123 = new TestClassWithCache(1, 2, 3);
+    TestClassWithCache c523 = new TestClassWithCache(5, 2, 3);
+    TestClassWithCache c163 = new TestClassWithCache(1, 6, 3);
+    TestClassWithCache c124 = new TestClassWithCache(1, 2, 4);
+    TestClassWithCache cDup = new TestClassWithCache(1, 2, 3);
+    
+    DogTag.Factory<TestClassWithCache> cachedFactory = DogTag.createByLambda(TestClassWithCache.class)
+        .add(TestClassWithCache::getDelta)
+        .add(TestClassWithCache::getEcho)
+        .add(TestClassWithCache::getFoxTrot)
+        .withCachedHash(true)
+        .buildFactory();
+    DogTag.Factory<TestClassWithCache> unCachedFactory = DogTag.createByLambda(TestClassWithCache.class)
+        .add(TestClassWithCache::getDelta)
+        .add(TestClassWithCache::getEcho)
+        .add(TestClassWithCache::getFoxTrot)
+        .buildFactory();
+    
+    verifyNoMatch(cachedFactory, c123, c523);
+    verifyNoMatch(cachedFactory, c123, c163);
+    verifyNoMatch(cachedFactory, c123, c124);
+    verifyMatches(cachedFactory, c123, cDup);
+
+    verifyNoMatch(unCachedFactory, c123, c523);
+    verifyNoMatch(unCachedFactory, c123, c163);
+    verifyNoMatch(unCachedFactory, c123, c124);
+    verifyMatches(unCachedFactory, c123, cDup);
+
+    DogTag<TestClassWithCache> dt123Cached = cachedFactory.tag(c123);
+    DogTag<TestClassWithCache> dtDupCached = cachedFactory.tag(cDup);
+    DogTag<TestClassWithCache> dt123UnCached = unCachedFactory.tag(c123);
+    DogTag<TestClassWithCache> dtDupUnCached = unCachedFactory.tag(cDup);
+
+    verifyMatches(dt123Cached, dtDupCached);
+    verifyMatches(dt123UnCached, dtDupUnCached);
+    cDup.setFoxTrot(7);
+    assertNotEquals(dt123Cached, dtDupCached);
+    assertEquals(dt123Cached.hashCode(), dtDupCached.hashCode());
+    assertNotEquals(dt123UnCached, dtDupUnCached);
+    assertNotEquals(dt123UnCached.hashCode(), dtDupUnCached.hashCode());
+  }
 
   @Test(expected = AssertionError.class)
   public void testNonFinalCache() {

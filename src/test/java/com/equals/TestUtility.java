@@ -16,6 +16,13 @@ enum TestUtility {
     DogTag<T> dt1 = factory.tag(t1);
     DogTag<T> dt2 = factory.tag(t2);
 
+    verifyMatches(dt1, dt2);
+  }
+  
+  static <T> void verifyMatches(DogTag<T> dt1, DogTag<T> dt2) {
+    T t1 = dt1.getInstance();
+    T t2 = dt2.getInstance();
+
     String message = dt1.getClass().toString();
     assertEquals(message, dt1, t2); // equality test
     assertEquals(message, dt1.hashCode(), dt2.hashCode()); // hash code consistency test
@@ -26,6 +33,13 @@ enum TestUtility {
   static <T> void verifyNoMatch(DogTag.Factory<T> factory, T t1, T t2) {
     DogTag<T> dt1 = factory.tag(t1);
     DogTag<T> dt2 = factory.tag(t2);
+
+    verifyNoMatch(dt1, dt2);
+  }
+  
+  static <T> void verifyNoMatch(DogTag<T> dt1, DogTag<T> dt2) {
+    T t1 = dt1.getInstance();
+    T t2 = dt2.getInstance();
 
     String message = dt1.getClass().toString();
     assertNotEquals(message, dt1, t2); // equality test
