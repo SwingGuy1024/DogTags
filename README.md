@@ -10,10 +10,10 @@ There are two ways to use it. They are very similar. They are Reflect-On-Class-L
 
 ## Sample Usages:
 
-### Reflect-On-Class-Load
+### Reflect on Class Load
 
     public class MyClass extends Serializable {
-      private static final DogTag.Factory<MyClass> factory = DogTag.from(MyClass.class)
+      private static final DogTag.Factory<MyClass> factory = DogTag.create(MyClass.class).build()
       private transient final DogTag<MyClass> dogTag = factory.tag(this);
       
       // ... (fields and methods omitted for brevity)

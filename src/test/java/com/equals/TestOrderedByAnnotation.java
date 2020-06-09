@@ -35,7 +35,7 @@ public class TestOrderedByAnnotation {
     @DogTagInclude(order = 20)
     private final int second=2;
 
-    private static final DogTag.Factory<OrderedByAnnotationClass> factory = DogTag.createByInclusion(OrderedByAnnotationClass.class).buildFactory();
+    private static final DogTag.Factory<OrderedByAnnotationClass> factory = DogTag.createByInclusion(OrderedByAnnotationClass.class).build();
     
     private final DogTag<OrderedByAnnotationClass> dogTag = factory.tag(this);
   }
@@ -46,7 +46,7 @@ public class TestOrderedByAnnotation {
     DogTag.Factory<OrderedByAnnotationClass> factory = OrderedByAnnotationClass.factory;
     testForOrder(orderedClass, factory);
     DogTag.Factory<OrderedByAnnotationClass> customFactory = DogTag.createByInclusion(OrderedByAnnotationClass.class, TestIncludeWithOrder.class)
-        .buildFactory();
+        .build();
     testForOrder(orderedClass, customFactory);
   }
 
@@ -89,7 +89,7 @@ public class TestOrderedByAnnotation {
 
     private static final DogTag.Factory<OrderedByCustomAnnotationClass> factory
         = DogTag.createByInclusion(OrderedByCustomAnnotationClass.class, TestIncludeWithOrder.class)
-        .buildFactory();
+        .build();
 
     private final DogTag<OrderedByCustomAnnotationClass> dogTag = factory.tag(this);
   }
@@ -128,7 +128,7 @@ public class TestOrderedByAnnotation {
   public void testBadAnnotation() {
     try {
       DogTag.createByInclusion(OrderedByAnnotationClass.class, TestIncludeWrongTarget.class)
-          .buildFactory();
+          .build();
       fail();
     } catch (IllegalArgumentException e) {
       assertThat(e.getMessage(), StringContains.containsString("E2:"));
@@ -139,7 +139,7 @@ public class TestOrderedByAnnotation {
   public void testNotAnnotation() {
     try {
       DogTag.createByNamedAnnotation(OrderedByAnnotationClass.class, OrderedByAnnotationClass.class.getName())
-          .buildFactory();
+          .build();
       fail();
     } catch (IllegalArgumentException e) {
       assertThat(e.getMessage(), StringContains.containsString("E5:"));
@@ -147,7 +147,7 @@ public class TestOrderedByAnnotation {
     
     try {
       DogTag.createByNamedAnnotation(OrderedByAnnotationClass.class, "Not a class name")
-          .buildFactory();
+          .build();
       fail();
     } catch (IllegalArgumentException e) {
       assertThat(e.getMessage(), StringContains.containsString("E4:"));

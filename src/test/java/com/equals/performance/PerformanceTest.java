@@ -81,35 +81,35 @@ public class PerformanceTest {
     reverse(instances);
 
     DogTag.DogTagExclusionBuilder<TestClass> classDogTagExclusionBuilder = DogTag.create(classFrom(t0));
-    DogTag.Factory<TestClass> dogTagfactory = classDogTagExclusionBuilder.buildFactory();
+    DogTag.Factory<TestClass> dogTagfactory = classDogTagExclusionBuilder.build();
 
     final BiFunction<TestClass, TestClass, Boolean> directEqual = TestClass::isEqual;
 //    TimingUtility.runTestCycles(dogTagfactory, t0, instances, directEqual, EMPTY_STRING_ARRAY);
     DogTag.Factory<TestClass> lambdaFactory = DogTag.createByLambda(TestClass.class)
-        .add(TestClass::getNovemberIntArray)
+        .addArray(TestClass::getNovemberIntArray)
         .addArray(TestClass::getOperaStringArray)
-        .add(TestClass::getPapaLongArray)
-        .add(TestClass::getQuebecShortArray)
-        .add(TestClass::getRomeoByteArray)
-        .add(TestClass::getSierraCharArray)
-        .add(TestClass::getTangoBooleanArray)
-        .add(TestClass::getUniformFloatArray)
-        .add(TestClass::getVictorDoubleArray)
+        .addArray(TestClass::getPapaLongArray)
+        .addArray(TestClass::getQuebecShortArray)
+        .addArray(TestClass::getRomeoByteArray)
+        .addArray(TestClass::getSierraCharArray)
+        .addArray(TestClass::getTangoBooleanArray)
+        .addArray(TestClass::getUniformFloatArray)
+        .addArray(TestClass::getVictorDoubleArray)
         .addArray(TestClass::getWhiskeyObjectArray)
-        .add(TestClass::getAlphaInt)
+        .addSimple(TestClass::getAlphaInt)
         .addObject(TestClass::getBravoString)
-        .add(TestClass::getCharlieInt)
-        .add(TestClass::getDeltaLong)
+        .addSimple(TestClass::getCharlieInt)
+        .addSimple(TestClass::getDeltaLong)
         .addObject(TestClass::getEchoString)
         .addObject(TestClass::getFoxtrotPoint)
-        .add(TestClass::getGolfInt)
-        .add(TestClass::getHotelByte)
-        .add(TestClass::getIndigoChar)
-        .add(TestClass::isJulietBoolean)
-        .add(TestClass::getKiloShort)
-        .add(TestClass::getLimaDouble)
-        .add(TestClass::getMikeFloat)
-        .buildFactory();
+        .addSimple(TestClass::getGolfInt)
+        .addSimple(TestClass::getHotelByte)
+        .addSimple(TestClass::getIndigoChar)
+        .addSimple(TestClass::isJulietBoolean)
+        .addSimple(TestClass::getKiloShort)
+        .addSimple(TestClass::getLimaDouble)
+        .addSimple(TestClass::getMikeFloat)
+        .build();
     TimingUtility.runTestCycles(lambdaFactory, t0, instances, directEqual, EMPTY_STRING_ARRAY);
         
   }
@@ -127,7 +127,7 @@ public class PerformanceTest {
 //        .withExcludedFields(excludedFields)
 //        .getFactory();
     SingleValueTestClass dummy = new SingleValueTestClass(1, "x");
-    DogTag.Factory<SingleValueTestClass> dogTagNoArrays = DogTag.create(classFrom(dummy)).buildFactory();
+    DogTag.Factory<SingleValueTestClass> dogTagNoArrays = DogTag.create(classFrom(dummy)).build();
     SingleValueTestClass t0 = new SingleValueTestClass(1, "bravo");
     SingleValueTestClass t1 = new SingleValueTestClass(11, "bravo");
 //    SingleValueTestClass t2 = new SingleValueTestClass(1, "bravisimo");
@@ -158,18 +158,18 @@ public class PerformanceTest {
     TimingUtility.runTestCycles(dogTagNoArrays, t0, pInstances, PerformanceTest::singleValueDirectEqual, EMPTY_STRING_ARRAY);
     
     DogTag.Factory<SingleValueTestClass> lambdaFactory = DogTag.createByLambda(SingleValueTestClass.class)
-        .add(SingleValueTestClass::getAlphaInt)
-        .add(SingleValueTestClass::getCharlieInt)
-        .add(SingleValueTestClass::getDeltaLong)
+        .addSimple(SingleValueTestClass::getAlphaInt)
+        .addSimple(SingleValueTestClass::getCharlieInt)
+        .addSimple(SingleValueTestClass::getDeltaLong)
         .addObject(SingleValueTestClass::getEchoString)
-        .add(SingleValueTestClass::getGolfInt)
-        .add(SingleValueTestClass::getHotelByte)
-        .add(SingleValueTestClass::getIndigoChar)
-        .add(SingleValueTestClass::isJulietBoolean)
-        .add(SingleValueTestClass::getKiloShort)
-        .add(SingleValueTestClass::getLimaDouble)
-        .add(SingleValueTestClass::getMikeFloat)
-        .buildFactory();
+        .addSimple(SingleValueTestClass::getGolfInt)
+        .addSimple(SingleValueTestClass::getHotelByte)
+        .addSimple(SingleValueTestClass::getIndigoChar)
+        .addSimple(SingleValueTestClass::isJulietBoolean)
+        .addSimple(SingleValueTestClass::getKiloShort)
+        .addSimple(SingleValueTestClass::getLimaDouble)
+        .addSimple(SingleValueTestClass::getMikeFloat)
+        .build();
     TimingUtility.runTestCycles(lambdaFactory, t0, pInstances, PerformanceTest::singleValueDirectEqual, EMPTY_STRING_ARRAY);
   }
 
@@ -592,7 +592,7 @@ public class PerformanceTest {
     TwoStringClass t2 = new TwoStringClass("alpha", "bravo");
     TwoStringClass t3 = new TwoStringClass("iALPHA".substring(1), "iBRAVO".substring(1));
 
-    DogTag.Factory<TwoStringClass> dogTag = DogTag.create(classFrom(t0)).buildFactory();
+    DogTag.Factory<TwoStringClass> dogTag = DogTag.create(classFrom(t0)).build();
     TwoStringClass[] array = { t3, t2, t1 };
     TimingUtility.runTestCycles(dogTag, t0, array, PerformanceTest::handCoded, EMPTY_STRING_ARRAY);
   }
@@ -767,7 +767,7 @@ public class PerformanceTest {
     @SuppressWarnings("UseOfClone")
     S26 clone = original.clone();
 
-    DogTag.Factory<S26> dogTag = DogTag.create(classFrom(zz)).buildFactory();
+    DogTag.Factory<S26> dogTag = DogTag.create(classFrom(zz)).build();
 
     S26[] i = {aa, bb, cc, dd, ee, ff, gg, hh, ii, jj, kk, ll, mm, nn, oo, pp, qq, rr, ss, tt, uu, vv, ww, xx, yy, zz, clone };
     reverse(i);

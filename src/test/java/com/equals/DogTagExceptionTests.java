@@ -54,12 +54,12 @@ public class DogTagExceptionTests {
   }
   
   private static class StaticDogTag {
-    private static final DogTag.Factory<StaticDogTag> factory = DogTag.create(StaticDogTag.class).buildFactory();
+    private static final DogTag.Factory<StaticDogTag> factory = DogTag.create(StaticDogTag.class).build();
     private static final DogTag<StaticDogTag> badDogTag = factory.tag(new StaticDogTag());
   }
   
   private static class NonStaticFactory {
-    private final DogTag.Factory<StaticDogTag> factory = DogTag.create(StaticDogTag.class).buildFactory();
+    private final DogTag.Factory<StaticDogTag> factory = DogTag.create(StaticDogTag.class).build();
   }
   
   private static class NonFinalCached {
@@ -68,7 +68,7 @@ public class DogTagExceptionTests {
     private static final DogTag.Factory<NonFinalCached> factory = DogTag
         .create(NonFinalCached.class)
         .withCachedHash(true)
-        .buildFactory();
+        .build();
     private final DogTag<NonFinalCached> dogTag = factory.tag(this);
   }
   

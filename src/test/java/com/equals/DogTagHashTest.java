@@ -14,19 +14,19 @@ public class DogTagHashTest {
   @Test
   public void testHashBuilder() {
     TestClassOne tc1 = new TestClassOne(1, 2, 3);
-    DogTag.Factory<TestClassOne> factory = DogTag.create(classFrom(tc1)).buildFactory();
+    DogTag.Factory<TestClassOne> factory = DogTag.create(classFrom(tc1)).build();
     DogTag<TestClassOne> tag = factory.tag(tc1);
     assertEquals(30817, tag.hashCode());
 
     DogTag.Factory<TestClassOne> revisedFactory = DogTag.create(classFrom(tc1))
         .withHashBuilder(1, (int i, Object v) -> (i * 4567) + v.hashCode())
-        .buildFactory();
+        .build();
     DogTag<TestClassOne> revisedTag = revisedFactory.tag(tc1);
     assertEquals(787738377, revisedTag.hashCode());
 
     DogTag.Factory<TestClassOne> inclusionFactory = DogTag.createByInclusion(classFrom(tc1), "alpha", "bravo", "charlie")
         .withHashBuilder(1, (int i, Object v) -> (i * 4567) + v.hashCode())
-        .buildFactory();
+        .build();
     DogTag<TestClassOne>  inclusionTag = inclusionFactory.tag(tc1);
     assertEquals(787738377, inclusionTag.hashCode());
   }
@@ -145,16 +145,16 @@ public class DogTagHashTest {
     TestClassWithCache cDup = new TestClassWithCache(1, 2, 3);
     
     DogTag.Factory<TestClassWithCache> cachedFactory = DogTag.createByLambda(TestClassWithCache.class)
-        .add(TestClassWithCache::getDelta)
-        .add(TestClassWithCache::getEcho)
-        .add(TestClassWithCache::getFoxTrot)
+        .addSimple(TestClassWithCache::getDelta)
+        .addSimple(TestClassWithCache::getEcho)
+        .addSimple(TestClassWithCache::getFoxTrot)
         .withCachedHash(true)
-        .buildFactory();
+        .build();
     DogTag.Factory<TestClassWithCache> unCachedFactory = DogTag.createByLambda(TestClassWithCache.class)
-        .add(TestClassWithCache::getDelta)
-        .add(TestClassWithCache::getEcho)
-        .add(TestClassWithCache::getFoxTrot)
-        .buildFactory();
+        .addSimple(TestClassWithCache::getDelta)
+        .addSimple(TestClassWithCache::getEcho)
+        .addSimple(TestClassWithCache::getFoxTrot)
+        .build();
     
     verifyNoMatch(cachedFactory, c123, c523);
     verifyNoMatch(cachedFactory, c123, c163);
@@ -185,7 +185,7 @@ public class DogTagHashTest {
     TestClassWithCache tc1 = new TestClassWithCache(1, 2, 3);
     DogTag.create(classFrom(tc1))
         .withCachedHash(true)
-        .buildFactory();
+        .build();
   }
 
   private void setEcho(TestClassWithCache instance, int newValue) {
@@ -254,7 +254,7 @@ public class DogTagHashTest {
 
     private final DogTag<TestClassWithCache> dogTag = DogTag.create(classFrom(this))
         .withFinalFieldsOnly(true) // This should implicitly set withCachedHash to true 
-        .buildFactory()
+        .build()
         .tag(this);
 
     @Override

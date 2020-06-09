@@ -27,12 +27,12 @@ public class DogTagTest {
     DogTagTestBase baseTestDupl = new DogTagTestBase(5, "bravo", 7, 5L);
     
     DogTag.Factory<DogTagTestBase> excludeCReflect = DogTag.create(classFrom(baseTest5b75), CHARLIE_INT)
-        .buildFactory();
+        .build();
     DogTag.Factory<DogTagTestBase> excludeCLambda = DogTag.createByLambda(DogTagTestBase.class)
-        .add(DogTagTestBase::getAlphaInt)
+        .addSimple(DogTagTestBase::getAlphaInt)
         .addObject(DogTagTestBase::getBravoString)
-        .add(DogTagTestBase::getDeltaLong)
-        .buildFactory();
+        .addSimple(DogTagTestBase::getDeltaLong)
+        .build();
 
     List<DogTag.Factory<DogTagTestBase>> dList = Arrays.asList(excludeCReflect, excludeCLambda);
     
@@ -55,13 +55,13 @@ public class DogTagTest {
       verifyMatches(excludeC, baseTest5b75, baseTestDupl);
     }
 
-    DogTag.Factory<DogTagTestBase> includeBaseOnlyReflect = DogTag.create(classFrom(baseTest5b75)).buildFactory();
+    DogTag.Factory<DogTagTestBase> includeBaseOnlyReflect = DogTag.create(classFrom(baseTest5b75)).build();
     DogTag.Factory<DogTagTestBase> includeBaseOnlyLambda = DogTag.createByLambda(DogTagTestBase.class)
-        .add(DogTagTestBase::getAlphaInt)
-        .add(DogTagTestBase::getDeltaLong)
+        .addSimple(DogTagTestBase::getAlphaInt)
+        .addSimple(DogTagTestBase::getDeltaLong)
         .addObject(DogTagTestBase::getBravoString)
-        .add(DogTagTestBase::getCharlieInt)
-        .buildFactory();
+        .addSimple(DogTagTestBase::getCharlieInt)
+        .build();
 
     dList = Arrays.asList(includeBaseOnlyReflect, includeBaseOnlyLambda);
     for (DogTag.Factory<DogTagTestBase> includeBaseOnly: dList) {
@@ -102,12 +102,12 @@ public class DogTagTest {
             "bravoString",
             "deltaLong"
         )
-        .buildFactory();
+        .build();
     DogTag.Factory<DogTagTestBase> includeAllButCLambda = DogTag.createByLambda(DogTagTestBase.class)
-        .add(DogTagTestBase::getAlphaInt)
+        .addSimple(DogTagTestBase::getAlphaInt)
         .addObject(DogTagTestBase::getBravoString)
-        .add(DogTagTestBase::getDeltaLong)
-        .buildFactory();
+        .addSimple(DogTagTestBase::getDeltaLong)
+        .build();
     dList = Arrays.asList(includeAllButCReflect, includeAllButCLambda);
     
     for (DogTag.Factory<DogTagTestBase> includeAllButC: dList) {
@@ -133,7 +133,7 @@ public class DogTagTest {
   public void testTransient() {
     DogTagTestMid mid1 = new DogTagTestMid(12, "bravo", 3, 4L, "echo", new Point2D.Double(14.2, 2.14), 7, (byte)8, 'I');
     DogTagTestMid mid2 = mid1.duplicate();
-    DogTag.Factory<DogTagTestMid> defaultFactory = DogTag.create(classFrom(mid1)).buildFactory(); // Tests may construct their own DogTags.
+    DogTag.Factory<DogTagTestMid> defaultFactory = DogTag.create(classFrom(mid1)).build(); // Tests may construct their own DogTags.
     mid2.setGolfIntTr(77); // transient value
     verifyMatches(defaultFactory, mid1, mid2);
     
@@ -142,7 +142,7 @@ public class DogTagTest {
 
     DogTag.Factory<DogTagTestMid> FactoryWithTransients = DogTag.create(classFrom(mid1))
         .withTransients(true)
-        .buildFactory();
+        .build();
     mid2.setFoxtrotPoint((Point2D) mid1.getFoxtrotPoint().clone()); // reset Point2D
     verifyNoMatch(FactoryWithTransients, mid1, mid2);
     mid2.setGolfIntTr(mid1.getGolfIntTr());
@@ -154,7 +154,7 @@ public class DogTagTest {
     DogTag.Factory<DogTagTestTail> FactoryTail = DogTag.create(classFrom(tail1))
         .withReflectUpTo(DogTagTestMid.class)
         .withTransients(true)
-        .buildFactory();
+        .build();
     tail1.setGolfIntTr(-10);
     tail2.setGolfIntTr(43);
     verifyNoMatch(FactoryTail, tail1, tail2);
@@ -177,11 +177,11 @@ public class DogTagTest {
 
     DogTag.Factory<DogTagTestBase> baseFactoryEx = DogTag.create(classFrom(b1b23)) // include alpha, bravo
         .withFinalFieldsOnly(true)
-        .buildFactory();
+        .build();
     DogTag.Factory<DogTagTestBase> lambdaBaseFactory = DogTag.createByLambda(DogTagTestBase.class)
-        .add(DogTagTestBase::getAlphaInt)
+        .addSimple(DogTagTestBase::getAlphaInt)
         .addObject(DogTagTestBase::getBravoString)
-        .buildFactory();
+        .build();
 
     List<DogTag.Factory<DogTagTestBase>> factories = Arrays.asList(baseFactoryEx, lambdaBaseFactory);
 
@@ -205,12 +205,12 @@ public class DogTagTest {
     }
 
     DogTag.Factory<DogTagTestBase> factoryBase2 = DogTag.create(classFrom(b1b23), "bravoString") // include a, c, d
-        .buildFactory();
+        .build();
     lambdaBaseFactory = DogTag.createByLambda(DogTagTestBase.class)
-        .add(DogTagTestBase::getAlphaInt)
-        .add(DogTagTestBase::getCharlieInt)
-        .add(DogTagTestBase::getDeltaLong)
-        .buildFactory();
+        .addSimple(DogTagTestBase::getAlphaInt)
+        .addSimple(DogTagTestBase::getCharlieInt)
+        .addSimple(DogTagTestBase::getDeltaLong)
+        .build();
     factories = Arrays.asList(factoryBase2, lambdaBaseFactory);
 
     for (DogTag.Factory<DogTagTestBase> factory2 : factories) {
@@ -233,10 +233,10 @@ public class DogTagTest {
 
     DogTag.Factory<DogTagTestBase> factory3Base = DogTag.create(classFrom(b1b23), "alphaInt")
         .withFinalFieldsOnly(true)
-        .buildFactory();
+        .build();
     lambdaBaseFactory = DogTag.createByLambda(DogTagTestBase.class)
         .addObject(DogTagTestBase::getBravoString)
-        .buildFactory();
+        .build();
     factories = Arrays.asList(factory3Base, lambdaBaseFactory);
 
     for (DogTag.Factory<DogTagTestBase> factory3 : factories) {
@@ -290,30 +290,30 @@ public class DogTagTest {
 
     DogTag.Factory<DogTagTestTail> tailFactory = DogTag.create(classFrom(tail1), "kiloShort", "julietBoolean")
         .withReflectUpTo(DogTagTestBase.class)
-        .buildFactory();
+        .build();
     DogTag.Factory<DogTagTestTail> lambdaFactory = DogTag.createByLambda(DogTagTestTail.class)
-        .add(DogTagTestTail::getAlphaInt)
+        .addSimple(DogTagTestTail::getAlphaInt)
         .addObject(DogTagTestTail::getBravoString)
-        .add(DogTagTestTail::getCharlieInt)
-        .add(DogTagTestTail::getDeltaLong)
+        .addSimple(DogTagTestTail::getCharlieInt)
+        .addSimple(DogTagTestTail::getDeltaLong)
         .addObject(DogTagTestTail::getEchoString)
         .addObject(DogTagTestTail::getFoxtrotPoint)
-        .add(DogTagTestTail::getGolfIntTr)
-        .add(DogTagTestTail::getHotelByte)
-        .add(DogTagTestTail::getIndigoChar)
-        .add(DogTagTestTail::getLimaDouble)
-        .add(DogTagTestTail::getMikeFloat)
-        .add(DogTagTestTail::getNovemberIntArray)
+        .addSimple(DogTagTestTail::getGolfIntTr)
+        .addSimple(DogTagTestTail::getHotelByte)
+        .addSimple(DogTagTestTail::getIndigoChar)
+        .addSimple(DogTagTestTail::getLimaDouble)
+        .addSimple(DogTagTestTail::getMikeFloat)
+        .addArray(DogTagTestTail::getNovemberIntArray)
         .addArray(DogTagTestTail::getOperaStringArray)
-        .add(DogTagTestTail::getPapaLongArray)
-        .add(DogTagTestTail::getQuebecShortArray)
-        .add(DogTagTestTail::getRomeoByteArray)
-        .add(DogTagTestTail::getSierraCharArray)
-        .add(DogTagTestTail::getTangoBooleanArray)
-        .add(DogTagTestTail::getUniformFloatArray)
-        .add(DogTagTestTail::getVictorDoubleArray)
+        .addArray(DogTagTestTail::getPapaLongArray)
+        .addArray(DogTagTestTail::getQuebecShortArray)
+        .addArray(DogTagTestTail::getRomeoByteArray)
+        .addArray(DogTagTestTail::getSierraCharArray)
+        .addArray(DogTagTestTail::getTangoBooleanArray)
+        .addArray(DogTagTestTail::getUniformFloatArray)
+        .addArray(DogTagTestTail::getVictorDoubleArray)
         .addArray(DogTagTestTail::getWhiskeyObjectArray)
-        .buildFactory();
+        .build();
     List<DogTag.Factory<DogTagTestTail>> factories = Arrays.asList(tailFactory, lambdaFactory);
 
     for (DogTag.Factory<DogTagTestTail> factory : factories) {
@@ -329,30 +329,30 @@ public class DogTagTest {
       verifyNoMatch(factory, tail1, base2_D);
     }
 
-    DogTag.Factory<DogTagTestTail> tail2Factory = DogTag.create(classFrom(tail1), "limaDouble", "charlieInt").buildFactory();
+    DogTag.Factory<DogTagTestTail> tail2Factory = DogTag.create(classFrom(tail1), "limaDouble", "charlieInt").build();
     lambdaFactory = DogTag.createByLambda(classFrom(tail1))
-        .add(DogTagTestTail::getAlphaInt)
+        .addSimple(DogTagTestTail::getAlphaInt)
         .addObject(DogTagTestTail::getBravoString)
-        .add(DogTagTestTail::getKiloShort)
-        .add(DogTagTestTail::getDeltaLong)
+        .addSimple(DogTagTestTail::getKiloShort)
+        .addSimple(DogTagTestTail::getDeltaLong)
         .addObject(DogTagTestTail::getEchoString)
         .addObject(DogTagTestTail::getFoxtrotPoint)
-        .add(DogTagTestTail::getGolfIntTr)
-        .add(DogTagTestTail::getHotelByte)
-        .add(DogTagTestTail::getIndigoChar)
-        .add(DogTagTestTail::isJulietBoolean)
-        .add(DogTagTestTail::getMikeFloat)
-        .add(DogTagTestTail::getNovemberIntArray)
+        .addSimple(DogTagTestTail::getGolfIntTr)
+        .addSimple(DogTagTestTail::getHotelByte)
+        .addSimple(DogTagTestTail::getIndigoChar)
+        .addSimple(DogTagTestTail::isJulietBoolean)
+        .addSimple(DogTagTestTail::getMikeFloat)
+        .addArray(DogTagTestTail::getNovemberIntArray)
         .addArray(DogTagTestTail::getOperaStringArray)
-        .add(DogTagTestTail::getPapaLongArray)
-        .add(DogTagTestTail::getQuebecShortArray)
-        .add(DogTagTestTail::getRomeoByteArray)
-        .add(DogTagTestTail::getSierraCharArray)
-        .add(DogTagTestTail::getTangoBooleanArray)
-        .add(DogTagTestTail::getUniformFloatArray)
-        .add(DogTagTestTail::getVictorDoubleArray)
+        .addArray(DogTagTestTail::getPapaLongArray)
+        .addArray(DogTagTestTail::getQuebecShortArray)
+        .addArray(DogTagTestTail::getRomeoByteArray)
+        .addArray(DogTagTestTail::getSierraCharArray)
+        .addArray(DogTagTestTail::getTangoBooleanArray)
+        .addArray(DogTagTestTail::getUniformFloatArray)
+        .addArray(DogTagTestTail::getVictorDoubleArray)
         .addArray(DogTagTestTail::getWhiskeyObjectArray)
-        .buildFactory();
+        .build();
     
     factories = Arrays.asList(tail2Factory, lambdaFactory);
 
@@ -373,21 +373,21 @@ public class DogTagTest {
 
     DogTag.Factory<DogTagTestTail> factoryToObject = DogTag.create(classFrom(tail1), "kiloShort", "julietBoolean")
         .withReflectUpTo(DogTagTestTail.class)
-        .buildFactory();
+        .build();
     lambdaFactory = DogTag.createByLambda(DogTagTestTail.class)
-        .add(DogTagTestTail::getLimaDouble)
-        .add(DogTagTestTail::getMikeFloat)
-        .add(DogTagTestTail::getNovemberIntArray)
+        .addSimple(DogTagTestTail::getLimaDouble)
+        .addSimple(DogTagTestTail::getMikeFloat)
+        .addArray(DogTagTestTail::getNovemberIntArray)
         .addArray(DogTagTestTail::getOperaStringArray)
-        .add(DogTagTestTail::getPapaLongArray)
-        .add(DogTagTestTail::getQuebecShortArray)
-        .add(DogTagTestTail::getRomeoByteArray)
-        .add(DogTagTestTail::getSierraCharArray)
-        .add(DogTagTestTail::getTangoBooleanArray)
-        .add(DogTagTestTail::getUniformFloatArray)
-        .add(DogTagTestTail::getVictorDoubleArray)
+        .addArray(DogTagTestTail::getPapaLongArray)
+        .addArray(DogTagTestTail::getQuebecShortArray)
+        .addArray(DogTagTestTail::getRomeoByteArray)
+        .addArray(DogTagTestTail::getSierraCharArray)
+        .addArray(DogTagTestTail::getTangoBooleanArray)
+        .addArray(DogTagTestTail::getUniformFloatArray)
+        .addArray(DogTagTestTail::getVictorDoubleArray)
         .addArray(DogTagTestTail::getWhiskeyObjectArray)
-        .buildFactory();
+        .build();
     
     factories = Arrays.asList(factoryToObject, lambdaFactory);
     
@@ -406,20 +406,20 @@ public class DogTagTest {
 
     tail2Factory = DogTag.create(classFrom(tail1), "limaDouble", "papaLongArray")
         .withReflectUpTo(DogTagTestTail.class)
-        .buildFactory();
+        .build();
     lambdaFactory = DogTag.createByLambda(classFrom(tail1))
-        .add(DogTagTestTail::isJulietBoolean)
-        .add(DogTagTestTail::getMikeFloat)
-        .add(DogTagTestTail::getNovemberIntArray)
+        .addSimple(DogTagTestTail::isJulietBoolean)
+        .addSimple(DogTagTestTail::getMikeFloat)
+        .addArray(DogTagTestTail::getNovemberIntArray)
         .addArray(DogTagTestTail::getOperaStringArray)
-        .add(DogTagTestTail::getQuebecShortArray)
-        .add(DogTagTestTail::getRomeoByteArray)
-        .add(DogTagTestTail::getSierraCharArray)
-        .add(DogTagTestTail::getTangoBooleanArray)
-        .add(DogTagTestTail::getUniformFloatArray)
-        .add(DogTagTestTail::getVictorDoubleArray)
+        .addArray(DogTagTestTail::getQuebecShortArray)
+        .addArray(DogTagTestTail::getRomeoByteArray)
+        .addArray(DogTagTestTail::getSierraCharArray)
+        .addArray(DogTagTestTail::getTangoBooleanArray)
+        .addArray(DogTagTestTail::getUniformFloatArray)
+        .addArray(DogTagTestTail::getVictorDoubleArray)
         .addArray(DogTagTestTail::getWhiskeyObjectArray)
-        .buildFactory();
+        .build();
 
     factories = Arrays.asList(tail2Factory, lambdaFactory);
 
@@ -444,24 +444,24 @@ public class DogTagTest {
 
     DogTag.Factory<DogTagTestTail> factoryToMid = DogTag.create(classFrom(tail1), "kiloShort", "julietBoolean", "hotelByte", "indigoChar")
         .withReflectUpTo(DogTagTestMid.class)
-        .buildFactory();
+        .build();
     lambdaFactory = DogTag.createByLambda(DogTagTestTail.class)
         .addObject(DogTagTestTail::getEchoString)
         .addObject(DogTagTestTail::getFoxtrotPoint)
-        .add(DogTagTestTail::getGolfIntTr)
-        .add(DogTagTestTail::getLimaDouble)
-        .add(DogTagTestTail::getMikeFloat)
-        .add(DogTagTestTail::getNovemberIntArray)
+        .addSimple(DogTagTestTail::getGolfIntTr)
+        .addSimple(DogTagTestTail::getLimaDouble)
+        .addSimple(DogTagTestTail::getMikeFloat)
+        .addArray(DogTagTestTail::getNovemberIntArray)
         .addArray(DogTagTestTail::getOperaStringArray)
-        .add(DogTagTestTail::getPapaLongArray)
-        .add(DogTagTestTail::getQuebecShortArray)
-        .add(DogTagTestTail::getRomeoByteArray)
-        .add(DogTagTestTail::getSierraCharArray)
-        .add(DogTagTestTail::getTangoBooleanArray)
-        .add(DogTagTestTail::getUniformFloatArray)
-        .add(DogTagTestTail::getVictorDoubleArray)
+        .addArray(DogTagTestTail::getPapaLongArray)
+        .addArray(DogTagTestTail::getQuebecShortArray)
+        .addArray(DogTagTestTail::getRomeoByteArray)
+        .addArray(DogTagTestTail::getSierraCharArray)
+        .addArray(DogTagTestTail::getTangoBooleanArray)
+        .addArray(DogTagTestTail::getUniformFloatArray)
+        .addArray(DogTagTestTail::getVictorDoubleArray)
         .addArray(DogTagTestTail::getWhiskeyObjectArray)
-        .buildFactory();
+        .build();
     factories = Arrays.asList(factoryToMid, lambdaFactory);
 
     for (DogTag.Factory<DogTagTestTail> factory : factories) {
@@ -480,21 +480,21 @@ public class DogTagTest {
 
     DogTag.Factory<DogTagTestTail> factoryNoSuper = DogTag.create(classFrom(tail1), "kiloShort", "julietBoolean")
         .withReflectUpTo(DogTagTestTail.class)
-        .buildFactory();
+        .build();
     lambdaFactory = DogTag.createByLambda(DogTagTestTail.class)
-        .add(DogTagTestTail::getLimaDouble)
-        .add(DogTagTestTail::getMikeFloat)
-        .add(DogTagTestTail::getNovemberIntArray)
+        .addSimple(DogTagTestTail::getLimaDouble)
+        .addSimple(DogTagTestTail::getMikeFloat)
+        .addArray(DogTagTestTail::getNovemberIntArray)
         .addArray(DogTagTestTail::getOperaStringArray)
-        .add(DogTagTestTail::getPapaLongArray)
-        .add(DogTagTestTail::getQuebecShortArray)
-        .add(DogTagTestTail::getRomeoByteArray)
-        .add(DogTagTestTail::getSierraCharArray)
-        .add(DogTagTestTail::getTangoBooleanArray)
-        .add(DogTagTestTail::getUniformFloatArray)
-        .add(DogTagTestTail::getVictorDoubleArray)
+        .addArray(DogTagTestTail::getPapaLongArray)
+        .addArray(DogTagTestTail::getQuebecShortArray)
+        .addArray(DogTagTestTail::getRomeoByteArray)
+        .addArray(DogTagTestTail::getSierraCharArray)
+        .addArray(DogTagTestTail::getTangoBooleanArray)
+        .addArray(DogTagTestTail::getUniformFloatArray)
+        .addArray(DogTagTestTail::getVictorDoubleArray)
         .addArray(DogTagTestTail::getWhiskeyObjectArray)
-        .buildFactory();
+        .build();
     factories = Arrays.asList(factoryNoSuper, lambdaFactory);
 
     for (DogTag.Factory<DogTagTestTail> factory : factories) {
@@ -516,7 +516,7 @@ public class DogTagTest {
     DogTagTestBase base2 = base1.duplicate();
     base2.setCharlieInt(12);
     DogTag.Factory<DogTagTestBase> factory = DogTag.create(classFrom(base1), CHARLIE_INT)
-        .buildFactory();
+        .build();
 
     verifyMatches(factory, base1, base2);
     base2.setDeltaLong(88L);
@@ -528,7 +528,7 @@ public class DogTagTest {
     DogTagTestTail tail = new DogTagTestTail();
     DogTag.create(classFrom(tail), CHARLIE_INT)
         .withReflectUpTo(DogTagTestTail.class)// CHARLIE_INT is a superclass method, but the superclass wasn't included.
-        .buildFactory();
+        .build();
   }
 
   @Test(expected=IllegalArgumentException.class)
@@ -536,7 +536,7 @@ public class DogTagTest {
     DogTagTestTail tail = new DogTagTestTail();
     DogTag.create(classFrom(tail), "hotelByte")
         .withReflectUpTo(DogTagTestTail.class)
-        .buildFactory();
+        .build();
   }
 
   @Test
@@ -560,7 +560,7 @@ public class DogTagTest {
       // Include fields from all three classes
       DogTag.create(classFrom(tail), "kiloShort", "indigoChar", "alphaInt", "missing")
           .withReflectUpTo(Object.class)
-          .buildFactory();
+          .build();
       fail();
     } catch (IllegalArgumentException e) {
       assertTrue(e.getMessage().contains("missing"));
@@ -576,7 +576,7 @@ public class DogTagTest {
       // Include fields from all three classes
       DogTag.create(classFrom(tail), "kiloShort", "mikeFloat", "julietBoolean", "missing")
           .withReflectUpTo(DogTagTestTail.class) // Differs here from previous test
-          .buildFactory();
+          .build();
       fail();
     } catch (IllegalArgumentException e) {
       assertTrue(e.getMessage().contains("missing"));
@@ -607,7 +607,7 @@ public class DogTagTest {
     DogTagTestTail tail1 = new DogTagTestTail();
     DogTagTestTail tail2 = tail1.duplicate();
     DogTag.Factory<DogTagTestTail> factory = DogTag.create(classFrom(tail1), "novemberIntArray", "operaStringArray")
-        .buildFactory();
+        .build();
     for (float f1: notNumbers) {
       for (float f2: notNumbers) {
         tail1.setMikeFloat(f1);
@@ -639,7 +639,7 @@ public class DogTagTest {
     DogTagTestTail tail1 = new DogTagTestTail();
     DogTagTestTail tail2 = tail1.duplicate();
     DogTag.Factory<DogTagTestTail> factory = DogTag.create(classFrom(tail1), "novemberIntArray", "operaStringArray")
-        .buildFactory();
+        .build();
     for (double f1: notNumbers) {
       for (double f2: notNumbers) {
         tail1.setLimaDouble(f1);
@@ -653,7 +653,7 @@ public class DogTagTest {
   public void testIntArrays() {
     DogTagTestTail tail1 = new DogTagTestTail();
     DogTagTestTail tail2 = tail1.duplicate();
-    DogTag.Factory<DogTagTestTail> factory = DogTag.create(classFrom(tail1)).buildFactory();
+    DogTag.Factory<DogTagTestTail> factory = DogTag.create(classFrom(tail1)).build();
 
     verifyMatches(factory, tail1, tail2);
 
@@ -669,7 +669,7 @@ public class DogTagTest {
 
     DogTag.Factory<DogTagTestTail> factory = DogTag.create(classFrom(tail1))
         .withReflectUpTo(DogTagTestBase.class)
-        .buildFactory();
+        .build();
     verifyNoMatch(factory, tail1, tail2);
 
     factory.doHashCodeInternal(tail2); // just make sure we can get a hashCode with that null member.
@@ -678,7 +678,7 @@ public class DogTagTest {
   @Test
   public void testArrays() {
     DogTagTestTail tail = new DogTagTestTail();
-    DogTag.Factory<DogTagTestTail> factory = DogTag.create(classFrom(tail)).buildFactory();
+    DogTag.Factory<DogTagTestTail> factory = DogTag.create(classFrom(tail)).build();
 
     // ints
     DogTagTestTail tail1 = new DogTagTestTail();
@@ -1198,13 +1198,13 @@ public class DogTagTest {
   private static final class ClassWithBadDogTag {
     private static final ClassWithBadDogTag badInstance = new ClassWithBadDogTag();
     private static final DogTag.DogTagExclusionBuilder<ClassWithBadDogTag> builder = DogTag.create(classFrom(badInstance));
-    private static final DogTag.Factory<ClassWithBadDogTag> dogTagFactory = builder.buildFactory(); // Should throw AssertionError
+    private static final DogTag.Factory<ClassWithBadDogTag> dogTagFactory = builder.build(); // Should throw AssertionError
     @SuppressWarnings("unused")
     private static final DogTag<ClassWithBadDogTag> dogTag = dogTagFactory.tag(badInstance); // STATIC!
   }
 
   private static final class ClassWithBadFactory {
-    private final DogTag.Factory<ClassWithBadFactory> factory = DogTag.create(ClassWithBadFactory.class).buildFactory();
+    private final DogTag.Factory<ClassWithBadFactory> factory = DogTag.create(ClassWithBadFactory.class).build();
     @SuppressWarnings("unused")
     private final DogTag<ClassWithBadFactory> dogTag = factory.tag(this);
   }
@@ -1249,12 +1249,12 @@ public class DogTagTest {
     aN2.setWhiskeyObjectArray(of("alpha", sArrayN2, "bravo"));
 
     DogTag.Factory<DogTagTestTail> deepFactory = DogTag.createByInclusion(DogTagTestTail.class, "whiskeyObjectArray", "alphaInt")
-        .buildFactory();
-    DogTag.Factory<DogTagTestTail> deepExFactory = DogTag.create(DogTagTestTail.class).buildFactory();
+        .build();
+    DogTag.Factory<DogTagTestTail> deepExFactory = DogTag.create(DogTagTestTail.class).build();
     DogTag.Factory<DogTagTestTail> lambdaFactory = DogTag.createByLambda(DogTagTestTail.class)
-        .add(DogTagTestTail::getAlphaInt)
+        .addSimple(DogTagTestTail::getAlphaInt)
         .addArray(DogTagTestTail::getWhiskeyObjectArray)
-        .buildFactory();
+        .build();
     
     List<DogTag.Factory<DogTagTestTail>> factories = Arrays.asList(deepFactory, deepExFactory, lambdaFactory);
     for (DogTag.Factory<DogTagTestTail> factory: factories) {
@@ -1291,7 +1291,7 @@ public class DogTagTest {
     
     DogTag.Factory<TwoDArray> lambdaFactory = DogTag.createByLambda(TwoDArray.class)
         .addArray(TwoDArray::getAlphaIntArray)
-        .buildFactory();
+        .build();
 
     verifyNoMatch(lambdaFactory, a, b);
     verifyMatches(lambdaFactory, a, c);

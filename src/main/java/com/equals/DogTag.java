@@ -24,7 +24,7 @@ import java.util.function.ToIntFunction;
 import java.util.function.ToLongFunction;
 
 /**
- * <p><strong>Much of the documentation is out of date. It will be updated shortly</strong><p>
+ * <p><strong>Much of the documentation is out of date. It will be updated shortly</strong></p>
  * <p>Fast {@code equals()} and {@code hashCode()} methods. Generally guarantees that {@code equals()} complies with its contract, 
  * and that {@code hashCode()} is consistent with {@code equals()}, according to its contract. (There is one exception to this guarantee,
  * described in the cachedHash option, which must be used correctly if it is enabled. The guarantee is solid when the option is 
@@ -286,8 +286,8 @@ public abstract class DogTag<T> {
    *   a.equals(c); // returns true;
    *   b.equals(c); // returns false, failing the transitivity test.
    * </pre>
-   * This fails because when instances of B and C are constructed, the {@code DogTag.from(...)} method will construct DogTags for classes
-   * B and C. When the {@code equals()} method is called, the tests {@code b instanceof C} and {@code c instanceof B} will return false. <p>
+   * <p>This fails because when instances of B and C are constructed, the {@code DogTag.from(...)} method will construct DogTags for classes
+   * B and C. When the {@code equals()} method is called, the tests {@code b instanceof C} and {@code c instanceof B} will return false. </p>
    * <p>However, this will work:</p>
    * <pre>
    *   class A {
@@ -608,13 +608,13 @@ public abstract class DogTag<T> {
       }
       Factory<T> factory = getForClass(this.targetClass);
       if (factory == null) {
-        factory = buildFactory();
+        factory = build();
         factoryMap.put(this.targetClass, factory);
       }
       return factory;
     }
     
-    public abstract Factory<T> buildFactory();
+    public abstract Factory<T> build();
 
 //    /**
 //     * Build the DogTag instance from the factory, creating the factory if it doesn't exist yet.
@@ -771,7 +771,7 @@ public abstract class DogTag<T> {
      * @return A factory from the previously set options
      */
     @Override
-    public Factory<T> buildFactory() {
+    public Factory<T> build() {
       return new ReflectiveFactory<>(getTargetClass(), makeGetterList(), getStartingHash(), getHashBuilder(), isUseCachedHash());
     }
 
@@ -1297,104 +1297,127 @@ public abstract class DogTag<T> {
         return this;
       }
 
-      public LambdaBuilder<T> add(final ToIntFunction<T> intFunction) {
+      public LambdaBuilder<T> addSimple(final ToIntFunction<T> intFunction) {
         equalHandlerList.add((thisOne, thatOne) -> intFunction.applyAsInt(thisOne) == intFunction.applyAsInt(thatOne));
         hashHandlerList.add(intFunction::applyAsInt);
         return this;
       }
 
-      public LambdaBuilder<T> add(final ToLongFunction<T> longFunction) {
+      public LambdaBuilder<T> addSimple(final ToLongFunction<T> longFunction) {
         equalHandlerList.add((thisOne, thatOne) -> longFunction.applyAsLong(thisOne) == longFunction.applyAsLong(thatOne));
         hashHandlerList.add(thisOne -> Long.hashCode(longFunction.applyAsLong(thisOne)));
         return this;
       }
 
-      public LambdaBuilder<T> add(final ToCharFunction<T> charFunction) {
+      public LambdaBuilder<T> addSimple(final ToCharFunction<T> charFunction) {
         equalHandlerList.add((thisOne, thatOne) -> charFunction.applyAsChar(thisOne) == charFunction.applyAsChar(thatOne));
         hashHandlerList.add(thisOne -> Character.hashCode(charFunction.applyAsChar(thisOne)));
         return this;
       }
 
-      public LambdaBuilder<T> add(final ToByteFunction<T> byteFunction) {
+      public LambdaBuilder<T> addSimple(final ToByteFunction<T> byteFunction) {
         equalHandlerList.add((thisOne, thatOne) -> byteFunction.applyAsByte(thisOne) == byteFunction.applyAsByte(thatOne));
         hashHandlerList.add(thisOne -> Byte.hashCode(byteFunction.applyAsByte(thisOne)));
         return this;
       }
 
-      public LambdaBuilder<T> add(final ToShortFunction<T> shortFunction) {
+      public LambdaBuilder<T> addSimple(final ToShortFunction<T> shortFunction) {
         equalHandlerList.add((thisOne, thatOne) -> shortFunction.applyAsShort(thisOne) == shortFunction.applyAsShort(thatOne));
         hashHandlerList.add(thisOne -> Short.hashCode(shortFunction.applyAsShort(thisOne)));
         return this;
       }
 
-      public LambdaBuilder<T> add(final ToFloatFunction<T> floatFunction) {
-        equalHandlerList.add((thisOne, thatOne) -> Float.floatToIntBits(floatFunction.applyAsFloat(thisOne)) == Float.floatToIntBits(floatFunction.applyAsFloat(thatOne)));
+      public LambdaBuilder<T> addSimple(final ToFloatFunction<T> floatFunction) {
+        equalHandlerList.add((thisOne, thatOne) 
+            -> Float.floatToIntBits(floatFunction.applyAsFloat(thisOne)) == Float.floatToIntBits(floatFunction.applyAsFloat(thatOne)));
         hashHandlerList.add(thisOne -> Float.hashCode(floatFunction.applyAsFloat(thisOne)));
         return this;
       }
 
-      public LambdaBuilder<T> add(final ToDoubleFunction<T> doubleFunction) {
-        equalHandlerList.add((thisOne, thatOne) -> Double.doubleToLongBits(doubleFunction.applyAsDouble(thisOne)) == Double.doubleToLongBits(doubleFunction.applyAsDouble(thatOne)));
+      public LambdaBuilder<T> addSimple(final ToDoubleFunction<T> doubleFunction) {
+        equalHandlerList.add((thisOne, thatOne) 
+            -> Double.doubleToLongBits(doubleFunction.applyAsDouble(thisOne)) == Double.doubleToLongBits(doubleFunction.applyAsDouble(thatOne)));
         hashHandlerList.add(thisOne -> Double.hashCode(doubleFunction.applyAsDouble(thisOne)));
         return this;
       }
 
       public LambdaBuilder<T> addObject(final ToObjectFunction<T> objectFunction) {
-        equalHandlerList.add((thisOne, thatOne) -> Objects.equals(objectFunction.applyAsObject(thisOne), objectFunction.applyAsObject(thatOne)));
-        hashHandlerList.add(thisOne -> (Objects.hashCode(objectFunction.applyAsObject(thisOne))));
+        equalHandlerList.add((thisOne, thatOne) -> {
+
+          // method overloading can't distinguish between Object and Object[], so the user may accidentally call this instead of
+          // the addObjectArray() method. To make this class foolproof, we test for arrays here and call the Arrays.deepEquals() method
+          // if appropriate.
+          Object thisArray = objectFunction.applyAsObject(thisOne);
+          Object thatThing = objectFunction.applyAsObject(thatOne);
+          if ((thisArray != null) && thisArray.getClass().isArray()) {
+            return (thatThing != null) && thatThing.getClass().isArray() && Arrays.deepEquals((Object[]) thisArray, (Object[]) thatThing);
+          }
+          return Objects.equals(thisArray, thatThing);
+        });
+        hashHandlerList.add(thisOne -> {
+
+          // method overloading can't distinguish between Object and Object[], so the user may accidentally call this instead of
+          // the addObjectArray() method. To make this class foolproof, we test for arrays here and call the Arrays.deepHashCode() method
+          // if appropriate.
+          Object thisObject = objectFunction.applyAsObject(thisOne);
+          if ((thisObject != null) && thisObject.getClass().isArray()) {
+            return Arrays.deepHashCode((Object[]) thisObject);
+          }
+          return (Objects.hashCode(thisObject));
+        });
         return this;
       }
 
-      public LambdaBuilder<T> add(final ToBooleanFunction<T> booleanFunction) {
+      public LambdaBuilder<T> addSimple(final ToBooleanFunction<T> booleanFunction) {
         equalHandlerList.add((thisOne, thatOne) -> booleanFunction.applyAsBoolean(thisOne) == booleanFunction.applyAsBoolean(thatOne));
         hashHandlerList.add(thisOne -> Boolean.hashCode(booleanFunction.applyAsBoolean(thisOne)));
         return this;
       }
       
-      public LambdaBuilder<T> add(final ToIntArrayFunction<T> intArrayFunction) {
+      public LambdaBuilder<T> addArray(final ToIntArrayFunction<T> intArrayFunction) {
         equalHandlerList.add((thisOne, thatOne) -> Arrays.equals(intArrayFunction.applyAsIntArray(thisOne), intArrayFunction.applyAsIntArray(thatOne)));
         hashHandlerList.add((thisOne) -> Arrays.hashCode(intArrayFunction.applyAsIntArray(thisOne)));
         return this;
       }
 
-      public LambdaBuilder<T> add(final ToLongArrayFunction<T> longArrayFunction) {
+      public LambdaBuilder<T> addArray(final ToLongArrayFunction<T> longArrayFunction) {
         equalHandlerList.add((thisOne, thatOne) -> Arrays.equals(longArrayFunction.applyAsLongArray(thisOne), longArrayFunction.applyAsLongArray(thatOne)));
         hashHandlerList.add((thisOne) -> Arrays.hashCode(longArrayFunction.applyAsLongArray(thisOne)));
         return this;
       }
 
 
-      public LambdaBuilder<T> add(final ToCharArrayFunction<T> charArrayFunction) {
+      public LambdaBuilder<T> addArray(final ToCharArrayFunction<T> charArrayFunction) {
         equalHandlerList.add((thisOne, thatOne) -> Arrays.equals(charArrayFunction.applyAsCharArray(thisOne), charArrayFunction.applyAsCharArray(thatOne)));
         hashHandlerList.add((thisOne) -> Arrays.hashCode(charArrayFunction.applyAsCharArray(thisOne)));
         return this;
       }
 
-      public LambdaBuilder<T> add(final ToByteArrayFunction<T> byteArrayFunction) {
+      public LambdaBuilder<T> addArray(final ToByteArrayFunction<T> byteArrayFunction) {
         equalHandlerList.add((thisOne, thatOne) -> Arrays.equals(byteArrayFunction.applyAsByteArray(thisOne), byteArrayFunction.applyAsByteArray(thatOne)));
         hashHandlerList.add((thisOne) -> Arrays.hashCode(byteArrayFunction.applyAsByteArray(thisOne)));
         return this;
       }
 
-      public LambdaBuilder<T> add(final ToShortArrayFunction<T> shortArrayFunction) {
+      public LambdaBuilder<T> addArray(final ToShortArrayFunction<T> shortArrayFunction) {
         equalHandlerList.add((thisOne, thatOne) -> Arrays.equals(shortArrayFunction.applyAsShortArray(thisOne), shortArrayFunction.applyAsShortArray(thatOne)));
         hashHandlerList.add((thisOne) -> Arrays.hashCode(shortArrayFunction.applyAsShortArray(thisOne)));
         return this;
       }
 
-      public LambdaBuilder<T> add(final ToFloatArrayFunction<T> floatArrayFunction) {
+      public LambdaBuilder<T> addArray(final ToFloatArrayFunction<T> floatArrayFunction) {
         equalHandlerList.add((thisOne, thatOne) -> Arrays.equals(floatArrayFunction.applyAsFloatArray(thisOne), floatArrayFunction.applyAsFloatArray(thatOne)));
         hashHandlerList.add((thisOne) -> Arrays.hashCode(floatArrayFunction.applyAsFloatArray(thisOne)));
         return this;
       }
 
-      public LambdaBuilder<T> add(final ToDoubleArrayFunction<T> doubleArrayFunction) {
+      public LambdaBuilder<T> addArray(final ToDoubleArrayFunction<T> doubleArrayFunction) {
         equalHandlerList.add((thisOne, thatOne) -> Arrays.equals(doubleArrayFunction.applyAsDoubleArray(thisOne), doubleArrayFunction.applyAsDoubleArray(thatOne)));
         hashHandlerList.add((thisOne) -> Arrays.hashCode(doubleArrayFunction.applyAsDoubleArray(thisOne)));
         return this;
       }
 
-      public LambdaBuilder<T> add(final ToBooleanArrayFunction<T> booleanArrayFunction) {
+      public LambdaBuilder<T> addArray(final ToBooleanArrayFunction<T> booleanArrayFunction) {
         equalHandlerList.add((thisOne, thatOne) -> Arrays.equals(booleanArrayFunction.applyAsBooleanArray(thisOne), booleanArrayFunction.applyAsBooleanArray(thatOne)));
         hashHandlerList.add((thisOne) -> Arrays.hashCode(booleanArrayFunction.applyAsBooleanArray(thisOne)));
         return this;
@@ -1409,7 +1432,7 @@ public abstract class DogTag<T> {
       }
 
       @Override
-      public Factory<T> buildFactory() {
+      public Factory<T> build() {
         return new LambdaFactory<>(getTargetClass(), getStartingHash(), getHashBuilder(), isUseCachedHash(), equalHandlerList, hashHandlerList);
       }
     }
