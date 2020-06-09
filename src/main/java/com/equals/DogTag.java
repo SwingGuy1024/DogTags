@@ -24,9 +24,18 @@ import java.util.function.ToIntFunction;
 import java.util.function.ToLongFunction;
 
 /**
- * <strong>Much of the documentation is out of date. It will be updated shortly</strong><p>
- * Fast {@code equals()} and {@code hashCode()} methods. Guarantees that {@code equals()} complies with its contract, 
- * and that {@code hashCode()} is consistent with {@code equals()}, according to its contract.
+ * <p><strong>Much of the documentation is out of date. It will be updated shortly</strong><p>
+ * <p>Fast {@code equals()} and {@code hashCode()} methods. Generally guarantees that {@code equals()} complies with its contract, 
+ * and that {@code hashCode()} is consistent with {@code equals()}, according to its contract. (There is one exception to this guarantee,
+ * described in the cachedHash option, which must be used correctly if it is enabled. The guarantee is solid when the option is 
+ * disabled.)</p>
+ * <p>Three modes are available:</p>
+ * <ul>
+ *   <li>Reflection, which includes all non-transient fields by default</li>
+ *   <li>Exclusive Reflection, which excludes all fields by default except those explicitly named</li>
+ *   <li>Non-Reflective, where methods are specified using method references</li>
+ * </ul>
+ * <p>For performance reasons, all reflection is done when the class is loaded, except calls to Method.invoke()</p>
  * <p>
  * Unlike Apache's {@code EqualsBuilder.reflectionEquals()} method, most of the slow reflective calls are not done when 
  * {@code equals()} is called, but at class-load time, or when the first instance is instantiated, so they are only 
@@ -252,10 +261,55 @@ public abstract class DogTag<T> {
   }
 
   /**
-   * Instantiate a DogTag for an instance of class T, using default options. The default options are: All Fields are 
+   * <p>Instantiate a DogTag for an instance of final class T, using default options. The default options are: All Fields are 
    * included except transient and static fields, as well as fields annotated with {@code @DogTagExclude}. All 
-   * superclass fields are included.
-   * <p>
+   * superclass fields are included.</p>
+   * <p><em>This may only be used with final classes.</em> This is because otherwise subclasses will fail the transitivity test. To 
+   * understand why, consider these classes:</p>
+   * <pre>
+   *   class A {
+   *     // ... details omitted for brevity
+   *     private final {@literal DogTag<A>} dogTag = DogTag.from(this);    // disallowed
+   *     public boolean equals(Object that) { return dogTag.equals(that); }
+   *   }
+   *   
+   *   class B extends A { ... }
+   *   class C extends A { ... }
+   *   
+   *   // ...
+   *
+   *   A a = new A();
+   *   B b = new B();
+   *   C c = new C();
+   *   
+   *   a.equals(b); // returns true;
+   *   a.equals(c); // returns true;
+   *   b.equals(c); // returns false, failing the transitivity test.
+   * </pre>
+   * This fails because when instances of B and C are constructed, the {@code DogTag.from(...)} method will construct DogTags for classes
+   * B and C. When the {@code equals()} method is called, the tests {@code b instanceof C} and {@code c instanceof B} will return false. <p>
+   * <p>However, this will work:</p>
+   * <pre>
+   *   class A {
+   *     // ... details omitted for brevity
+   *     private static final {@literal DogTag.Factory<A>} factory = DogTag.create(A.class).buildFactory();
+   *     private final {@literal DogTag<A>} dogTag = factory.tag(this);
+   *     public boolean equals(Object that) { return dogTag.equals(that); }
+   *   }
+   *
+   *   class B extends A { ... }
+   *   class C extends A { ... }
+   *
+   *   // ...
+   *
+   *   A a = new A();
+   *   B b = new B();
+   *   C c = new C();
+   *
+   *   a.equals(b); // returns true;
+   *   a.equals(c); // returns true;
+   *   b.equals(c); // returns true, passing the transitivity test.
+   * </pre>
    * The first time this method is called for a class, it will create a DogTag.Factory and store it. Subsequent calls
    * will retrieve that factory and re-use it.
    * @param owner The instance of enclosing class. Pass {@code this} to this parameter
@@ -547,11 +601,15 @@ public abstract class DogTag<T> {
      * Options may be specified in any order.
      * @return A {@literal DogTag.Factory<T>} that builds instances of {@literal DogTag<T>} using the specified options.
      */
-    public Factory<T> getFactory() {
-      Factory<T> factory = getForClass(getTargetClass());
+    protected Factory<T> getFactory() {
+      int modifiers = targetClass.getModifiers();
+      if (!Modifier.isFinal(modifiers)) {
+        throw new IllegalArgumentException(String.format("E11: %s is not final. Use one of the DogTag.createXxx() methods.", targetClass));
+      }
+      Factory<T> factory = getForClass(this.targetClass);
       if (factory == null) {
         factory = buildFactory();
-        factoryMap.put(getTargetClass(), factory);
+        factoryMap.put(this.targetClass, factory);
       }
       return factory;
     }

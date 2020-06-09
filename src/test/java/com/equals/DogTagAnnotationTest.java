@@ -311,7 +311,8 @@ public class DogTagAnnotationTest {
       this.charlie = charlie;
     }
 
-    private final DogTag<TestClassOne> dogTag = DogTag.from(this);
+    private static final DogTag.Factory<TestClassOne> factory = DogTag.create(TestClassOne.class).buildFactory();
+    private final DogTag<TestClassOne> dogTag = factory.tag(this);
 
     @Override
     public int hashCode() {

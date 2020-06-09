@@ -1,8 +1,10 @@
 # DogTags
 Java Utility to generate a fast equals and hash code generation using reflection.
-While this capability is covered by `org.apache.commons.lang3.builder.EqualsBuilder`, performance tests show that DogTags run anywhere from 1.5 to 20 times faster, depending on circumstances. The performance gains are greatest for objects with no similarities. 
+While this capability is covered by `org.apache.commons.lang3.builder.EqualsBuilder`, performance tests show that DogTags run anywhere 
+from 1.5 to 20 times faster, depending on circumstances. The performance gains are greatest for objects with no similarities. 
 
-DogTags achieves this gain by doing all the reflection once, ahead of time, instead of each time the `equals()` or `hashCode()` methods are called.
+DogTags achieves this gain by doing all the reflective inspections once, ahead of time, instead of each time the `equals()` or `hashCode()` 
+methods are called.
 
 There are two ways to use it. They are very similar. They are Reflect-On-Class-Load and Reflect-On-First_instantiation.
 
@@ -10,12 +12,11 @@ There are two ways to use it. They are very similar. They are Reflect-On-Class-L
 
 ### Reflect-On-Class-Load
 
-    public class MyClass {
+    public class MyClass extends Serializable {
       private static final DogTag.Factory<MyClass> factory = DogTag.from(MyClass.class)
-
-      // ... (fields and methods here)
+      private transient final DogTag<MyClass> dogTag = factory.tag(this);
       
-      private final DogTag<MyClass> dogTag = factory.tag(this);
+      // ... (fields and methods omitted for brevity)
       
       @Override
       public boolean equals(Object obj) {
@@ -27,8 +28,9 @@ There are two ways to use it. They are very similar. They are Reflect-On-Class-L
         return dogTag.hashCode();
       }
     }
-The reflection happens when the static DogTag.Factory instance is constructed.
-
+The reflection happens when the static DogTag.Factory instance is constructed. Since this is required to be a static field, this will 
+only happen once for each class. (Failure to declare the factory static will result in a runtime exception when the class loads.) Each 
+instance of MyClass gets its own DogTag instance.
 
 ### Reflect-On-First-Instantiation
 
@@ -129,3 +131,13 @@ In the interest of speed and professional coding practices, there are some thing
 1. They don't recurse into member classes. Each class has the responsibility to implement its own `equals()` and `hashCode()` methods, and to make them consistent. DogTags assume that all members have fulfilled the method contracts correctly. DogTags guarantee that its `equals()` and `hashCode()` methods will fulfill their contracts correctly, but it always defers the work of comparing two member objects or hashing their values to their own methods. If think you need it to recurse into a custom type, give that type it's own DogTag.
 
 1. They don't completely replace the Apache EqualsBuilder class. DogTags are a much faster replacement for the `EqualsBuilder.reflectionEquals()` and `EqualsBuilder.reflectionHashCode()` methods, but using EqualsBuilder to build an equals method that does not use reflection is still faster than DogTags, although it's more work and requires more maintenance.
+
+## Comparison with ReflectionEquals, EqualsBuilder & HashCodeBuilder
+DogTags's different modes fill the same niche as all three of the Apache commons-lang classes. That said, there are still advantages to using the Apache classes, but there are other advantages to using DogTags. For example:
+### Using Reflection
+1. When using reflection, DogTags makes all its reflection queries once, ahead of time, for each class that uses them. This gives DogTags a considerable performance boost.
+1. Because the DogTag instance uses the same fields and methods to implement both equals() and hashCode(), it can guarantee that the two
+methods will be consistent. Of course, consistency is easy to accomplish. But with larger classes, after undergoing a great deal of maintenance where new fields are added, inconsistencies can creep in. DogTags prevents introducing new fields from causing inconsistent equals() and hashCode() methods, making code maintenance more reliable.
+1. DogTags take care of the identity test and `instanceof` test (with its implicit null test). On the downside, the code to set up the DogTag.Factory makes the setup more verbose.
+
+### Using 

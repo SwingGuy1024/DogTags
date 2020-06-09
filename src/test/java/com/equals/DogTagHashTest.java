@@ -199,7 +199,7 @@ public class DogTagHashTest {
   }
 
   @SuppressWarnings("PackageVisibleField")
-  private static class TestClassOne {
+  private static final class TestClassOne {
     int alpha;
     int bravo;
     int charlie;
@@ -225,7 +225,7 @@ public class DogTagHashTest {
   }
 
   @SuppressWarnings("unused")
-  private static class TestClassWithCache {
+  private static final class TestClassWithCache {
     private final int delta;
     private final int echo;
     private int foxTrot;

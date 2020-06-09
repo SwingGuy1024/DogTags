@@ -978,7 +978,7 @@ public class DogTagTest {
   }
 
   @SuppressWarnings({"AssignmentOrReturnOfFieldWithMutableType", "WeakerAccess"})
-  private static class DogTagTestTail extends DogTagTestMid {
+  private static final class DogTagTestTail extends DogTagTestMid {
 
     DogTagTestTail(int alphaInt, String bravoString, int charlieInt, long deltaLong, String echoString, 
                           Point2D foxtrotPoint, int golfIntTr, byte hotelByte, char indigoChar,
@@ -1158,7 +1158,7 @@ public class DogTagTest {
   }
   
   @SuppressWarnings("unused")
-  private static class ParadigmTest {
+  private static final class ParadigmTest {
     private final String alphaString;
     private final int bravoInt;
     private final float charlieFloat;
@@ -1299,7 +1299,7 @@ public class DogTagTest {
   }
   
   @SuppressWarnings("AssignmentOrReturnOfFieldWithMutableType")
-  private static class TwoDArray {
+  private static final class TwoDArray {
     private final int[][] alphaIntArray;
     
     private final DogTag<TwoDArray> dogTag = DogTag.from(this);

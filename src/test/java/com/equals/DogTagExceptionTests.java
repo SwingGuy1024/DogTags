@@ -44,6 +44,15 @@ public class DogTagExceptionTests {
     }
   }
   
+  @Test
+  public void testNonFinalClassUsingFrom() {
+    try {
+      new NonFinalClassUsingFrom();
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), StringContains.containsString("E11:"));
+    }
+  }
+  
   private static class StaticDogTag {
     private static final DogTag.Factory<StaticDogTag> factory = DogTag.create(StaticDogTag.class).buildFactory();
     private static final DogTag<StaticDogTag> badDogTag = factory.tag(new StaticDogTag());
@@ -61,5 +70,11 @@ public class DogTagExceptionTests {
         .withCachedHash(true)
         .buildFactory();
     private final DogTag<NonFinalCached> dogTag = factory.tag(this);
+  }
+  
+  private static class NonFinalClassUsingFrom {
+    private final int alpha = 0;
+    private int bravo = 1;
+    private final DogTag<NonFinalClassUsingFrom> dogTag = DogTag.from(this);
   }
 }
