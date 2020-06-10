@@ -200,12 +200,18 @@ In the interest of speed and professional coding practices, there are some thing
 
 1. They don't detect symmetry and transitivity failures due to subclassing. If you give `class T` an `equals()` method, then give `class U extends T` its own `equals()` method,  the two methods are almost certain to fail the symmetry requirement, and will likely fail the transitivity requirement as well. Symmetry says that `a.equals(b)` returns the same value as `b.equals(a)`. The only way this test passes is if both equals() methods do exactly the same thing, in which case you wouldn't need two separate `equals()` methods. (The symmetry and transitivity requirements are why the `DogTag<T> from(T instance)` method requires the `class T` to be final. If a subclass of T existed, the `from()` method would generate separate factories for class T and its subclass, which will result in a transitivity failure.)
 
-## Comparison with ReflectionEquals, EqualsBuilder & HashCodeBuilder
-DogTags's different modes fill the same niche as all three of the Apache commons-lang classes. That said, there are still advantages to using the Apache classes, but there are other advantages to using DogTags. For example:
+## Comparison with EqualsBuilder & HashCodeBuilder
+DogTags's different modes fill the same niche as both of the Apache commons-lang classes, EqualsBuilder and HashCodeBuilder. That said, there are still advantages to using the Apache classes, but there are other advantages to using DogTags. For example:
 ### Using Reflection
 1. When using reflection, DogTags makes all its reflection queries once, ahead of time, for each class that uses them. This gives DogTags a considerable performance boost.
 1. Because the DogTag instance uses the same fields and methods to implement both equals() and hashCode(), it can guarantee that the two
 methods will be consistent. Of course, consistency is easy to accomplish. But with larger classes, after undergoing a great deal of maintenance where new fields are added, inconsistencies can creep in. DogTags prevents introducing new fields from causing inconsistent equals() and hashCode() methods, making code maintenance more reliable.
 1. DogTags take care of the identity test and `instanceof` test (with its implicit null test). On the downside, the code to set up the DogTag.Factory makes the setup more verbose.
+1. EqualsBuilder.reflectionEquals() will sometimes fail the transitivity test. (See https://issues.apache.org/jira/browse/LANG-1499) DogTags don't have this problem.
+1. EqualsBuilder.reflectionEquals() lets you put the equals() and hashCode methods in a common base class. This lets you ignore them in your subclasses. This has the upside in giving you pre-written equals and hashCode methods. On the downside, your equals method will fail the transitivity tests. DogTags won't work in a common base class, unless you don't need to support the additional properties in the subclasses.
 
-### Using 
+### Avoiding Reflection
+1. Like the EqualsBuilder.append() calls, DogTags can build an equal method out of direct calls to the class methods. However, DogTags lets you specify method references or lambda expressions.
+### Either way
+1. The equals() method takes care of the details of identity comparison and null checks, so there's less to go wrong. Although the setup of the factory is a bit more complicated, any bugs in that stage are likely to get caught at compile time.  
+1. DogTags uses the same object to peform both the equals test and calculate the hash code. This guarantees that the two methods will remain consistent (subject to constraints when the useCachedHash option is enabled). This makes the code easier to maintain. With EqualsBuilder and HashBuilder, as projects undergo maintenance over the years, new fields will often get added, and need to be added to the equals and hash code methods. Bugs can easily creep into this process, particularly with larger classes, raising the possibility that the equals() and hashCode() methods will get out of sync. DogTags prevent this problem. 
