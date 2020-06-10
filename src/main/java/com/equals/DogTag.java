@@ -338,7 +338,7 @@ public abstract class DogTag<T> {
    * <pre>
    *   class A {
    *     // ... details omitted for brevity
-   *     private static final {@literal DogTag.Factory<A>} factory = DogTag.create(A.class).buildFactory();
+   *     private static final {@literal DogTag.Factory<A>} factory = DogTag.create(A.class).build();
    *     private final {@literal DogTag<A>} dogTag = factory.tag(this);
    *     public boolean equals(Object that) { return dogTag.equals(that); }
    *   }
@@ -363,7 +363,7 @@ public abstract class DogTag<T> {
    * @return An instance of {@literal DogTag<T>}. This should be a non-static member of the enclosing class.
    */
   public static <T> DogTag<T> from(T owner) {
-    return new DogTagExclusionBuilder<>(classFrom(owner)).getFactory().tag(owner);
+    return new DogTagExclusionBuilder<>(classFrom(owner)).setFactoryNotRequired().getFactory().tag(owner);
   }
 
   /**
@@ -587,6 +587,11 @@ public abstract class DogTag<T> {
       }
       return this;
     }
+    
+    DogTagExclusionBuilder<T> setFactoryNotRequired() {
+      isFactoryRequired = false;
+      return this;
+    }
 
     /**
      * Specify the superclass of the DogTag Type parameter class to include in the equals and hash code calculations.
@@ -647,7 +652,7 @@ public abstract class DogTag<T> {
      * Options may be specified in any order.
      * @return A {@literal DogTag.Factory<T>} that builds instances of {@literal DogTag<T>} using the specified options.
      */
-    protected Factory<T> getFactory() {
+    Factory<T> getFactory() {
       int modifiers = targetClass.getModifiers();
       if (!Modifier.isFinal(modifiers)) {
         throw new IllegalArgumentException(String.format("E11: %s is not final. Use one of the DogTag.createXxx() methods.", targetClass));
@@ -713,6 +718,8 @@ public abstract class DogTag<T> {
     private boolean finalFieldsOnly = false;
 
     private boolean testTransients = false;
+
+    protected boolean isFactoryRequired = true;
 
     protected DogTagReflectiveBuilder(Class<T> theClass, boolean inclusionMode, Class<? extends Annotation> defaultSelectionAnnotation, String[] selectedFieldNames) {
       super(theClass);
@@ -829,6 +836,7 @@ public abstract class DogTag<T> {
       Collection<FieldProcessorWrapper<T>> fieldProcessorList = createEmptyFieldProcessorList();
       Class<? super T> theClass = getTargetClass();
       int index = 0;
+      boolean isStaticFactoryMissing = isFactoryRequired;
 
       // We shouldn't ever reach Object.class unless someone specifies it as the reflect-up-to superclass.
       while (theClass != Object.class) {
@@ -841,12 +849,15 @@ public abstract class DogTag<T> {
           final boolean isDogTag = fieldType == DogTag.class;
           final boolean isFactory = fieldType == DogTag.Factory.class;
           if (isDogTag && isStatic) {
-            throw new AssertionError("E8: Your DogTag instance must be not static. Private and final are recommended.");
+            throw new IllegalArgumentException("E8: Your DogTag instance must be not static. Private and final are recommended.");
           }
           if (isFactory && !isStatic) {
             // I'm not sure it's possible to construct an object with a non-static factory without throwing a
             // StackOverflowError or NullPointerException, but in case I'm wrong, we disallow a non-static Factory.
-            throw new AssertionError("E9: Your DogTag.Factory must be static. Private and final are recommended.");
+            throw new IllegalArgumentException("E9: Your DogTag.Factory must be static. Private and final are recommended.");
+          }
+          if (isFactory) {
+            isStaticFactoryMissing = false;
           }
 
           // Test if the field should be included. This tests for inclusion, regardless of the selectionMode.
@@ -860,7 +871,7 @@ public abstract class DogTag<T> {
               && (field.getName().indexOf('$') < 0) // disallow anonymous inner class fields
           ) {
             if (isUseCachedHash() && !fieldIsFinal) {
-              throw new AssertionError(
+              throw new IllegalArgumentException(
                   String.format("E10: The 'withCachedHash' option may not be used with non-final field %s.", field.getName()) //NON-NLS
               );
             }
@@ -876,6 +887,10 @@ public abstract class DogTag<T> {
           break;
         }
         theClass = theClass.getSuperclass();
+      }
+      
+      if (isStaticFactoryMissing) {
+        throw new IllegalArgumentException("E12: No static DogTag.Factory found");
       }
 
       // Now that they're in the proper order, we extract them from the list of wrappers and add them to the final list.
@@ -1479,7 +1494,26 @@ public abstract class DogTag<T> {
 
       @Override
       public Factory<T> build() {
-        return new LambdaFactory<>(getTargetClass(), getStartingHash(), getHashBuilder(), isUseCachedHash(), equalHandlerList, hashHandlerList);
+        // Check for a static factory
+        boolean isFactoryMissing = true;
+        Class<T> targetClass = getTargetClass();
+        
+        // We don't need to recurse into subclasses.
+        Field[] declaredFields = targetClass.getDeclaredFields();
+        for (Field m: declaredFields) {
+          if (m.getType().equals(DogTag.Factory.class)) {
+            int modifiers = m.getModifiers();
+            if (Modifier.isStatic(modifiers)) {
+              isFactoryMissing = false;
+              break;
+            }
+            throw new IllegalArgumentException("E13: Your DogTag.Factory must be static. Private and final are recommended.");
+          }
+        }
+        if (isFactoryMissing) {
+          throw new IllegalArgumentException("E14: No static DogTag.Factory found.");
+        }
+        return new LambdaFactory<>(targetClass, getStartingHash(), getHashBuilder(), isUseCachedHash(), equalHandlerList, hashHandlerList);
       }
     }
   }

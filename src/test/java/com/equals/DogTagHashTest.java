@@ -180,7 +180,7 @@ public class DogTagHashTest {
     assertNotEquals(dt123UnCached.hashCode(), dtDupUnCached.hashCode());
   }
 
-  @Test(expected = AssertionError.class)
+  @Test(expected = IllegalArgumentException.class)
   public void testNonFinalCache() {
     TestClassWithCache tc1 = new TestClassWithCache(1, 2, 3);
     DogTag.create(classFrom(tc1))
@@ -203,6 +203,7 @@ public class DogTagHashTest {
     int alpha;
     int bravo;
     int charlie;
+    private static final DogTag.Factory<?> factory = null; // prevent superfluous test failure
 
     TestClassOne(int alpha, int bravo, int charlie) {
       this.alpha = alpha;
@@ -229,6 +230,7 @@ public class DogTagHashTest {
     private final int delta;
     private final int echo;
     private int foxTrot;
+    private static final DogTag.Factory<?> unused = null; // prevent superfluous test failure
 
     TestClassWithCache(int delta, int echo, int foxTrot) {
       this.delta = delta;

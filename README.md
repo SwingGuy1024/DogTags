@@ -142,6 +142,20 @@ This will probably be done through the annotations, but could also be specified 
 ##### Property Mode
 For situations where a security manager prevents you from using reflected fields, or when getting values by property is more appropriate.
 
+## Requirements enforced at runtime
+
+1. Calling the method `DogTag<T> from(T instance)` method will throw an IllegalArgumentException if class T is not final.
+1. Specifying a field by name, for either inclusion or exclusion, will throw an IllegalArgumentException if the field is not found in the range of classes determined by the Xxxx
+1. Declaring the DogTag instance static will throw an IllegalArgumentException.
+1. Declaring a non-static DogTag.Factory will throw an IllegalArgumentException.
+1. Failing to declare a static DogTag.Factory will throw an IllegalArgumentException, unless the DogTag was instantiated using the `DogTag<T> from(T instance)` method. This prevents you from instantiating your DogTag like this:
+
+    `DogTag<MyClass> dogTag = DogTag.create(MyClass.class).buildFactory().tag(this);`
+    
+    Declaring a DogTag this way will cause the VM to make all the reflective calls each time an instance gets instantiated, rather than when the class loads.
+
+1. Specifying an annotation to include or exclude fields which does not actually target Fields.
+
 ## What DogTags Don't Do
 In the interest of speed and professional coding practices, there are some things DogTags do not do.
 
@@ -149,9 +163,11 @@ In the interest of speed and professional coding practices, there are some thing
 
 1. They don't eliminate the need for unit testing. Your `equals()` and `hashCode()` methods may not give you exactly what you want on the first try, so they still need to be unit tested. Many things can go wrong. For example, you may be using an option incorrectly, or left out a needed option, or have a cyclic dependency. And since your code will be subject to maintenance, bugs could creep in later, and your unit tests may help catch them. Tests of the equals() and hashCode() methods are easy to write. Test your code.
 
-1. They don't recurse into member classes. Each class has the responsibility to implement its own `equals()` and `hashCode()` methods, and to make them consistent. DogTags assume that all members have fulfilled the method contracts correctly. DogTags guarantee that its `equals()` and `hashCode()` methods will fulfill their contracts correctly, but it always defers the work of comparing two member objects or hashing their values to their own methods. If think you need it to recurse into a custom type, give that type it's own DogTag.
+1. They don't recurse into member classes. Each class has the responsibility to implement its own `equals()` and `hashCode()` methods, and to make them consistent. DogTags assume that all members have fulfilled the method contracts correctly. DogTags guarantee that its `equals()` and `hashCode()` methods will fulfill their contracts correctly, but it always defers the work of comparing two member objects or hashing their values to their own methods. If think you need it to recurse into a custom type, give that type its own DogTag.
 
-1. They don't completely replace the Apache EqualsBuilder class. DogTags are a much faster replacement for the `EqualsBuilder.reflectionEquals()` and `EqualsBuilder.reflectionHashCode()` methods, but using EqualsBuilder to build an equals method that does not use reflection is still faster than DogTags, although it's more work and requires more maintenance.
+1. They don't completely replace the Apache EqualsBuilder class. DogTags are a much faster replacement for the `EqualsBuilder.reflectionEquals()` and `HashCodeBuilder.reflectionHashCode()` methods, but using EqualsBuilder to build an `equals()` method that does not use reflection is still faster than DogTags, although it's more work and requires more maintenance.
+
+1. They don't detect symmetry and transitivity failures due to subclassing. If you give `class T` an `equals()` method, then give `class U extends T` its own `equals()` method,  the two methods are almost certain to fail the symmetry requirement, and will likely fail the transitivity requirement as well. Symmetry says that `a.equals(b)` returns the same value as `b.equals(a)`. The only way this test passes is if both equals() methods do exactly the same thing, in which case you wouldn't need two separate `equals()` methods. (The symmetry and transitivity requirements are why the `DogTag<T> from(T instance)` method requires the `class T` to be final. If a subclass of T existed, the `from()` method would generate separate factories for class T and its subclass, which will result in a transitivity failure.)
 
 ## Comparison with ReflectionEquals, EqualsBuilder & HashCodeBuilder
 DogTags's different modes fill the same niche as all three of the Apache commons-lang classes. That said, there are still advantages to using the Apache classes, but there are other advantages to using DogTags. For example:

@@ -14,33 +14,55 @@ import static org.junit.Assert.*;
  */
 public class DogTagExceptionTests {
   
-  @Test(expected=AssertionError.class)
+  @Test(expected=IllegalArgumentException.class)
   public void testStaticDogTag() {
     try {
       StaticDogTag dogTag = new StaticDogTag();
-    } catch (AssertionError e) {
-      assertThat(e.getMessage(), StringContains.containsString("E8:"));
-      throw e;
+    } catch (ExceptionInInitializerError e) {
+      assertThat(e.getCause().getMessage(), StringContains.containsString("E8:"));
+      throw (RuntimeException) e.getCause();
     }
   }
   
-  @Test(expected = AssertionError.class)
+  @Test(expected = IllegalArgumentException.class)
   public void testNonStaticFactory() {
     try {
       new NonStaticFactory();
-    } catch (AssertionError e) {
+    } catch (IllegalArgumentException e) {
       assertThat(e.getMessage(), StringContains.containsString("E9:"));
       throw e;
     }
   }
-  
-  @Test(expected = AssertionError.class)
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testNonStaticLambdaFactory() {
+    try {
+      new NonStaticLambdaFactory();
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), StringContains.containsString("E13:"));
+      throw e;
+    }
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testMissingLambdaFactory() {
+    try {
+      new MissingLambdaFactory();
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), StringContains.containsString("E14:"));
+      throw e;
+    }
+  }
+
+  // Exception gets thrown while instantiating a static field. So it never enters the constructor, and the exception gets wrapped into
+  // an ExceptionInInitializerError exception.
+  @Test(expected = IllegalArgumentException.class)
   public void testNonFinalCachedValue() {
     try {
       new NonFinalCached();
-    } catch (AssertionError e) {
-      assertThat(e.getMessage(), StringContains.containsString("E10:"));
-      throw e;
+    } catch (ExceptionInInitializerError e) {
+      assertThat(e.getCause().getMessage(), StringContains.containsString("E10:"));
+      throw (RuntimeException) e.getCause();
     }
   }
   
@@ -59,7 +81,20 @@ public class DogTagExceptionTests {
   }
   
   private static class NonStaticFactory {
-    private final DogTag.Factory<StaticDogTag> factory = DogTag.create(StaticDogTag.class).build();
+    private final DogTag.Factory<NonStaticFactory> factory = DogTag.create(NonStaticFactory.class).build();
+  }
+  
+  private static class NonStaticLambdaFactory {
+    public int getAlpha() { return 5; }
+    private final DogTag.Factory<NonStaticLambdaFactory> factory = DogTag.createByLambda(NonStaticLambdaFactory.class)
+        .addSimple(NonStaticLambdaFactory::getAlpha)
+        .build();
+  }
+  
+  private static class MissingLambdaFactory {
+    private final DogTag<MissingLambdaFactory> dogTag = DogTag.createByLambda(MissingLambdaFactory.class)
+        .build()
+        .tag(this);
   }
   
   private static class NonFinalCached {

@@ -347,6 +347,7 @@ public class DogTagAnnotationTest {
     private final int echo;
     @DogTagExclude
     private int foxTrot;
+    private static final DogTag.Factory<?> unused = null; // prevent superfluous test failure
 
     TestClassTwo(int alpha, int bravo, int charlie, int delta, int echo, int foxTrot) {
       super(alpha, bravo, charlie);

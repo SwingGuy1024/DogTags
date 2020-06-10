@@ -4,6 +4,7 @@ import java.awt.geom.Point2D;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import org.hamcrest.core.StringContains;
 import org.junit.Test;
 
 import static com.equals.DogTag.classFrom;
@@ -11,7 +12,7 @@ import static com.equals.TestUtility.*;
 import static org.junit.Assert.*;
 
 // Todo: Write test of cached hash in inclusion mode
-@SuppressWarnings({"HardCodedStringLiteral", "MagicNumber", "MagicCharacter", "UseOfClone", "AccessStaticViaInstance", "EqualsReplaceableByObjectsCall", "EqualsWhichDoesntCheckParameterClass"})
+@SuppressWarnings({"HardCodedStringLiteral", "MagicNumber", "MagicCharacter", "UseOfClone", "AccessStaticViaInstance", "EqualsReplaceableByObjectsCall", "EqualsWhichDoesntCheckParameterClass", "unused"})
 public class DogTagTest {
   private static final String CHARLIE_INT = "charlieInt";
 
@@ -837,17 +838,22 @@ public class DogTagTest {
   }
 
   @SuppressWarnings("ResultOfObjectAllocationIgnored")
-  @Test(expected = AssertionError.class)
+  @Test(expected = IllegalArgumentException.class)
   public void testBadDogTag() {
     // Test for case where dogTag is static. This would not work, because each instance has to have its own DogTag,
     // which holds a copy of the instance. So we throw an exception when the static dogTag is constructed. We test that
     // exception here.
 
-    new ClassWithBadDogTag();
+    try {
+      new ClassWithBadDogTag();
+    } catch (ExceptionInInitializerError e) {
+      assertThat(e.getCause().getMessage(), StringContains.containsString("E8:"));
+      throw (RuntimeException) e.getCause();
+    }
   }
 
   @SuppressWarnings("ResultOfObjectAllocationIgnored")
-  @Test(expected = AssertionError.class)
+  @Test(expected = IllegalArgumentException.class)
   public void testBadFactory() {
     // Test for case where Factory is not static. This would seriously slow down the equals and hashCode methods, since
     // the reflection would happen whenever the class is instantiated instead of once when it's loaded.  So we throw an
@@ -866,6 +872,7 @@ public class DogTagTest {
     private int charlieInt;
     private long deltaLong;
     private static int staticInt = 5;
+    private static final DogTag.Factory<?> factory = null; // prevent superfluous test failure
 
     public DogTagTestBase(int alphaInt, String bravoString, int charlieInt, long deltaLong) {
       this.alphaInt = alphaInt;
@@ -918,6 +925,7 @@ public class DogTagTest {
     private transient int golfIntTr;
     private byte hotelByte;
     private char indigoChar;
+    private static final DogTag.Factory<?> factory = null; // prevent superfluous test failure
 
     DogTagTestMid(int alphaInt, String bravoString, int charlieInt, long deltaLong, String echoString, 
                          Point2D foxtrotPoint, int golfIntTr, byte hotelByte, char indigoChar) {
@@ -1000,6 +1008,7 @@ public class DogTagTest {
       operaStringArray = new String[] { "papa", "quebec", "romeo", "sierra", "tango" };
     }
 
+    private static final DogTag.Factory<?> factory = null; // prevent superfluous test failure
     private boolean julietBoolean;
     private short kiloShort;
     private double limaDouble;
@@ -1198,7 +1207,7 @@ public class DogTagTest {
   private static final class ClassWithBadDogTag {
     private static final ClassWithBadDogTag badInstance = new ClassWithBadDogTag();
     private static final DogTag.DogTagExclusionBuilder<ClassWithBadDogTag> builder = DogTag.create(classFrom(badInstance));
-    private static final DogTag.Factory<ClassWithBadDogTag> dogTagFactory = builder.build(); // Should throw AssertionError
+    private static final DogTag.Factory<ClassWithBadDogTag> dogTagFactory = builder.build(); // Should throw IllegalArgumentError
     @SuppressWarnings("unused")
     private static final DogTag<ClassWithBadDogTag> dogTag = dogTagFactory.tag(badInstance); // STATIC!
   }
@@ -1301,7 +1310,8 @@ public class DogTagTest {
   @SuppressWarnings("AssignmentOrReturnOfFieldWithMutableType")
   private static final class TwoDArray {
     private final int[][] alphaIntArray;
-    
+    private static final DogTag.Factory<?> factory = null; // prevent superfluous test failure
+
     private final DogTag<TwoDArray> dogTag = DogTag.from(this);
     
     TwoDArray(int[][] alpha) {
