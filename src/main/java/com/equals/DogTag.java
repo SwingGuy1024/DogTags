@@ -24,26 +24,58 @@ import java.util.function.ToIntFunction;
 import java.util.function.ToLongFunction;
 
 /**
- * <p><strong>Much of the documentation is out of date. It will be updated shortly</strong></p>
- * <p>Reasonably fast and easily maintainable {@code equals()} and {@code hashCode()} methods. Generally guarantees that {@code equals()}
+ * <p><big><strong>Warning:</strong> This code is in alpha development. The API is still in flux, but the major features are mostly in 
+ * place. The API for creating DogTags will be still changing, so don't use this in production code yet.</big></p>
+ * <p>Reasonably fast and easily maintainable {@code equals()} and {@code hashCode()} methods. Guarantees that {@code equals()}
  * complies with its contract, and that {@code hashCode()} is consistent with {@code equals()}, according to its contract. (There is one
- * exception to this guarantee, described in the cachedHash option, which must be used correctly if it is enabled. The guarantee is solid
- * when the option is disabled.)</p>
+ * exception to this guarantee, described in the cachedHash option, which must be used correctly if it is enabled. When that option is
+ * disabled, the guarantee is solid</p>
+ * <p> Requires Java 1.8+.</p>
  * <p>Three modes are available:</p>
  * <ul>
  *   <li>Reflection, which includes all non-transient fields by default</li>
  *   <li>Exclusive Reflection, which excludes all fields by default except those explicitly included</li>
  *   <li>Non-Reflective, where methods are specified using method references</li>
  * </ul>
- * <p>In the two Reflective modes, users may use annotations to specify which fields to include or exclude, or may name them directly.</p>
- * <p>For performance reasons, all reflection is done when the class is loaded, except calls to Method.invoke()</p>
- * <p>For performance, reflection is done when the class loads, or when the first instance is instantiated, and is only done once.
- * Except for the {@code Method.invoke()} method, the slow reflective calls are done once when the class is loaded, or when the first
- * instance is instantiated, depending on how the DogTags are created. This not only has good performance, it also improves
- * maintainability, since equals() and hashCode() use the same fields.
- * <p>
- * <strong><big>Usage Examples:</big></strong></p>
- * <strong>Include everything by default</strong>
+ * <p>In the two reflective modes, users may use annotations to specify which fields to include or exclude, or may specify them directly
+ * by providing field names as Strings. In the non-reflective mode, you specify what to include by passing method references.</p>
+ * <p>For performance reasons, all reflection (except calls to Method.invoke()) is done when the class loads, or in some cases when the
+ * first instance is created, depending on how the DogTags are created. This not only has good performance, it also improves
+ * maintainability, since equals() and hashCode() use the same fields or methods.</p>
+ * <p><strong>How it works:</strong></p>
+ * <p>To implement {@code equals()} and {@code hashCode()} in a class called MyClass, you give every instance a DogTag. The DogTag is
+ * created when the instance is created, and is used to implement the {@code equals()} and {@code hashCode()} methods. Since both
+ * methods use the DogTag, they're guaranteed to be consistent.</p>
+ * <p> <strong><big>Usage Examples:</big></strong></p>
+ * <p><strong>Use reflection to include everything except the "alpha" property, including transients.</strong></p>
+ * <p>This illustrates the standard way to create a DogTag. You first create a static factory. You set options and specify fields to
+ * exclude/include in the factory. Then you call its {@code tag()} method to tag each instance.</p>
+ * <pre>
+ *   public final class MyClass {
+ *     // Define various fields, getters, and methods here.
+ *
+ *     private static final{@literal DogTag.Factory<MyClass>} factory 
+ *           = DogTag.create(MyClass.class, "alpha") // exclude the alpha property
+ *         .withTransients(true)
+ *         .build();
+ *     private transient final {@literal DogTag<MyClass>} dogTag = factory.tag(this);
+ *
+ *    {@literal @Override}
+ *     public boolean equals(Object that) {
+ *       return dogTag.equals(that);
+ *     }
+ *
+ *    {@literal @Override}
+ *     public int hashCode() {
+ *       return dogTag.hashCode();
+ *     }
+ *   }
+ * </pre>
+ * <p><strong>Use reflection to include everything by default</strong></p>
+ * <p> This example includes every non-transient, non-static field except the DogTag itself. (DogTags and static fields are never
+ * included.) This is the simplest way to use DogTags, but offers the least flexibility. When done this way, the reflective calls
+ * to MyClass.class are done when the first instance is created, rather than when the class loads. This may only be used on final classes
+ * to avoid transitivity and symmetry issues. When the class is Serializable, the DogTag should be declared transient.</p>
  * <pre>
  *   public final class MyClass implements Serializable {
  *     // Define various fields, getters, and methods here.
@@ -62,34 +94,15 @@ import java.util.function.ToLongFunction;
  *     }
  *   }
  * </pre>
- * <p><strong>Include everything by default, including transients</strong></p>
+ * <p><strong>Use method references to include properties called alpha, bravo, and charlieArray.</strong></p>
+ * <p>This specifies three getter methods to use in the equals and hash code calculations, and enables the cachedHash option.</p>
  * <pre>
  *   public final class MyClass {
- *     // Define various fields, getters, and methods here.
- *
- *     private static final{@literal DogTag.Factory<MyClass>} factory = DogTag.create(MyClass.class)
- *         .withTransients(true)
- *         .build();
- *     private transient final {@literal DogTag<MyClass>} dogTag = factory.tag(this);
- *
- *    {@literal @Override}
- *     public boolean equals(Object that) {
- *       return dogTag.equals(that);
- *     }
- *
- *    {@literal @Override}
- *     public int hashCode() {
- *       return dogTag.hashCode();
- *     }
- *   }
- * </pre>
- * <p><strong>Include by Method References</strong></p>
- * <pre>
- *   public final class MyClass {
- *     // Define various fields, getters, and methods here.
+ *     // Various fields, getters, setters, and methods omitted for brevity.
  *
  *     // exclude the dogTag field
  *     private static final{@literal DogTag.Factory<MyClass>} factory = DogTag.createByLambda(MyClass.class)
+ *         .useCachedHash(true)
  *         .addSimple(MyClass::getAlpha)
  *         .addSimple(MyClass::getBravo)
  *         .addArray(MyClass::getCharlieArray)
@@ -107,14 +120,14 @@ import java.util.function.ToLongFunction;
  *     }
  *   }
  * </pre>
- * The equals comparison is implemented according to the guidelines set down in <strong>Effective Java</strong> by 
- * Joshua Bloch. The hashCode is generated using the same formula as {@code java.lang.Objects.hash(Object...)}, 
- * although you are free to provide a different hash calculator. Floats and Doubles set to NaN are all treated as equal,
- * unless they are in arrays. All arrays are compared using the methods in {@code java.util.Arrays}. So for arrays of
- * float and double values, NaN are treated according to the rules for ==, which means NaN values are never equal to 
- * anything.
- * <p>
- * Options include testing transient fields, excluding specific fields by name, using a cached hash code under special
+ * <p>Note that the {@code equals()} method does not need to test the objects for identity, null, or if they're of the proper class. That
+ * is done by the {@code equals()} method in the DogTag istelf. The equals comparison is implemented according to the guidelines set down
+ * in <strong>Effective Java</strong> by Joshua Bloch. The hashCode is generated using the same formula as 
+ * {@code java.lang.Objects.hash(Object...)}, although you are free to provide a different hash calculator. Floats and Doubles set to NaN
+ * are all treated as equal, unless they are in arrays. All arrays are compared using the methods in {@code java.util.Arrays}. So for
+ * arrays of float and double values, NaN are treated according to the rules for ==, which means NaN values are never equal to 
+ * anything.</p>
+ * <p> Options include testing transient fields, excluding specific fields by name, using a cached hash code under special
  * circumstances, and specifying a superclass to limit the reflective process. These options are invoked by using one 
  * of the methods beginning with "with".
  * <p>
@@ -143,13 +156,14 @@ import java.util.function.ToLongFunction;
  * </pre>
  * <p>If the class is serializable, the DogTag fields should be declared transient.</p>
  * <p><strong>Notes:</strong></p>
- * <p> The following mistake will generate AssertionErrors:</p>
+ * <p> The following mistakes will cause RuntimeExceptions to be thrown when the class is loaded:</p>
  *    <ul>
  *      <li>Declaring your DogTag instance static. </li>
- *      <li>Not Declaring a DogTag.Factory static.</li>
+ *      <li>Not declaring a DogTag.Factory static.</li>
+ *      <li>Not declaring a static factory (unless you are using {@code DogTag.from()})</li>
  *    </ul>
  * <p>
- * Static fields are always excluded. The DogTag and DogTag.Factory fields are always excluded.
+ * When using reflection, static fields are always excluded, as are the DogTag and DogTag.Factory fields.
  * <p> For each member Object used in the equals and hash code calculations, the DogTag will call the object's 
  * {@code equals()} and {@code hashCode()} methods. DogTags do not recurse into member objects.
  * <p>
@@ -160,6 +174,7 @@ import java.util.function.ToLongFunction;
  * tests that check for the proper error message, while still allowing us to change the text message without breaking unit tests.</p>
  * @param <T> Type that uses a DogTag equals and hashCode method
  * @author Miguel Muñoz
+ * @see <a href="https://github.com/SwingGuy1024/DogTags/blob/master/README.md">ReadMe.md</a>
  */
 @SuppressWarnings("HardCodedStringLiteral")
 public abstract class DogTag<T> {
@@ -181,7 +196,6 @@ public abstract class DogTag<T> {
     public final DogTag<T> tag(T t) {
       return constructor.apply(t); // Call the DogTag constructor that was specified in the Factory constructor
     }
-
 
     protected abstract boolean doEqualsTest(T thisOneNeverNull, Object thatOneNullable);
     protected abstract int doHashCodeInternal(T thisOne);
@@ -246,7 +260,6 @@ public abstract class DogTag<T> {
     @Override
     @SuppressWarnings("ObjectEquality")
     protected boolean doEqualsTest(T thisOneNeverNull, Object thatOneNullable) {
-      assert thisOneNeverNull != null : "Always pass 'this' to the first parameter of this method!";
       if (thisOneNeverNull == thatOneNullable) {
         return true;
       }
@@ -256,8 +269,7 @@ public abstract class DogTag<T> {
         return false;
       }
 
-      @SuppressWarnings("unchecked")
-      T thatOneNeverNull = (T) thatOneNullable;
+      T thatOneNeverNull = targetClass.cast(thatOneNullable);
 
       // Putting the try/catch here instead of inside the testForEquals() method doubles the speed.
       try {
@@ -280,7 +292,6 @@ public abstract class DogTag<T> {
      */
     @Override
     protected int doHashCodeInternal(T thisOne) {
-      assert thisOne != null : "Always pass 'this' to this method! That guarantees it won't be null.";
       int hash = getStartingHash();
 
       // Putting the try/catch here instead of inside the testForEquals() method doubles the speed.

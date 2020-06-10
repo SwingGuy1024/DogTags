@@ -1,4 +1,7 @@
 # DogTags
+
+## This is still in alpha development. The API is still in flux. Some of this may be out-of-date, but will be updated soon.
+
 Java Utility to generate a fast equals and hash code generation using reflection.
 While this capability is covered by `org.apache.commons.lang3.builder.EqualsBuilder`, performance tests show that DogTags run anywhere 
 from 1.5 to 20 times faster, depending on circumstances. The performance gains are greatest for objects with no similarities. 
@@ -6,7 +9,7 @@ from 1.5 to 20 times faster, depending on circumstances. The performance gains a
 DogTags achieves this gain by doing all the reflective inspections once, ahead of time, instead of each time the `equals()` or `hashCode()` 
 methods are called.
 
-There are two ways to use it. They are very similar. They are Reflect-On-Class-Load and Reflect-On-First_instantiation.
+There are three ways to use it. They are very similar. They are Reflect-On-Class-Load, Reflect-On-First_instantiation, and Create-by-Lambda.
 
 ## Sample Usages:
 
@@ -32,9 +35,9 @@ The reflection happens when the static DogTag.Factory instance is constructed. S
 only happen once for each class. (Failure to declare the factory static will result in a runtime exception when the class loads.) Each 
 instance of MyClass gets its own DogTag instance.
 
-### Reflect-On-First-Instantiation
+### Reflect On First Instantiation
 
-    public class MyClass {
+    public final class MyClass {
       // ... (fields and methods here)
       
       private final DogTag<MyClass> dogTag = DogTag.from(this);
@@ -50,14 +53,42 @@ instance of MyClass gets its own DogTag instance.
       }
     }
 
-The reflection happens the first time an instance of `MyClass` is constructed. The static `DogTag.Factory` is built, and is held invisibly in an internal `HashMap`, with the Class object as the key. 
+The reflection happens the first time an instance of `MyClass` is constructed. The static `DogTag.Factory` is built, and is held invisibly in an internal `HashMap`, with the Class object as the key. To avoid symmetry and transitivity issues, this method is only allowed on final classes.
 
-Because the reflection is done when building an invisible DogTag.Factory instance, it is only done once when the class is loaded or first instantiated. This gives you a big performance improvement over the Apache Commons utilities to use reflection to create equals() and hashCode() methods.
+Because the reflection is done when building an invisible DogTag.Factory instance, it is only done once when the first instance gets created. This gives you a big performance improvement over the Apache Commons utilities to use reflection to create equals() and hashCode() methods.
 
-The hash code is guaranteed to be consistent with equals(). The equals() method is written according to the guidelines given in **Effective Java**, by Joshua Bloch.
+In this example, the first time MyClass is instantiated, it creates the Factory and put it into a map. During every subsequent instantiation, it would reuse the Factory found in the map.
 
+Keeping all the DogTag factories in a Map feels like a lot of overhead, but it really doesn't add much overhead, since all the factories would be constructed even without the map. These factories wouldn't hold any additional data than the static DogTag instances for each class in the first approach. If you're uncomfortable with this overhead, declare the factories explicitly, as in the first example.
+
+### Create by Lambda
+
+    public final class MyClass {
+      // ... (fields and methods here)
+      
+      private static final DogTag.Factory<MyClass> factory = DogTag.createByLambda(MyClass.class)
+          .addSimple(MyClass::getAlpha)
+          .addSimple(MyClass::getBravo)
+          .addArray(MyClass::getCharlieArray)
+          .build();
+
+      private final DogTag<MyClass> dogTag = factory.tag(this);
+      
+      @Override
+      public boolean equals(Object obj) {
+        return dogTag.equals(obj);
+      }
+      
+      @Override
+      public int hashCode() {
+        return dogTag.hashCode();
+      }
+    }
+
+The hash code is guaranteed to be consistent with equals(). The equals() method uses the guidelines given in **Effective Java**, by Joshua Bloch.
+
+### Options
 Available options are discussed below.
-
     
 In both approaches, options may be specified during creation. The option methods are on internal Builder classes, so the same methods are available in both approaches:
    
@@ -82,17 +113,14 @@ In both approaches, options may be specified during creation. The option methods
       }
     }
 
-In each example, the first time MyClass is instantiated, it would create a Factory and put it into the map. During every subsequent instantiation, it would reuse the Factory found in the map
-
-Keeping all the DogTag factories in a Map feels like a lot of overhead, but it really doesn't add much overhead, since all the factories would be constructed even without the map. These factories wouldn't hold any additional data than the static DogTag instances for each class in the first approach. 
-
-This approach has the advantage of having the cleanest public API.
+This approach has the advantage of having the cleanest public API. All options start with the word "with".
 
 ## Options
 
 ### All Modes
 
 `withHashBuilder(int startingHash, HashBuilder hashBuilder)`
+
 `withCachedHash(boolean useCachedHash)`
 
 ### Reflective DogTags (Inclusion and Exclusion)
@@ -103,8 +131,11 @@ This approach has the advantage of having the cleanest public API.
 
 #### Exclusion Only Options
 `withExclusionAnnotation(Class<? extends Annotation> annotationClass)`
+
 `withTransients(boolean useTransients)`
+
 `withFinalFieldsOnly(boolean useFinalFieldsOnly)`
+
 `withReflectUpTo(Class<? super T> reflectUpToClass`
 
 ## Building
