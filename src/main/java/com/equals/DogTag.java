@@ -813,6 +813,7 @@ public abstract class DogTag<T> {
      * The second, of course, makes this recursive. In other words, if any field anywhere in the object tree of any
      * field is used to calculate a hash code, that field cannot change value once the outermost element of the tree
      * is constructed.
+     * <p>Using this option incorrectly breaks the guarantee that equals() will be consistent with hashCode().</p>
      */
     public DogTagReflectiveBuilder<T> withCachedHash(boolean useCachedHash) {
       setUseCachedHash(useCachedHash);

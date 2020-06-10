@@ -85,7 +85,7 @@ Keeping all the DogTag factories in a Map feels like a lot of overhead, but it r
       }
     }
 
-The hash code is guaranteed to be consistent with equals(). The equals() method uses the guidelines given in **Effective Java**, by Joshua Bloch.
+The hash code is guaranteed to be consistent with equals(). The equals() method uses the guidelines given in **Effective Java**, by Joshua Bloch. (Enabling the cachedHash option, if used incorrectly, breaks this guarantee. It is disabled by default.)
 
 ### Options
 Available options are discussed below.
