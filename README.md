@@ -64,10 +64,12 @@ In both approaches, options may be specified during creation. The option methods
     public class MyClass extends MyBaseClass {
       // ... (fields and methods here)
       
-      private final DogTag<MyClass> dogTag = DogTag.create(this)
-        .withAnnotation(MyExcludeField.class)
+      private static final DogTag.Factory<MyClass> factory = DogTag.create(this)
+        .withAnnotation(MyExcludeAnnotation.class)
         .withReflectUpTo(MyBaseClass.class)
         .build();
+
+      private final DogTag<MyClass> dogTag = factory.tag(this);
       
       @Override
       public boolean equals(Object other) {
@@ -86,9 +88,28 @@ Keeping all the DogTag factories in a Map feels like a lot of overhead, but it r
 
 This approach has the advantage of having the cleanest public API.
 
+## Options
+
+### All Modes
+
+`withHashBuilder(int startingHash, HashBuilder hashBuilder)`
+`withCachedHash(boolean useCachedHash)`
+
+### Reflective DogTags (Inclusion and Exclusion)
+
+
+#### Inclusion Only Options
+  `withInclusionAnnotation(Class<? extends Annotation> annotationClass)`
+
+#### Exclusion Only Options
+`withExclusionAnnotation(Class<? extends Annotation> annotationClass)`
+`withTransients(boolean useTransients)`
+`withFinalFieldsOnly(boolean useFinalFieldsOnly)`
+`withReflectUpTo(Class<? super T> reflectUpToClass`
+
 ## Building
 
-Build using Maven. DogTags src has no dependencies, and test depends on junit and commons.lang3 (for performance comparisons with EqualsBuilder).
+Build using Maven. The DogTags `src` folder has no dependencies, and the `test` folder depends on junit and commons.lang3 (for performance comparisons with EqualsBuilder).
 
 The project is in an experimental state. It's usable in this state, but the API may change.
 
