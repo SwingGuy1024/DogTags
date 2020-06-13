@@ -861,12 +861,12 @@ public abstract class DogTag<T> {
           final boolean isDogTag = fieldType == DogTag.class;
           final boolean isFactory = fieldType == DogTag.Factory.class;
           if (isDogTag && isStatic) {
-            throw new IllegalArgumentException("E8: Your DogTag instance must be not static. Private and final are recommended.");
+            throw new IllegalArgumentException(String.format("E8: %s - Your DogTag instance must be not static. Private and final are recommended.", getTargetClass()));
           }
           if (isFactory && !isStatic) {
             // I'm not sure it's possible to construct an object with a non-static factory without throwing a
             // StackOverflowError or NullPointerException, but in case I'm wrong, we disallow a non-static Factory.
-            throw new IllegalArgumentException("E9: Your DogTag.Factory must be static. Private and final are recommended.");
+            throw new IllegalArgumentException(String.format("E9: %s - Your DogTag.Factory must be static. Private and final are recommended.", getTargetClass()));
           }
           if (isFactory) {
             isStaticFactoryMissing = false;
@@ -884,7 +884,7 @@ public abstract class DogTag<T> {
           ) {
             if (isUseCachedHash() && !fieldIsFinal) {
               throw new IllegalArgumentException(
-                  String.format("E10: The 'withCachedHash' option may not be used with non-final field %s.", field.getName()) //NON-NLS
+                  String.format("E10: %s - The 'withCachedHash' option may not be used with non-final field %s.", getTargetClass(), field.getName()) //NON-NLS
               );
             }
             field.setAccessible(true); // move this into getFPForType?
@@ -902,7 +902,7 @@ public abstract class DogTag<T> {
       }
       
       if (isStaticFactoryMissing) {
-        throw new IllegalArgumentException("E12: No static DogTag.Factory found");
+        throw new IllegalArgumentException(String.format("E12: No static DogTag.Factory found in %s", getTargetClass()));
       }
 
       // Now that they're in the proper order, we extract them from the list of wrappers and add them to the final list.
@@ -1519,11 +1519,11 @@ public abstract class DogTag<T> {
               isFactoryMissing = false;
               break;
             }
-            throw new IllegalArgumentException("E13: Your DogTag.Factory must be static. Private and final are recommended.");
+            throw new IllegalArgumentException(String.format("E13: %s - Your DogTag.Factory must be static. Private and final are recommended.", targetClass));
           }
         }
         if (isFactoryMissing) {
-          throw new IllegalArgumentException("E14: No static DogTag.Factory found.");
+          throw new IllegalArgumentException(String.format("E14: No static DogTag.Factory found in %s.", targetClass));
         }
         return new LambdaFactory<>(targetClass, getStartingHash(), getHashBuilder(), isUseCachedHash(), equalHandlerList, hashHandlerList);
       }

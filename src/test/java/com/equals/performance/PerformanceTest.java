@@ -110,7 +110,33 @@ public class PerformanceTest {
         .addSimple(TestClass::getLimaDouble)
         .addSimple(TestClass::getMikeFloat)
         .build();
-    TimingUtility.runTestCycles(lambdaFactory, t0, instances, directEqual, EMPTY_STRING_ARRAY);
+    @SuppressWarnings("AccessingNonPublicFieldOfAnotherObject")
+    DogTag.Factory<TestClass> lambdaFactoryByField = DogTag.createByLambda(TestClass.class)
+        .addArray((TestClass t) -> t.novemberIntArray)
+        .addArray((TestClass t) -> t.operaStringArray)
+        .addArray((TestClass t) -> t.papaLongArray)
+        .addArray((TestClass t) -> t.quebecShortArray)
+        .addArray((TestClass t) -> t.romeoByteArray)
+        .addArray((TestClass t) -> t.sierraCharArray)
+        .addArray((TestClass t) -> t.tangoBooleanArray)
+        .addArray((TestClass t) -> t.uniformFloatArray)
+        .addArray((TestClass t) -> t.victorDoubleArray)
+        .addArray((TestClass t) -> t.whiskeyObjectArray)
+        .addSimple(TestClass::getAlphaInt)
+        .addObject(TestClass::getBravoString)
+        .addSimple(TestClass::getCharlieInt)
+        .addSimple(TestClass::getDeltaLong)
+        .addObject(TestClass::getEchoString)
+        .addObject(TestClass::getFoxtrotPoint)
+        .addSimple(TestClass::getGolfInt)
+        .addSimple(TestClass::getHotelByte)
+        .addSimple(TestClass::getIndigoChar)
+        .addSimple(TestClass::isJulietBoolean)
+        .addSimple(TestClass::getKiloShort)
+        .addSimple(TestClass::getLimaDouble)
+        .addSimple(TestClass::getMikeFloat)
+        .build();
+    TimingUtility.runTestCycles(dogTagfactory, t0, instances, directEqual, EMPTY_STRING_ARRAY, lambdaFactory, lambdaFactoryByField);
         
   }
 
@@ -155,8 +181,6 @@ public class PerformanceTest {
 
     SingleValueTestClass[] pInstances = { tDup, t12, t11, t10, t9, t8, t7, t6, t5, t4, t3, /* t2,*/ t1};
 
-    TimingUtility.runTestCycles(dogTagNoArrays, t0, pInstances, PerformanceTest::singleValueDirectEqual, EMPTY_STRING_ARRAY);
-    
     DogTag.Factory<SingleValueTestClass> lambdaFactory = DogTag.createByLambda(SingleValueTestClass.class)
         .addSimple(SingleValueTestClass::getAlphaInt)
         .addSimple(SingleValueTestClass::getCharlieInt)
@@ -170,7 +194,21 @@ public class PerformanceTest {
         .addSimple(SingleValueTestClass::getLimaDouble)
         .addSimple(SingleValueTestClass::getMikeFloat)
         .build();
-    TimingUtility.runTestCycles(lambdaFactory, t0, pInstances, PerformanceTest::singleValueDirectEqual, EMPTY_STRING_ARRAY);
+    @SuppressWarnings("AccessingNonPublicFieldOfAnotherObject")
+    DogTag.Factory<SingleValueTestClass> lambdaFieldFactory = DogTag.createByLambda(SingleValueTestClass.class)
+        .addSimple((SingleValueTestClass t) -> t.alphaInt)
+        .addSimple((SingleValueTestClass t) -> t.charlieInt)
+        .addSimple((SingleValueTestClass t) -> t.deltaLong)
+        .addObject((SingleValueTestClass t) -> t.echoString)
+        .addSimple((SingleValueTestClass t) -> t.golfInt)
+        .addSimple((SingleValueTestClass t) -> t.hotelByte)
+        .addSimple((SingleValueTestClass t) -> t.indigoChar)
+        .addSimple((SingleValueTestClass t) -> t.julietBoolean)
+        .addSimple((SingleValueTestClass t) -> t.kiloShort)
+        .addSimple((SingleValueTestClass t) -> t.limaDouble)
+        .addSimple((SingleValueTestClass t) -> t.mikeFloat)
+        .build();
+    TimingUtility.runTestCycles(dogTagNoArrays, t0, pInstances, PerformanceTest::singleValueDirectEqual, EMPTY_STRING_ARRAY, lambdaFactory, lambdaFieldFactory);
   }
 
 
@@ -380,22 +418,22 @@ public class PerformanceTest {
         return true;
       }
       return
-          (Arrays.equals(thisOne.getNovemberIntArray(), thatOne.getNovemberIntArray())) &&
-          (Arrays.equals(thisOne.getOperaStringArray(), thatOne.getOperaStringArray())) &&
-          (Arrays.equals(thisOne.getPapaLongArray(), thatOne.getPapaLongArray())) &&
-          (Arrays.equals(thisOne.getQuebecShortArray(), thatOne.getQuebecShortArray())) &&
-          (Arrays.equals(thisOne.getRomeoByteArray(), thatOne.getRomeoByteArray())) &&
-          (Arrays.equals(thisOne.getSierraCharArray(), thatOne.getSierraCharArray())) &&
-          (Arrays.equals(thisOne.getTangoBooleanArray(), thatOne.getTangoBooleanArray())) &&
-          (Arrays.equals(thisOne.getUniformFloatArray(), thatOne.getUniformFloatArray())) &&
-          (Arrays.equals(thisOne.getVictorDoubleArray(), thatOne.getVictorDoubleArray())) &&
-          (Arrays.equals(thisOne.getWhiskeyObjectArray(), thatOne.getWhiskeyObjectArray())) &&
+          Arrays.equals(thisOne.getNovemberIntArray(), thatOne.getNovemberIntArray()) &&
+          Arrays.equals(thisOne.getOperaStringArray(), thatOne.getOperaStringArray()) &&
+          Arrays.equals(thisOne.getPapaLongArray(), thatOne.getPapaLongArray()) &&
+          Arrays.equals(thisOne.getQuebecShortArray(), thatOne.getQuebecShortArray()) &&
+          Arrays.equals(thisOne.getRomeoByteArray(), thatOne.getRomeoByteArray()) &&
+          Arrays.equals(thisOne.getSierraCharArray(), thatOne.getSierraCharArray()) &&
+          Arrays.equals(thisOne.getTangoBooleanArray(), thatOne.getTangoBooleanArray()) &&
+          Arrays.equals(thisOne.getUniformFloatArray(), thatOne.getUniformFloatArray()) &&
+          Arrays.equals(thisOne.getVictorDoubleArray(), thatOne.getVictorDoubleArray()) &&
+          Arrays.equals(thisOne.getWhiskeyObjectArray(), thatOne.getWhiskeyObjectArray()) &&
           (thisOne.getAlphaInt() == thatOne.getAlphaInt()) &&
-          (thisOne.getBravoString().equals(thatOne.getBravoString())) &&
+          thisOne.getBravoString().equals(thatOne.getBravoString()) &&
           (thisOne.getCharlieInt() == thatOne.getCharlieInt()) &&
           (thisOne.getDeltaLong() == thatOne.getDeltaLong()) &&
-          (thisOne.getEchoString().equals(thatOne.getEchoString())) &&
-          (thisOne.getFoxtrotPoint().equals(thatOne.getFoxtrotPoint())) &&
+          thisOne.getEchoString().equals(thatOne.getEchoString()) &&
+          thisOne.getFoxtrotPoint().equals(thatOne.getFoxtrotPoint()) &&
           (thisOne.getGolfInt() == thatOne.getGolfInt()) &&
           (thisOne.getHotelByte() == thatOne.getHotelByte()) &&
           (thisOne.getIndigoChar() == thatOne.getIndigoChar()) &&
@@ -404,6 +442,8 @@ public class PerformanceTest {
           (Double.compare(thisOne.getLimaDouble(), thatOne.getLimaDouble()) == 0) &&
           (Float.compare(thisOne.getMikeFloat(), thatOne.getMikeFloat()) == 0);
     }
+
+    private static DogTag.Factory<TestClass> notUsed; // to avoid construction exception
   }
 
   @SuppressWarnings({"WeakerAccess", "EqualsAndHashcode"})
@@ -549,8 +589,10 @@ public class PerformanceTest {
           .append(getMikeFloat(), rhs.getMikeFloat())
           .isEquals();
     }
-  }
 
+    private static DogTag.Factory<SingleValueTestClass> notUsed; // to avoid construction exception
+  }
+  
   @SuppressWarnings("EqualsAndHashcode")
   private static class TwoStringClass {
     private String alpha;
@@ -561,6 +603,9 @@ public class PerformanceTest {
       alpha = new String(a);
       bravo = new String(b);
     }
+
+    public String getAlpha() { return alpha; }
+    public String getBravo() { return bravo; }
 
     @Override
     public boolean equals(final Object obj) {
@@ -576,6 +621,16 @@ public class PerformanceTest {
           .append(bravo, rhs.bravo)
           .isEquals();
     }
+
+    private static final DogTag.Factory<TwoStringClass> dogTag = DogTag.create(TwoStringClass.class).build();
+    private static final DogTag.Factory<TwoStringClass> referenceFactory = DogTag.createByLambda(TwoStringClass.class)
+        .addObject(TwoStringClass::getAlpha)
+        .addObject(TwoStringClass::getBravo)
+        .build();
+    private static final DogTag.Factory<TwoStringClass> lambdaFactory = DogTag.createByLambda(TwoStringClass.class)
+        .addObject((TwoStringClass t) -> t.alpha)
+        .addObject((TwoStringClass t) -> t.bravo)
+        .build();
   }
 
   @SuppressWarnings({"EqualsReplaceableByObjectsCall", "AccessingNonPublicFieldOfAnotherObject"})
@@ -592,9 +647,9 @@ public class PerformanceTest {
     TwoStringClass t2 = new TwoStringClass("alpha", "bravo");
     TwoStringClass t3 = new TwoStringClass("iALPHA".substring(1), "iBRAVO".substring(1));
 
-    DogTag.Factory<TwoStringClass> dogTag = DogTag.create(classFrom(t0)).build();
     TwoStringClass[] array = { t3, t2, t1 };
-    TimingUtility.runTestCycles(dogTag, t0, array, PerformanceTest::handCoded, EMPTY_STRING_ARRAY);
+    TimingUtility.runTestCycles(TwoStringClass.dogTag, t0, array, PerformanceTest::handCoded, EMPTY_STRING_ARRAY, 
+        TwoStringClass.referenceFactory, TwoStringClass.lambdaFactory);
   }
 
   // todo: Add 26 strings
@@ -673,6 +728,7 @@ public class PerformanceTest {
           .append(z, other.z)
           .isEquals();
     }
+    private static DogTag.Factory<S26> notUsed;
   }
 
   @SuppressWarnings("EqualsReplaceableByObjectsCall")
@@ -788,5 +844,164 @@ public class PerformanceTest {
       e.printStackTrace();
     }
     performanceTest.testTwoStrings();
+  }
+
+  @SuppressWarnings({"EqualsAndHashcode", "UseOfClone", "PackageVisibleField"})
+  private static class S26Interned implements Cloneable {
+    String a = "alpha";
+    String b = "bravo";
+    String c = "Charlie";
+    String d = "delta";
+    String e = "echo";
+    String f = "foxtrot";
+    String g = "golf";
+    String h = "hotel";
+    String i = "indigo";
+    String j = "Juliet";
+    String k = "kilo";
+    String l = "lambda";
+    String m = "Mike";
+    String n = "November";
+    String o = "opera";
+    String p = "papa";
+    String q = "Quebec";
+    String r = "Romeo";
+    String s = "sierra";
+    String t = "tango";
+    String u = "uniform";
+    String v = "Victor";
+    String w = "whiskey";
+    String x = "x-ray";
+    String y = "yankee";
+    String z = "zulu";
+
+    @Override
+    public S26Interned clone() throws CloneNotSupportedException {
+      return (S26Interned) super.clone();
+    }
+
+    @SuppressWarnings("NonFinalFieldReferenceInEquals")
+    @Override
+    public boolean equals(final Object obj) {
+      if (obj == this) {
+        return true;
+      }
+      if (!(obj instanceof S26Interned)) {
+        return false;
+      }
+      S26Interned other = (S26Interned) obj;
+      return new EqualsBuilder()
+          .append(a, other.a)
+          .append(b, other.b)
+          .append(c, other.c)
+          .append(d, other.d)
+          .append(e, other.e)
+          .append(f, other.f)
+          .append(g, other.g)
+          .append(h, other.h)
+          .append(i, other.i)
+          .append(j, other.j)
+          .append(k, other.k)
+          .append(l, other.l)
+          .append(m, other.m)
+          .append(n, other.n)
+          .append(o, other.o)
+          .append(p, other.p)
+          .append(q, other.q)
+          .append(r, other.r)
+          .append(s, other.s)
+          .append(t, other.t)
+          .append(u, other.u)
+          .append(v, other.v)
+          .append(w, other.w)
+          .append(x, other.x)
+          .append(y, other.y)
+          .append(z, other.z)
+          .isEquals();
+    }
+
+    public String getA() { return a;}
+    public String getB() { return b;}
+    public String getC() { return c;}
+    public String getD() { return d;}
+    public String getE() { return e;}
+    public String getF() { return f;}
+    public String getG() { return g;}
+    public String getH() { return h;}
+    public String getI() { return i;}
+    public String getJ() { return j;}
+    public String getK() { return k;}
+    public String getL() { return l;}
+    public String getM() { return m;}
+    public String getN() { return n;}
+    public String getO() { return o;}
+    public String getP() { return p;}
+    public String getQ() { return q;}
+    public String getR() { return r;}
+    public String getS() { return s;}
+    public String getT() { return t;}
+    public String getU() { return u;}
+    public String getV() { return v;}
+    public String getW() { return w;}
+    public String getX() { return x;}
+    public String getY() { return y;}
+    public String getZ() { return z;}
+    private static final DogTag.Factory<S26Interned> reflectionFactory = DogTag.create(S26Interned.class).build();
+    private static final DogTag.Factory<S26Interned> referenceFactory = DogTag.createByLambda(S26Interned.class)
+        .addObject(S26Interned::getA)
+        .addObject(S26Interned::getB)
+        .addObject(S26Interned::getC)
+        .addObject(S26Interned::getD)
+        .addObject(S26Interned::getE)
+        .addObject(S26Interned::getF)
+        .addObject(S26Interned::getG)
+        .addObject(S26Interned::getH)
+        .addObject(S26Interned::getI)
+        .addObject(S26Interned::getJ)
+        .addObject(S26Interned::getK)
+        .addObject(S26Interned::getL)
+        .addObject(S26Interned::getM)
+        .addObject(S26Interned::getN)
+        .addObject(S26Interned::getO)
+        .addObject(S26Interned::getP)
+        .addObject(S26Interned::getQ)
+        .addObject(S26Interned::getR)
+        .addObject(S26Interned::getS)
+        .addObject(S26Interned::getT)
+        .addObject(S26Interned::getU)
+        .addObject(S26Interned::getV)
+        .addObject(S26Interned::getW)
+        .addObject(S26Interned::getX)
+        .addObject(S26Interned::getY)
+        .addObject(S26Interned::getZ)
+        .build();
+    private static final DogTag.Factory<S26Interned> lambdaFactory = DogTag.createByLambda(S26Interned.class)
+        .addObject((S26Interned s) -> s.a)
+        .addObject((S26Interned s) -> s.b)
+        .addObject((S26Interned s) -> s.c)
+        .addObject((S26Interned s) -> s.d)
+        .addObject((S26Interned s) -> s.e)
+        .addObject((S26Interned s) -> s.f)
+        .addObject((S26Interned s) -> s.g)
+        .addObject((S26Interned s) -> s.h)
+        .addObject((S26Interned s) -> s.i)
+        .addObject((S26Interned s) -> s.j)
+        .addObject((S26Interned s) -> s.k)
+        .addObject((S26Interned s) -> s.l)
+        .addObject((S26Interned s) -> s.m)
+        .addObject((S26Interned s) -> s.n)
+        .addObject((S26Interned s) -> s.o)
+        .addObject((S26Interned s) -> s.p)
+        .addObject((S26Interned s) -> s.q)
+        .addObject((S26Interned s) -> s.r)
+        .addObject((S26Interned s) -> s.s)
+        .addObject((S26Interned s) -> s.t)
+        .addObject((S26Interned s) -> s.u)
+        .addObject((S26Interned s) -> s.v)
+        .addObject((S26Interned s) -> s.w)
+        .addObject((S26Interned s) -> s.x)
+        .addObject((S26Interned s) -> s.y)
+        .addObject((S26Interned s) -> s.z)
+        .build();
   }
 }
