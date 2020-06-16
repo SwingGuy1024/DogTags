@@ -54,18 +54,6 @@ public class DogTagExceptionTests {
     }
   }
 
-  // Exception gets thrown while instantiating a static field. So it never enters the constructor, and the exception gets wrapped into
-  // an ExceptionInInitializerError exception.
-  @Test(expected = IllegalArgumentException.class)
-  public void testNonFinalCachedValue() {
-    try {
-      new NonFinalCached();
-    } catch (ExceptionInInitializerError e) {
-      assertThat(e.getCause().getMessage(), StringContains.containsString("E10:"));
-      throw (RuntimeException) e.getCause();
-    }
-  }
-  
   @Test
   public void testNonFinalClassUsingFrom() {
     try {
@@ -95,16 +83,6 @@ public class DogTagExceptionTests {
     private final DogTag<MissingLambdaFactory> dogTag = DogTag.createByLambda(MissingLambdaFactory.class)
         .build()
         .tag(this);
-  }
-  
-  private static class NonFinalCached {
-    private final int alpha = 0;
-    private int bravo = 1;
-    private static final DogTag.Factory<NonFinalCached> factory = DogTag
-        .create(NonFinalCached.class)
-        .withCachedHash(true)
-        .build();
-    private final DogTag<NonFinalCached> dogTag = factory.tag(this);
   }
   
   private static class NonFinalClassUsingFrom {

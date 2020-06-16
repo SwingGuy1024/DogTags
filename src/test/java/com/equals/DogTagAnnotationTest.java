@@ -338,11 +338,10 @@ public class DogTagAnnotationTest {
     }
   }
 
-  @SuppressWarnings("unused")
   private static class TestClassTwo extends TestClassOne {
     @TestExclude
     @TestInclude
-    private final int delta;
+    private final int delta; // this is safe because I can't use exclusion mode and inclusion mode at the same time
     @DogTagInclude
     private final int echo;
     @DogTagExclude
@@ -373,7 +372,7 @@ public class DogTagAnnotationTest {
     }
 
     private final DogTag<TestClassTwo> dogTag = DogTag.create(classFrom(this))
-        .withFinalFieldsOnly(true) // This should implicitly set withCachedHash to true 
+        .withCachedHash(true)
         .build()
         .tag(this);
 

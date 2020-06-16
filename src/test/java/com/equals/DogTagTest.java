@@ -176,8 +176,8 @@ public class DogTagTest {
     DogTagTestBase b1n23 = new DogTagTestBase(1, null, 2, 3L);
     DogTagTestBase D1n23 = new DogTagTestBase(1, null, 2, 3L);
 
-    DogTag.Factory<DogTagTestBase> baseFactoryEx = DogTag.create(classFrom(b1b23)) // include alpha, bravo
-        .withFinalFieldsOnly(true)
+    DogTag.Factory<DogTagTestBase> baseFactoryEx = DogTag.create(classFrom(b1b23), "charlieInt", "deltaLong") // include alpha, bravo
+        .withCachedHash(true)
         .build();
     DogTag.Factory<DogTagTestBase> lambdaBaseFactory = DogTag.createByLambda(DogTagTestBase.class)
         .addSimple(DogTagTestBase::getAlphaInt)
@@ -232,8 +232,8 @@ public class DogTagTest {
       verifyMatches(factory2, D1b23, b1n23);
     }
 
-    DogTag.Factory<DogTagTestBase> factory3Base = DogTag.create(classFrom(b1b23), "alphaInt")
-        .withFinalFieldsOnly(true)
+    DogTag.Factory<DogTagTestBase> factory3Base = DogTag.create(classFrom(b1b23), "alphaInt", "charlieInt", "deltaLong")
+        .withCachedHash(true)
         .build();
     lambdaBaseFactory = DogTag.createByLambda(DogTagTestBase.class)
         .addObject(DogTagTestBase::getBravoString)

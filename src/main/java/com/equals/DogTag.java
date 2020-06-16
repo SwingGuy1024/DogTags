@@ -567,8 +567,8 @@ public abstract class DogTag<T> {
 
     /**
      * Set the Transient option, before building the DogTag. Defaults to false. This is used only in exclusion mode.
-     * When true, transient fields will be included, provided they meet all the other criteria. For example, if the
-     * finalFieldsOnly option is also true, then only final and final transient fields are included.
+     * When true, transient fields will be included, provided they meet all the other criteria. (DogTag fields and their factories are
+     * never included regardless of their transient state.
      * <p>
      * Calling this method when using inclusion mode will have no effect.
      *
@@ -580,25 +580,6 @@ public abstract class DogTag<T> {
       return this;
     }
 
-    /**
-     * Set the useFinalFieldsOnly option, before building the DogTag. Defaults to false. This option is only used in
-     * Exclusion mode. Enabling this option also enables the cachedHash option, although the use of a cached hash code
-     * remains optional.
-     * <p>
-     * Calling this method when using inclusion mode will have no effect.
-     *
-     * @param useFinalFieldsOnly true if you want to limit fields to only those that are declared final. If the transient
-     *                        option is also true, then only final and final transient fields are included.
-     * @return this, for method chaining
-     */
-    public DogTagExclusionBuilder<T> withFinalFieldsOnly(boolean useFinalFieldsOnly) {
-      setFinalFieldsOnly(useFinalFieldsOnly);
-      if (useFinalFieldsOnly) {
-        withCachedHash(true);
-      }
-      return this;
-    }
-    
     DogTagExclusionBuilder<T> setFactoryNotRequired() {
       isFactoryRequired = false;
       return this;
@@ -725,9 +706,6 @@ public abstract class DogTag<T> {
     private Class<? super T> lastSuperClass = Object.class;    // not final. May change with options.
 
     // pre-initialized fields
-    @SuppressWarnings("BooleanVariableAlwaysNegated")
-    private boolean finalFieldsOnly = false;
-
     private boolean testTransients = false;
 
     protected boolean isFactoryRequired = true;
@@ -800,12 +778,13 @@ public abstract class DogTag<T> {
     }
 
     /**
-     * Cache the hash value when only final fields are used to build the DogTag. Enabling the
-     * finalFieldsOnly option automatically enables this option, but you may use this method to set it manually.
+     * Sets the UseCachedHash option. For speed, this will cache the hash value the first time {@code hashCode()} is called, and continue
+     * using the cached value.
      * <p>
-     * This option should be used with extreme caution. Even if you specify only final fields, this will fail if, for
-     * example, the final fields are themselves mutable. For a hashCode to be eligible for the correct use of this
-     * option, the following two conditions must be true of every field you include in your DogTag:
+     * This option should be used with extreme caution. If enabled and used incorrectly, it will break the guarantee that 
+     * {@code hashCode()} and {@code equals()} will be consistent. Even if you only specify final fields, this will fail if the final 
+     * fields are themselves mutable. For a hashCode to be eligible for the correct use of this option, the following two conditions must 
+     * be true of every field you include in your DogTag:
      * <br>
      * 1. It must not be possible to change the value once the owning object has been constructed.<br>
      * 2. If the field is an Object, All if its internal fields used in its hash code calculation must meet both of these conditions.
@@ -813,15 +792,10 @@ public abstract class DogTag<T> {
      * The second, of course, makes this recursive. In other words, if any field anywhere in the object tree of any
      * field is used to calculate a hash code, that field cannot change value once the outermost element of the tree
      * is constructed.
-     * <p>Using this option incorrectly breaks the guarantee that equals() will be consistent with hashCode().</p>
      */
     public DogTagReflectiveBuilder<T> withCachedHash(boolean useCachedHash) {
       setUseCachedHash(useCachedHash);
       return this;
-    }
-
-    protected void setFinalFieldsOnly(boolean finalFieldsOnly) {
-      this.finalFieldsOnly = finalFieldsOnly;
     }
 
     protected void setTransients(boolean useTransients) {
@@ -857,7 +831,6 @@ public abstract class DogTag<T> {
           final Class<?> fieldType = field.getType();
           int modifiers = field.getModifiers();
           final boolean isStatic = Modifier.isStatic(modifiers);
-          final boolean fieldIsFinal = Modifier.isFinal(modifiers);
           final boolean isDogTag = fieldType == DogTag.class;
           final boolean isFactory = fieldType == DogTag.Factory.class;
           if (isDogTag && isStatic) {
@@ -878,15 +851,9 @@ public abstract class DogTag<T> {
               && !isDogTag
               // transients are tested only in exclusion mode
               && (testTransients || useInclusionMode || !Modifier.isTransient(modifiers))
-              && (!finalFieldsOnly || useInclusionMode || fieldIsFinal)
               && isFieldUsed(selectedFields, field)
               && (field.getName().indexOf('$') < 0) // disallow anonymous inner class fields
           ) {
-            if (isUseCachedHash() && !fieldIsFinal) {
-              throw new IllegalArgumentException(
-                  String.format("E10: %s - The 'withCachedHash' option may not be used with non-final field %s.", getTargetClass(), field.getName()) //NON-NLS
-              );
-            }
             field.setAccessible(true); // move this into getFPForType?
             FieldProcessor<T> fieldProcessor = getFieldProcessorForType(field, fieldType);
 
@@ -895,7 +862,6 @@ public abstract class DogTag<T> {
           }
         }
         if (theClass == lastSuperClass) {
-          
           break;
         }
         theClass = theClass.getSuperclass();
@@ -1351,12 +1317,13 @@ public abstract class DogTag<T> {
       }
 
       /**
-       * Cache the hash value when only final fields are used to build the DogTag. Enabling the
-       * finalFieldsOnly option automatically enables this option, but you may use this method to set it manually.
+       * Sets the usedCachedHash option. This will cache the hash value the first time {@code hashCode()} is called, and continue using
+       * the cached value.
        * <p>
-       * This option should be used with extreme caution. Even if you specify only final fields, this will fail if, for
-       * example, the final fields are themselves mutable. For a hashCode to be eligible for the correct use of this
-       * option, the following two conditions must be true of every field you include in your DogTag:
+       * This option should be used with extreme caution. If enabled and used incorrectly, it will break the guarantee that 
+       * {@code hashCode()} and {@code equals()} will be consistent. Even if you only specify final fields, this will fail if the final 
+       * fields are themselves mutable. For a hashCode to be eligible for the correct use of this option, the following two conditions must
+       * be true of every field you include in your DogTag:
        * <br>
        * 1. It must not be possible to change the value once the owning object has been constructed.<br>
        * 2. If the field is an Object, All if its internal fields used in its hash code calculation must meet both of these conditions.

@@ -134,36 +134,24 @@ This approach has the advantage of having the cleanest public API. All options s
 
 `withTransients(boolean useTransients)`
 
-`withFinalFieldsOnly(boolean useFinalFieldsOnly)`
-
 `withReflectUpTo(Class<? super T> reflectUpToClass`
-
-## Building
-
-Build using Maven. The DogTags `src` folder has no dependencies, and the `test` folder depends on junit and commons.lang3 (for performance comparisons with EqualsBuilder).
-
-The project is in an experimental state. It's usable in this state, but the API may change.
 
 ### Available options are:
 
-#####  Exclusion and Inclusion mode
-Defaults to exclusion mode, where all eligible fields are used unless explicity excluded.
-In inclusion mode, no fields are included unless explicitly included. Fields may be marked
-for inclusion or exclusion by specifying the field name or annotating the field. DogTags provides annotations for including/excluding, but allows you to use your preferred annotation for compatibility with other tools
+####  Exclusion and Inclusion mode
+Defaults to exclusion mode, where all eligible fields get used unless explicitly excluded.
+In inclusion mode, no fields get used unless explicitly included. You may mark fields for inclusion or exclusion by specifying the field name or annotating the field. DogTags provides annotations for including/excluding, but allows you to use your preferred annotation for compatibility with other tools
 
-##### Transients *(exclusion mode only)*
-By default, transients are excluded unless using inclusion mode or enabling the *transients* option. (Transients need no special status in inclusion mode, since nothing is included automatically anyway.) 
+#### Transients *(exclusion mode only)*
+By default, transients are excluded unless using inclusion mode or enabling the *transients* option. (Transients need no special status in inclusion mode, since nothing gets included automatically anyway.) 
 
-##### ReflectUpTo
+#### ReflectUpTo
 Allows you to specify an ancestor class to include ancestral fields. By defualt, only fields from the target class are used, but as many ancestors as you need may be included.
 
-##### HashBuilder
+#### HashBuilder
 By default, hash codes are calculated using the same formula as `Objects.hash()`. But you may provide your own hash calculator instead.
 
-##### FinalFieldsOnly  *(exclusion mode only)*
-Only final fields are included. This also allows you to cache the hashed value to improve hashing performance.
-
-##### CachedHash
+#### CachedHash
 Cache the hash value for improved performance. This should be used with caution, and must be explicitly enabled. The current design requires your 'hashCode()' implementation to be written in a certain way, but the alternative approaches (below) will eliminate that requirement and encapsulate all the details of the hash cache.
 
 ### Planned Options under Consideration
@@ -172,6 +160,12 @@ This will probably be done through the annotations, but could also be specified 
 
 ##### Property Mode
 For situations where a security manager prevents you from using reflected fields, or when getting values by property is more appropriate.
+
+## Building
+
+Build using Maven. The DogTags `src` folder has no dependencies, and the `test` folder depends on junit and commons.lang3 (for performance comparisons with EqualsBuilder).
+
+The project is in an experimental state. It's usable in this state, but the API may change.
 
 ## Requirements enforced at runtime
 
@@ -198,7 +192,7 @@ In the interest of speed and professional coding practices, there are some thing
 
 1. They don't completely replace the Apache EqualsBuilder class. DogTags are a much faster replacement for the `EqualsBuilder.reflectionEquals()` and `HashCodeBuilder.reflectionHashCode()` methods, but using EqualsBuilder to build an `equals()` method that does not use reflection is still faster than DogTags using reflection, and slightly faster than DogTags using lambda expressions, although it's more work and requires more maintenance.
 
-1. They don't prevent symmetry and transitivity failures due to subclassing. (This is not just an issue with DogTags. It can be an issue with any implementation of `equals()`.) If you give `class T` an `equals()` method, then override it in `class U extends T`, the two methods are almost certain to fail the symmetry and transitivity requirements. Symmetry says that `a.equals(b)` returns the same value as `b.equals(a)`. The only way this test passes is if both equals() methods do exactly the same thing, in which case there is no point on overriding the `equals()` method. (The symmetry and transitivity requirements are why a class needs to be final to use the method `DogTag<T> from(T instance)`. If a subclass of T existed, the `from()` method would generate separate factories for class T and its subclass, which would result in symmetry and transitivity failures.)
+1. They don't prevent symmetry and transitivity failures due to subclassing. (This is not just an issue with DogTags. It can be an issue with any implementation of `equals()`.) If you give `class T` an `equals()` method, then override it in `class U extends T`, the two methods may fail the symmetry and transitivity requirements. Symmetry says that `a.equals(b)` returns the same value as `b.equals(a)`. There are only two ways this test passes. First, if both equals() methods do exactly the same thing, in which case there is no point on overriding the `equals()` method. Second, if the equals methods guarantee that any instance of T will never be equal to an instance of U. (The symmetry and transitivity requirements are why a class needs to be final to use the method `DogTag<T> from(T instance)`. If a subclass of T existed, the `from()` method would generate separate factories for class T and its subclass, which would result in symmetry and transitivity failures.) However, if you do not override an equals method created using DogTags, the symmetry and transitivity tests will pass, even with instances of sub classes.
 
 ## Comparison with EqualsBuilder & HashCodeBuilder
 DogTags's different modes fill the same niche as both of the Apache commons-lang classes, EqualsBuilder and HashCodeBuilder. That said, there are still advantages to using the Apache classes, but there are other advantages to using DogTags. For example:
