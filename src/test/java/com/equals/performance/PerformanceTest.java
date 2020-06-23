@@ -80,12 +80,12 @@ public class PerformanceTest {
     TestClass[] instances = {t14, t15, t16, t17, t18, t19, t20, t21, t22, t23, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t0.duplicate()};
     reverse(instances);
 
-    DogTag.DogTagExclusionBuilder<TestClass> classDogTagExclusionBuilder = DogTag.create(classFrom(t0));
+    DogTag.DogTagReflectiveBuilder<TestClass> classDogTagExclusionBuilder = DogTag.startWithAll(classFrom(t0));
     DogTag.Factory<TestClass> dogTagfactory = classDogTagExclusionBuilder.build();
 
     final BiFunction<TestClass, TestClass, Boolean> directEqual = TestClass::isEqual;
 //    TimingUtility.runTestCycles(dogTagfactory, t0, instances, directEqual, EMPTY_STRING_ARRAY);
-    DogTag.Factory<TestClass> lambdaFactory = DogTag.createByLambda(TestClass.class)
+    DogTag.Factory<TestClass> lambdaFactory = DogTag.startEmpty(TestClass.class)
         .addArray(TestClass::getNovemberIntArray)
         .addArray(TestClass::getOperaStringArray)
         .addArray(TestClass::getPapaLongArray)
@@ -111,7 +111,7 @@ public class PerformanceTest {
         .addSimple(TestClass::getMikeFloat)
         .build();
     @SuppressWarnings("AccessingNonPublicFieldOfAnotherObject")
-    DogTag.Factory<TestClass> lambdaFactoryByField = DogTag.createByLambda(TestClass.class)
+    DogTag.Factory<TestClass> lambdaFactoryByField = DogTag.startEmpty(TestClass.class)
         .addArray((TestClass t) -> t.novemberIntArray)
         .addArray((TestClass t) -> t.operaStringArray)
         .addArray((TestClass t) -> t.papaLongArray)
@@ -153,7 +153,7 @@ public class PerformanceTest {
 //        .withExcludedFields(excludedFields)
 //        .getFactory();
     SingleValueTestClass dummy = new SingleValueTestClass(1, "x");
-    DogTag.Factory<SingleValueTestClass> dogTagNoArrays = DogTag.create(classFrom(dummy)).build();
+    DogTag.Factory<SingleValueTestClass> dogTagNoArrays = DogTag.startWithAll(classFrom(dummy)).build();
     SingleValueTestClass t0 = new SingleValueTestClass(1, "bravo");
     SingleValueTestClass t1 = new SingleValueTestClass(11, "bravo");
 //    SingleValueTestClass t2 = new SingleValueTestClass(1, "bravisimo");
@@ -181,7 +181,7 @@ public class PerformanceTest {
 
     SingleValueTestClass[] pInstances = { tDup, t12, t11, t10, t9, t8, t7, t6, t5, t4, t3, /* t2,*/ t1};
 
-    DogTag.Factory<SingleValueTestClass> lambdaFactory = DogTag.createByLambda(SingleValueTestClass.class)
+    DogTag.Factory<SingleValueTestClass> lambdaFactory = DogTag.startEmpty(SingleValueTestClass.class)
         .addSimple(SingleValueTestClass::getAlphaInt)
         .addSimple(SingleValueTestClass::getCharlieInt)
         .addSimple(SingleValueTestClass::getDeltaLong)
@@ -195,7 +195,7 @@ public class PerformanceTest {
         .addSimple(SingleValueTestClass::getMikeFloat)
         .build();
     @SuppressWarnings("AccessingNonPublicFieldOfAnotherObject")
-    DogTag.Factory<SingleValueTestClass> lambdaFieldFactory = DogTag.createByLambda(SingleValueTestClass.class)
+    DogTag.Factory<SingleValueTestClass> lambdaFieldFactory = DogTag.startEmpty(SingleValueTestClass.class)
         .addSimple((SingleValueTestClass t) -> t.alphaInt)
         .addSimple((SingleValueTestClass t) -> t.charlieInt)
         .addSimple((SingleValueTestClass t) -> t.deltaLong)
@@ -622,12 +622,12 @@ public class PerformanceTest {
           .isEquals();
     }
 
-    private static final DogTag.Factory<TwoStringClass> dogTag = DogTag.create(TwoStringClass.class).build();
-    private static final DogTag.Factory<TwoStringClass> referenceFactory = DogTag.createByLambda(TwoStringClass.class)
+    private static final DogTag.Factory<TwoStringClass> dogTag = DogTag.startWithAll(TwoStringClass.class).build();
+    private static final DogTag.Factory<TwoStringClass> referenceFactory = DogTag.startEmpty(TwoStringClass.class)
         .addObject(TwoStringClass::getAlpha)
         .addObject(TwoStringClass::getBravo)
         .build();
-    private static final DogTag.Factory<TwoStringClass> lambdaFactory = DogTag.createByLambda(TwoStringClass.class)
+    private static final DogTag.Factory<TwoStringClass> lambdaFactory = DogTag.startEmpty(TwoStringClass.class)
         .addObject((TwoStringClass t) -> t.alpha)
         .addObject((TwoStringClass t) -> t.bravo)
         .build();
@@ -823,7 +823,7 @@ public class PerformanceTest {
     @SuppressWarnings("UseOfClone")
     S26 clone = original.clone();
 
-    DogTag.Factory<S26> dogTag = DogTag.create(classFrom(zz)).build();
+    DogTag.Factory<S26> dogTag = DogTag.startWithAll(classFrom(zz)).build();
 
     S26[] i = {aa, bb, cc, dd, ee, ff, gg, hh, ii, jj, kk, ll, mm, nn, oo, pp, qq, rr, ss, tt, uu, vv, ww, xx, yy, zz, clone };
     reverse(i);
@@ -946,8 +946,8 @@ public class PerformanceTest {
     public String getX() { return x;}
     public String getY() { return y;}
     public String getZ() { return z;}
-    private static final DogTag.Factory<S26Interned> reflectionFactory = DogTag.create(S26Interned.class).build();
-    private static final DogTag.Factory<S26Interned> referenceFactory = DogTag.createByLambda(S26Interned.class)
+    private static final DogTag.Factory<S26Interned> reflectionFactory = DogTag.startWithAll(S26Interned.class).build();
+    private static final DogTag.Factory<S26Interned> referenceFactory = DogTag.startEmpty(S26Interned.class)
         .addObject(S26Interned::getA)
         .addObject(S26Interned::getB)
         .addObject(S26Interned::getC)
@@ -975,7 +975,7 @@ public class PerformanceTest {
         .addObject(S26Interned::getY)
         .addObject(S26Interned::getZ)
         .build();
-    private static final DogTag.Factory<S26Interned> lambdaFactory = DogTag.createByLambda(S26Interned.class)
+    private static final DogTag.Factory<S26Interned> lambdaFactory = DogTag.startEmpty(S26Interned.class)
         .addObject((S26Interned s) -> s.a)
         .addObject((S26Interned s) -> s.b)
         .addObject((S26Interned s) -> s.c)

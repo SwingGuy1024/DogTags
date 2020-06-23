@@ -418,7 +418,7 @@ public class PerformanceTestPrimitiveArrays {
             .isEquals();
       }
 
-    private static final DogTag.Factory<TestClass> dogTag = DogTag.create(TestClass.class).build();
+    private static final DogTag.Factory<TestClass> dogTag = DogTag.startWithAll(TestClass.class).build();
   }
 
   private static String dup(String s) {

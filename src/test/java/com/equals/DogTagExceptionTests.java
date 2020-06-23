@@ -64,23 +64,23 @@ public class DogTagExceptionTests {
   }
   
   private static class StaticDogTag {
-    private static final DogTag.Factory<StaticDogTag> factory = DogTag.create(StaticDogTag.class).build();
+    private static final DogTag.Factory<StaticDogTag> factory = DogTag.startWithAll(StaticDogTag.class).build();
     private static final DogTag<StaticDogTag> badDogTag = factory.tag(new StaticDogTag());
   }
   
   private static class NonStaticFactory {
-    private final DogTag.Factory<NonStaticFactory> factory = DogTag.create(NonStaticFactory.class).build();
+    private final DogTag.Factory<NonStaticFactory> factory = DogTag.startWithAll(NonStaticFactory.class).build();
   }
   
   private static class NonStaticLambdaFactory {
     public int getAlpha() { return 5; }
-    private final DogTag.Factory<NonStaticLambdaFactory> factory = DogTag.createByLambda(NonStaticLambdaFactory.class)
+    private final DogTag.Factory<NonStaticLambdaFactory> factory = DogTag.startEmpty(NonStaticLambdaFactory.class)
         .addSimple(NonStaticLambdaFactory::getAlpha)
         .build();
   }
   
   private static class MissingLambdaFactory {
-    private final DogTag<MissingLambdaFactory> dogTag = DogTag.createByLambda(MissingLambdaFactory.class)
+    private final DogTag<MissingLambdaFactory> dogTag = DogTag.startEmpty(MissingLambdaFactory.class)
         .build()
         .tag(this);
   }
@@ -88,6 +88,6 @@ public class DogTagExceptionTests {
   private static class NonFinalClassUsingFrom {
     private final int alpha = 0;
     private int bravo = 1;
-    private final DogTag<NonFinalClassUsingFrom> dogTag = DogTag.from(this);
+//    private final DogTag<NonFinalClassUsingFrom> dogTag = DogTag.from(this);
   }
 }

@@ -4,20 +4,15 @@ import java.lang.annotation.Annotation;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Target;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.function.ToDoubleFunction;
 import java.util.function.ToIntFunction;
@@ -25,16 +20,16 @@ import java.util.function.ToLongFunction;
 
 /**
  * <p><big><strong>Warning:</strong> This code is in alpha development. The API is still in flux, but the major features are mostly in 
- * place. The API for creating DogTags will be still changing, so don't use this in production code yet.</big></p>
+ * place. The API for creating DogTags will be still changing, and the documentation is not up-to-date, so don't use this in production
+ * code yet.</big></p>
  * <p>Reasonably fast and easily maintainable {@code equals()} and {@code hashCode()} methods. Guarantees that {@code equals()}
  * complies with its contract, and that {@code hashCode()} is consistent with {@code equals()}, according to its contract. (There is one
  * exception to this guarantee, described in the cachedHash option, which must be used correctly if it is enabled. When that option is
  * disabled, the guarantee is solid</p>
  * <p> Requires Java 1.8+.</p>
- * <p>Three modes are available:</p>
+ * <p>Two modes are available:</p>
  * <ul>
  *   <li>Reflection, which includes all non-transient fields by default</li>
- *   <li>Exclusive Reflection, which excludes all fields by default except those explicitly included</li>
  *   <li>Non-Reflective, where methods are specified using method references</li>
  * </ul>
  * <p>In the two reflective modes, users may use annotations to specify which fields to include or exclude, or may specify them directly
@@ -51,14 +46,15 @@ import java.util.function.ToLongFunction;
  * <p>This illustrates the standard way to create a DogTag. You first create a static factory. You set options and specify fields to
  * exclude/include in the factory. Then you call its {@code tag()} method to tag each instance.</p>
  * <pre>
- *   public final class MyClass {
+ *   public final class MyClass implements Serializable {
  *     // Define various fields, getters, and methods here.
  *
  *     private static final{@literal DogTag.Factory<MyClass>} factory 
- *           = DogTag.create(MyClass.class, "alpha") // exclude the alpha property
+ *           = DogTag.startWithAll(MyClass.class)
+ *         .excludeFields("alpha") // exclude the alpha property
  *         .withTransients(true)
  *         .build();
- *     private transient final {@literal DogTag<MyClass>} dogTag = factory.tag(this);
+ *     private final {@literal DogTag<MyClass>} dogTag = factory.tag(this);
  *
  *    {@literal @Override}
  *     public boolean equals(Object that) {
@@ -101,7 +97,7 @@ import java.util.function.ToLongFunction;
  *     // Various fields, getters, setters, and methods omitted for brevity.
  *
  *     // exclude the dogTag field
- *     private static final{@literal DogTag.Factory<MyClass>} factory = DogTag.createByLambda(MyClass.class)
+ *     private static final{@literal DogTag.Factory<MyClass>} factory = DogTag.startEmpty(MyClass.class)
  *         .useCachedHash(true)
  *         .addSimple(MyClass::getAlpha)
  *         .addSimple(MyClass::getBravo)
@@ -137,7 +133,7 @@ import java.util.function.ToLongFunction;
  *     // Define various fields, getters, and methods here.
  *
  *     // Excludes size and date fields. Defaults to all non-transient, non-static fields.
- *     private static final{@literal DogTag.Factory<MyClass>} dogTag = DogTag.create(this, "size", "date")
+ *     private static final{@literal DogTag.Factory<MyClass>} dogTag = DogTag.startWithAll(this, "size", "date")
  *       .withTransients(true)            // defaults to false
  *       .withReflectUpTo(MyClass.class)  // defaults to Object.class
  *       .build();
@@ -178,8 +174,7 @@ import java.util.function.ToLongFunction;
  */
 @SuppressWarnings("HardCodedStringLiteral")
 public abstract class DogTag<T> {
-  private static final Map<Class<?>, Factory<?>> factoryMap = new HashMap<>();
-  public static final int DEFAULT_ORDER_VALUE = DogTagInclude.DEFAULT_ORDER_VALUE;
+//  public static final int DEFAULT_ORDER_VALUE = DogTagInclude.DEFAULT_ORDER_VALUE;
   private final Factory<T> factory;
   private final T instance;
   private int cachedHash;
@@ -230,20 +225,21 @@ public abstract class DogTag<T> {
 
   public static final class ReflectiveFactory<T> extends Factory<T> {
     private final Class<T> targetClass;
-    private final List<FieldProcessor<T>> fieldProcessors;
+    private final Collection<FieldProcessor<T>> fieldProcessors;
 
     private ReflectiveFactory(
         Class<T> theClass,
-        List<FieldProcessor<T>> getters,
+        Collection<FieldProcessor<T>> getters,
         int startingHash,
         HashBuilder hashBuilder,
         boolean useCache
     ) {
       super(useCache, hashBuilder, startingHash);
       targetClass = theClass;
-      fieldProcessors = Collections.unmodifiableList(getters);
+      fieldProcessors = Collections.unmodifiableCollection(getters);
     }
     
+    @Override
     protected final Function<T, DogTag<T>> chooseConstructor(boolean useCache) {
       return useCache ?
           (t) -> new CachingDogTag<>(this, t) :
@@ -311,76 +307,13 @@ public abstract class DogTag<T> {
     this.instance = instance;
   }
 
-  private static <T> Factory<T> getForClass(Class<T> theClass) {
-    @SuppressWarnings("unchecked")
-    final Factory<T> factory = (Factory<T>) factoryMap.get(theClass);
-    return factory;
-  }
-
   /**
-   * <p>Instantiate a DogTag for an instance of final class T, using default options. The default options are: All Fields are 
-   * included except transient and static fields, as well as fields annotated with {@code @DogTagExclude}. All 
-   * superclass fields are included.</p>
-   * <p><em>This may only be used with final classes.</em> This is because otherwise subclasses will fail the transitivity test. To 
-   * understand why, consider these classes:</p>
-   * <pre>
-   *   class A {
-   *     // ... details omitted for brevity
-   *     private final {@literal DogTag<A>} dogTag = DogTag.from(this);    // disallowed
-   *     public boolean equals(Object that) { return dogTag.equals(that); }
-   *   }
-   *   
-   *   class B extends A { ... }
-   *   class C extends A { ... }
-   *   
-   *   // ...
-   *
-   *   A a = new A();
-   *   B b = new B();
-   *   C c = new C();
-   *   
-   *   a.equals(b); // returns true;
-   *   a.equals(c); // returns true;
-   *   b.equals(c); // returns false, failing the transitivity test.
-   * </pre>
-   * <p>This fails because when instances of B and C are constructed, the {@code DogTag.from(...)} method will construct DogTags for classes
-   * B and C. When the {@code equals()} method is called, the tests {@code b instanceof C} and {@code c instanceof B} will return false. </p>
-   * <p>However, this will work:</p>
-   * <pre>
-   *   class A {
-   *     // ... details omitted for brevity
-   *     private static final {@literal DogTag.Factory<A>} factory = DogTag.create(A.class).build();
-   *     private final {@literal DogTag<A>} dogTag = factory.tag(this);
-   *     public boolean equals(Object that) { return dogTag.equals(that); }
-   *   }
-   *
-   *   class B extends A { ... }
-   *   class C extends A { ... }
-   *
-   *   // ...
-   *
-   *   A a = new A();
-   *   B b = new B();
-   *   C c = new C();
-   *
-   *   a.equals(b); // returns true;
-   *   a.equals(c); // returns true;
-   *   b.equals(c); // returns true, passing the transitivity test.
-   * </pre>
-   * The first time this method is called for a class, it will create a DogTag.Factory and store it. Subsequent calls
-   * will retrieve that factory and re-use it.
-   * @param owner The instance of enclosing class. Pass {@code this} to this parameter
-   * @param <T> The type of the enclosing class.
-   * @return An instance of {@literal DogTag<T>}. This should be a non-static member of the enclosing class.
-   */
-  public static <T> DogTag<T> from(T owner) {
-    return new DogTagExclusionBuilder<>(classFrom(owner)).setFactoryNotRequired().getFactory().tag(owner);
-  }
-
-  /**
-   * Instantiate a builder for a DogTag for class T, specifying an optional list of names of fields to be excluded. The
+   * Instantiate a builder for a DogTag.Factory for class T that uses reflection to build a DogTag. By default, the factory will include 
+   * all non-transient, non-static fields in the DogTag, although you may change this behavior by calling additional methods before
+   * building the factory.
+   * You may exclude specific fields by calling {@code excludeFields(String... excludedFields)} specifying fields by name. The
    * fields must be in the class specified by the type parameter for the DogTag, or any superclass included by the
-   * {@code withReflectUpTo()} option. Defaults to an empty array.
+   * {@code withReflectUpTo()} option.
    * <p>
    * This builder allows you to specify options before building your DogTag. The getFactory() method generates the DogTag.
    * All of the default options used by the {@code from()} method are used here, but they may be overridden. All the
@@ -388,24 +321,28 @@ public abstract class DogTag<T> {
    * <p>
    * For example:
    * <pre>
-   *     private final{@literal DogTag<MyClass>} dogTag = DogTag.create(this, "date", "source")
+   *     private static final{@literal DogTag.Factory<MyClass>} factory = DogTag.startWithAll(this)
+   *         .excludeFields("date", "source")
    *         .withTransients(true) // options are specified here
    *         .build();
+   *     private final{@literal DogTag<MyClass>} dogTag = factory.tag(this);
+   *     public boolean equals(Object other) { return dogTag.equals(other); }
+   *     public int hashCode() { return dogTag.hashCode(); }
    *   </pre>
    * <p>
    * Options may be specified in any order.
    *
    * @param theClass           The class of type T
-   * @param excludedFieldNames The names of fields to exclude from the equals and hash code calculations
    * @param <T>                The type of the enclosing class.
-   * @return A builder for a {@literal DogTag<T>}, from which you can set options and build your DogTag.
+   * @return A builder for a {@literal DogTag<T>}, from which you can set options and build your DogTag.Factory.
    */
-  public static <T> DogTagExclusionBuilder<T> create(Class<T> theClass, String... excludedFieldNames) {
-    return new DogTagExclusionBuilder<>(theClass, excludedFieldNames);
+  public static <T> DogTagReflectiveBuilder<T> startWithAll(Class<T> theClass) {
+    return new DogTagReflectiveBuilder<>(theClass);
   }
 
   /**
-   * Convenience method because getClass() returns {@literal Class<?> instead of Class<T>}
+   * Convenience method because getClass() returns {@literal Class<?> instead of Class<T>}. Using this lets you avoid suppressing
+   * the unchecked warning when you would otherwise say {@code Class<X> xClass = x.getClass();}
    * @param t an object
    * @param <T> The inferred type of the object
    * @return the class of T, as a {@literal Class<T>} object
@@ -431,202 +368,24 @@ public abstract class DogTag<T> {
    * <p>
    * For example:
    * <pre>
-   *   {@literal DogTag<MyClass>} dogTag = DogTag.createByInclusion(this, "name", "ssNumber", "email")
-   *     .withInclusionAnnotation(MyIncludeAnnotation.class) // options are specified here
+   *   {@literal DogTag.Factory<MyClass>} factory = DogTag.startEmpty(MyClass.class)
+   *     .addObject(MyClass::getName)       // Add object by method reference
+   *     .addObject(MyClass::getSsNumber    // Add object by method reference
+   *     .addObject((MyClass m) -> m.email) // Add by fields like this
    *     .build();
+   *   {@literal DogTag<MyClass>} dogTag = factory.tag(this);
    * </pre>
    * <p>
    * Options may be specified in any order.
    *
-   * @param theClass   The class of type T
-   * @param fieldNames The names of fields to exclude from the equals and hash code calculations
+   * @param targetClass The class of type T
    * @param <T>        The type of the enclosing class.
-   * @return A builder for a {@literal DogTag<T>}, from which you can set options and build your DogTag.
+   * @return A builder for a {@literal DogTag<T>}, from which you can specify methods, set options, and build your DogTag.
    */
-  public static <T> DogTagInclusionBuilder<T> createByInclusion(Class<T> theClass, String... fieldNames) {
-    return new DogTagInclusionBuilder<>(theClass, fieldNames);
-  }
-  
-  public static <T> DogTagInclusionBuilder<T> createByInclusion(Class<T> theClass, Class<? extends Annotation> annotationClass) {
-    return new DogTagInclusionBuilder<>(theClass).withInclusionAnnotation(annotationClass);
-  }
-
-  public static <T> LambdaFactory.LambdaBuilder<T> createByLambda(Class<T> targetClass) {
+  public static <T> LambdaFactory.LambdaBuilder<T> startEmpty(Class<T> targetClass) {
     return new LambdaFactory.LambdaBuilder<>(targetClass);
   }
 
-  // TODO: Write unit test
-  public static <T> DogTagInclusionBuilder<T> createByPersistenceId(Class<T> theClass) {
-    return createByNamedAnnotation(theClass, "javax.persistence.Id"); // NON-NLS
-  }
-
-  // TODO Write unit test
-  public static <T> DogTagInclusionBuilder<T> createByNamedAnnotation(Class<T> theClass, String annotationClassName) {
-    try {
-      return createByInclusion(theClass, validateAnnotationClass(Class.forName(annotationClassName)));
-    } catch (ClassNotFoundException e) {
-      throw new IllegalArgumentException(String.format("E4: Not found: %s", annotationClassName), e);
-    }
-  }
-
-  static final class DogTagInclusionBuilder<T> extends DogTagReflectiveBuilder<T> {
-    private final Map<Field, Integer> orderMap = new HashMap<>();
-
-    DogTagInclusionBuilder(Class<T> theClass, String... includedFields) {
-      super(theClass, false, DogTagInclude.class, includedFields);
-    }
-
-    @Override
-    protected boolean isFieldUsed(final Set<Field> selectedFields, final Field theField) {
-      return isSelected(selectedFields, theField);
-    }
-
-    /**
-     * Specify an annotation class to be used to include fields, which may be used in addition to the
-     * {@code DogTagInclude} annotation. This allows you to use an annotation of your choice, for compatibility with
-     * other systems or your own framework. The {@code DogTagInclude} annotation will still work.
-     *
-     * @param annotationClass The class object of the custom annotation you may use to specify which fields to
-     *                        exclude.
-     * @return this, for method chaining.
-     */
-    @SuppressWarnings("SameParameterValue")
-    DogTagInclusionBuilder<T> withInclusionAnnotation(Class<? extends Annotation> annotationClass) {
-      addSelectionAnnotation(validateAnnotationClass(annotationClass));
-      return this;
-    }
-
-    @Override // JavaDocs are in the super class
-    public DogTagInclusionBuilder<T> withHashBuilder(final int startingHash, final HashBuilder hashBuilder) {
-      return (DogTagInclusionBuilder<T>) super.withHashBuilder(startingHash, hashBuilder);
-    }
-
-    @Override // JavaDocs are in the super class
-    public DogTagInclusionBuilder<T> withCachedHash(final boolean useCachedHash) {
-      return (DogTagInclusionBuilder<T>) super.withCachedHash(useCachedHash);
-    }
-
-    @Override
-    protected void recordOrder(final Field field, final Class<? extends Annotation> nullableAnnotationClass) {
-      int order = DEFAULT_ORDER_VALUE;
-      if (nullableAnnotationClass == DogTagInclude.class) {
-        order = field.getAnnotation(DogTagInclude.class).order();
-      } else if (nullableAnnotationClass != null) {
-        Annotation annotation = field.getAnnotation(nullableAnnotationClass);
-        Object orderValue = getOrderFromUnknownAnnotation(annotation);
-        if (orderValue instanceof Number) {
-          order = ((Number) orderValue).intValue();
-        }
-      }
-      orderMap.put(field, order);
-    }
-    
-    private Object getOrderFromUnknownAnnotation(Annotation annotation) {
-      try {
-        Method method = annotation.getClass().getMethod("order");
-        return method.invoke(annotation);
-      } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException ignored) {
-        return null;
-      }
-    }
-
-    @Override
-    protected Collection<FieldProcessorWrapper<T>> createEmptyFieldProcessorList() {
-      return new TreeSet<>();
-    }
-
-    @Override
-    protected int getOrderForField(final Field field) {
-      Integer order = orderMap.get(field);
-      // Order will be null if the field was included explicitly. For those (unannotated) fields, we use the default value. 
-      if (order == null) {
-        return DEFAULT_ORDER_VALUE;
-      }
-      return order;
-    }
-  }
-
-  public static final class DogTagExclusionBuilder<T> extends DogTagReflectiveBuilder<T> {
-
-    private DogTagExclusionBuilder(Class<T> theClass, String... excludedFields) {
-      super(theClass, false, DogTagExclude.class, excludedFields);
-    }
-
-    /**
-     * Specify an annotation class to be used to exclude fields, which may be used in addition to the
-     * {@code DogTagExclude} annotation. This allows you to use an annotation of your choice, for compatibility with
-     * other systems or your own framework. The {@code DogTagExclude} annotation will still work.
-     * @param annotationClass The class object of the custom annotation you may use to specify which fields to
-     *                            exclude.
-     * @return this, for method chaining.
-     */
-    public DogTagExclusionBuilder<T> withExclusionAnnotation(Class<? extends Annotation> annotationClass) {
-      addSelectionAnnotation(validateAnnotationClass(annotationClass));
-      return this;
-    }
-
-    /**
-     * Set the Transient option, before building the DogTag. Defaults to false. This is used only in exclusion mode.
-     * When true, transient fields will be included, provided they meet all the other criteria. (DogTag fields and their factories are
-     * never included regardless of their transient state.
-     * <p>
-     * Calling this method when using inclusion mode will have no effect.
-     *
-     * @param useTransients true if you want transient fields included in the equals and hashCode methods
-     * @return this, for method chaining
-     */
-    public DogTagExclusionBuilder<T> withTransients(boolean useTransients) {
-      setTransients(useTransients);
-      return this;
-    }
-
-    DogTagExclusionBuilder<T> setFactoryNotRequired() {
-      isFactoryRequired = false;
-      return this;
-    }
-
-    /**
-     * Specify the superclass of the DogTag Type parameter class to include in the equals and hash code calculations.
-     * The classes inspected for fields to use are those of the type class, the specified superclass, and any
-     * class that is a superclass of the type class and a subclass of the specified superclass. Defaults to
-     * Object.class.
-     *
-     * @param reflectUpTo The superclass, up to which are inspected for fields to include.
-     * @return this, for method chaining
-     */
-    public DogTagExclusionBuilder<T> withReflectUpTo(Class<? super T> reflectUpTo) {
-      setReflectUpTo(reflectUpTo);
-      return this;
-    }
-
-    @Override
-    protected boolean isFieldUsed(final Set<Field> selectedFields, final Field theField) {
-      return !isSelected(selectedFields, theField);
-    }
-
-  // All inherited "with<Option> methods must be overridden to return DogTagExclusionBuilder instead of the
-  // default DogTagFullBuilder:
-
-    @Override // JavaDocs are in the super class
-    public DogTagExclusionBuilder<T> withHashBuilder(final int startingHash, final HashBuilder hashBuilder) {
-      return (DogTagExclusionBuilder<T>) super.withHashBuilder(startingHash, hashBuilder);
-    }
-
-    @Override // JavaDocs are in the super class
-    public DogTagExclusionBuilder<T> withCachedHash(final boolean useCachedHash) {
-      return (DogTagExclusionBuilder<T>) super.withCachedHash(useCachedHash);
-    }
-
-    @Override
-    protected Collection<FieldProcessorWrapper<T>> createEmptyFieldProcessorList() {
-      return new LinkedList<>();
-    }
-
-    @Override
-    protected int getOrderForField(final Field field) {
-      return DEFAULT_ORDER_VALUE;
-    }
-  }
 
   abstract static class DogTagBaseBuilder<T> {
     private final Class<T> targetClass;
@@ -640,32 +399,10 @@ public abstract class DogTag<T> {
     }
 
     /**
-     * Once options are specified, find the DogTag.Factory for type T, or build a new one if one doesn't exist yet.
-     * Options may be specified in any order.
-     * @return A {@literal DogTag.Factory<T>} that builds instances of {@literal DogTag<T>} using the specified options.
+     * Once all options are set and all fields or methods specified, build the Factory.
+     * @return A DogTag.Factory to tag instances of T
      */
-    Factory<T> getFactory() {
-      int modifiers = targetClass.getModifiers();
-      if (!Modifier.isFinal(modifiers)) {
-        throw new IllegalArgumentException(String.format("E11: %s is not final. Use one of the DogTag.createXxx() methods.", targetClass));
-      }
-      Factory<T> factory = getForClass(this.targetClass);
-      if (factory == null) {
-        factory = build();
-        factoryMap.put(this.targetClass, factory);
-      }
-      return factory;
-    }
-    
     public abstract Factory<T> build();
-
-//    /**
-//     * Build the DogTag instance from the factory, creating the factory if it doesn't exist yet.
-//     * @return The DogTag for the instance held in the builder.
-//     */
-//    public DogTag<T> build() {
-//      return getFactory().tag(instance);
-//    }
 
     protected Class<T> getTargetClass() {
       return targetClass;
@@ -696,11 +433,15 @@ public abstract class DogTag<T> {
     }
   }
 
-  abstract static class DogTagReflectiveBuilder<T> extends DogTagBaseBuilder<T> {
+  public static final class DogTagReflectiveBuilder<T> extends DogTagBaseBuilder<T> {
+
+    private DogTagReflectiveBuilder(Class<T> theClass) {
+      this(theClass, DogTagExclude.class);
+    }
+
 
     // fields initialized in constructor
-    private final boolean useInclusionMode;
-    private final String[] selectedFieldNames;
+    private final Set<String> selectedFieldNames = new HashSet<>();
     private final List<Class<? extends Annotation>> annotationList;
 
     private Class<? super T> lastSuperClass = Object.class;    // not final. May change with options.
@@ -708,17 +449,85 @@ public abstract class DogTag<T> {
     // pre-initialized fields
     private boolean testTransients = false;
 
-    protected boolean isFactoryRequired = true;
-
-    protected DogTagReflectiveBuilder(Class<T> theClass, boolean inclusionMode, Class<? extends Annotation> defaultSelectionAnnotation, String[] selectedFieldNames) {
+    protected DogTagReflectiveBuilder(Class<T> theClass, Class<? extends Annotation> defaultSelectionAnnotation) {
       super(theClass);
-      this.selectedFieldNames = Arrays.copyOf(selectedFieldNames, selectedFieldNames.length);
       annotationList = new LinkedList<>(Collections.singleton(defaultSelectionAnnotation));
-      useInclusionMode = inclusionMode;
+    }
+    
+    protected void addSelectedFields(String... selectedFields) {
+      selectedFieldNames.addAll(Arrays.asList(selectedFields));
     }
 
     protected void addSelectionAnnotation(Class<? extends Annotation> selectionAnnotation) {
       annotationList.add(selectionAnnotation);
+    }
+
+    /**
+     * Specify a list of field names to exclude
+     *
+     * @param excludedFields The names of fields to exclude from the equals and hash code calculations. The
+     *                       fields must be in the class specified by the type parameter for the DogTag, or any superclass included by the
+     *                       {@code withReflectUpTo()} option.
+     * @return this, for method chaining.
+     */
+    public DogTagReflectiveBuilder<T> excludeFields(String... excludedFields) {
+      addSelectedFields(excludedFields);
+      return this;
+    }
+
+    /**
+     * Specify an annotation class to be used to exclude fields, which may be used in addition to the
+     * {@code DogTagExclude} annotation. This allows you to use an annotation of your choice, for compatibility with
+     * other systems or your own framework. The {@code DogTagExclude} annotation will still work.
+     *
+     * @param annotationClass The class object of the custom annotation you may use to specify which fields to
+     *                        exclude.
+     * @return this, for method chaining.
+     */
+    public DogTagReflectiveBuilder<T> withExclusionAnnotation(Class<? extends Annotation> annotationClass) {
+      addSelectionAnnotation(validateAnnotationClass(annotationClass));
+      return this;
+    }
+
+    /**
+     * Set the Transient option, before building the DogTag. Defaults to false. This is used only in exclusion mode.
+     * When true, transient fields will be included, provided they meet all the other criteria. (DogTag fields and their factories are
+     * never included regardless of their transient state.
+     * <p>
+     * Calling this method when using inclusion mode will have no effect.
+     *
+     * @param useTransients true if you want transient fields included in the equals and hashCode methods
+     * @return this, for method chaining
+     */
+    public DogTagReflectiveBuilder<T> withTransients(boolean useTransients) {
+      setTransients(useTransients);
+      return this;
+    }
+
+    /**
+     * Specify the superclass of the DogTag Type parameter class to include in the equals and hash code calculations.
+     * The classes inspected for fields to use are those of the type class, the specified superclass, and any
+     * class that is a superclass of the type class and a subclass of the specified superclass. Defaults to
+     * Object.class.
+     *
+     * @param reflectUpTo The superclass, up to which are inspected for fields to include.
+     * @return this, for method chaining
+     */
+    public DogTagReflectiveBuilder<T> withReflectUpTo(Class<? super T> reflectUpTo) {
+      setReflectUpTo(reflectUpTo);
+      return this;
+    }
+
+    /**
+     * tests the field to determine if was explicitly included or excluded;
+     *
+     * @param selectedFields The specified selectedFields
+     * @param theField       The field to test for inclusion
+     * @return true if it to be included, false otherwise.
+     */
+//    @Override
+    protected boolean isFieldUsed(final Set<Field> selectedFields, final Field theField) {
+      return !isSelected(selectedFields, theField);
     }
 
     /**
@@ -804,25 +613,20 @@ public abstract class DogTag<T> {
 
     protected void setReflectUpTo(Class<? super T> superClass) { this.lastSuperClass = superClass; }
 
-    /**
-     * Extracted from getFactory() to be used for testing. This allows you to make a factory without adding it to the Map,
-     * which is crucial for performance tests.
-     * @return A factory from the previously set options
-     */
     @Override
     public Factory<T> build() {
       return new ReflectiveFactory<>(getTargetClass(), makeGetterList(), getStartingHash(), getHashBuilder(), isUseCachedHash());
     }
 
-    protected List<FieldProcessor<T>> makeGetterList() {
+    protected Collection<FieldProcessor<T>> makeGetterList() {
       Set<Field> selectedFields = new HashSet<>();
       collectMatchingFields(selectedFieldNames, selectedFields);
 
       // two different inclusion modes exist. Each requires a different kind of collection.
-      Collection<FieldProcessorWrapper<T>> fieldProcessorList = createEmptyFieldProcessorList();
+      Collection<FieldProcessor<T>> fieldProcessorList = createEmptyFieldProcessorList();
       Class<? super T> theClass = getTargetClass();
       int index = 0;
-      boolean isStaticFactoryMissing = isFactoryRequired;
+      boolean isStaticFactoryMissing = true;
 
       // We shouldn't ever reach Object.class unless someone specifies it as the reflect-up-to superclass.
       while (theClass != Object.class) {
@@ -849,8 +653,7 @@ public abstract class DogTag<T> {
           //noinspection MagicCharacter
           if (!isStatic
               && !isDogTag
-              // transients are tested only in exclusion mode
-              && (testTransients || useInclusionMode || !Modifier.isTransient(modifiers))
+              && (testTransients || !Modifier.isTransient(modifiers))
               && isFieldUsed(selectedFields, field)
               && (field.getName().indexOf('$') < 0) // disallow anonymous inner class fields
           ) {
@@ -858,7 +661,7 @@ public abstract class DogTag<T> {
             FieldProcessor<T> fieldProcessor = getFieldProcessorForType(field, fieldType);
 
             //The wrapper contains ordering information for lists that specify an order
-            fieldProcessorList.add(new FieldProcessorWrapper<>(fieldProcessor, getOrderForField(field), index++));
+            fieldProcessorList.add(fieldProcessor);
           }
         }
         if (theClass == lastSuperClass) {
@@ -872,11 +675,11 @@ public abstract class DogTag<T> {
       }
 
       // Now that they're in the proper order, we extract them from the list of wrappers and add them to the final list.
-      List<FieldProcessor<T>> finalList = new LinkedList<>();
-      for (FieldProcessorWrapper<T> wrapper: fieldProcessorList) {
-        finalList.add(wrapper.getFieldProcessor());
-      }
-      return finalList;
+//      List<FieldProcessor<T>> finalList = new LinkedList<>();
+//      for (FieldProcessorWrapper<T> wrapper: fieldProcessorList) {
+//        finalList.add(wrapper.getFieldProcessor());
+//      }
+      return fieldProcessorList;
     }
 
     // Todo: Test annotated field overridden by non-annotated field. What should it do?
@@ -896,7 +699,7 @@ public abstract class DogTag<T> {
     }
 
     @SuppressWarnings("BoundedWildcard")
-    private void collectMatchingFields(final String[] fieldNames, final Set<Field> searchField) {
+    private void collectMatchingFields(final Set<String> fieldNames, final Set<Field> searchField) {
       for (String fieldName : fieldNames) {
         searchField.add(getFieldFromName(fieldName));
       }
@@ -906,19 +709,6 @@ public abstract class DogTag<T> {
       return selectedFields.contains(theField) || isAnnotatedWith(theField, annotationList);
     }
 
-    /**
-     * tests the field to determine if was explicitly included or excluded;
-     *
-     * @param selectedFields The specified selectedFields
-     * @param theField The field to test for inclusion
-     * @return true if it to be included, false otherwise.
-     */
-    protected abstract boolean isFieldUsed(final Set<Field> selectedFields, final Field theField);
-
-    protected abstract Collection<FieldProcessorWrapper<T>> createEmptyFieldProcessorList();
-
-    protected abstract int getOrderForField(Field field);
-    
     private boolean isAnnotatedWith(Field field, List<Class<? extends Annotation>> annotationList) {
       for (Class<? extends Annotation> annotationClass : annotationList) {
         
@@ -1027,6 +817,19 @@ public abstract class DogTag<T> {
      */
     @SuppressWarnings("NoopMethodInAbstractClass")
     protected void recordOrder(Field field, Class<? extends Annotation> nullableAnnotationClass) { } // default implementation does nothing.
+
+    // All inherited "with<Option> methods must be overridden to return DogTagReflectiveBuilder instead of the
+    // default DogTagFullBuilder:
+
+//    @Override
+    protected Collection<FieldProcessor<T>> createEmptyFieldProcessorList() {
+      return new LinkedList<>();
+    }
+
+////    @Override
+//    protected int getOrderForField(final Field field) {
+//      return DEFAULT_ORDER_VALUE;
+//    }
   }
 
   private static Class<? extends Annotation> validateAnnotationClass(Class<?> annotationClass) {
@@ -1124,41 +927,41 @@ public abstract class DogTag<T> {
     }
   }
 
-  private static final class FieldProcessorWrapper<T> implements Comparable<FieldProcessorWrapper<T>> {
-    private final FieldProcessor<T> fieldProcessor;
-    private final int order;
-    private final int index;
-    private FieldProcessorWrapper(FieldProcessor<T> fieldProcessor, int order, int index) {
-      this.fieldProcessor = fieldProcessor;
-      this.order = order;
-      this.index = index;
-    }
-
-    @Override
-    public int compareTo(final FieldProcessorWrapper<T> that) {
-
-      int orderCmp = Integer.compare(this.order, that.order);
-      return (orderCmp == 0) ? Integer.compare(this.index, that.index) : orderCmp;
-    }
-
-    // These two methods don't get executed, but I keep them because later maintenance may find a use for them.
-    @Override
-    public boolean equals(final Object obj) {
-      if (obj instanceof FieldProcessorWrapper) {
-        @SuppressWarnings("unchecked")
-        FieldProcessorWrapper<T> that = (FieldProcessorWrapper<T>) obj;
-        return (this.order == that.order) && (this.fieldProcessor == that.fieldProcessor);
-      }
-      return false;
-    }
-
-    @Override
-    public int hashCode() {
-      return fieldProcessor.hashCode();
-    }
-
-    FieldProcessor<T> getFieldProcessor() { return fieldProcessor; }
-  }
+//  private static final class FieldProcessorWrapper<T> implements Comparable<FieldProcessorWrapper<T>> {
+//    private final FieldProcessor<T> fieldProcessor;
+//    private final int order;
+//    private final int index;
+//    private FieldProcessorWrapper(FieldProcessor<T> fieldProcessor, int order, int index) {
+//      this.fieldProcessor = fieldProcessor;
+//      this.order = order;
+//      this.index = index;
+//    }
+//
+//    @Override
+//    public int compareTo(final FieldProcessorWrapper<T> that) {
+//
+//      int orderCmp = Integer.compare(this.order, that.order);
+//      return (orderCmp == 0) ? Integer.compare(this.index, that.index) : orderCmp;
+//    }
+//
+//    // These two methods don't get executed, but I keep them because later maintenance may find a use for them.
+//    @Override
+//    public boolean equals(final Object obj) {
+//      if (obj instanceof FieldProcessorWrapper) {
+//        @SuppressWarnings("unchecked")
+//        FieldProcessorWrapper<T> that = (FieldProcessorWrapper<T>) obj;
+//        return (this.order == that.order) && (this.fieldProcessor == that.fieldProcessor);
+//      }
+//      return false;
+//    }
+//
+//    @Override
+//    public int hashCode() {
+//      return fieldProcessor.hashCode();
+//    }
+//
+//    FieldProcessor<T> getFieldProcessor() { return fieldProcessor; }
+//  }
 
   private static final class NonCachingDogTag<N> extends DogTag<N> {
 
@@ -1496,12 +1299,12 @@ public abstract class DogTag<T> {
       }
     }
   }
-  
+
   @FunctionalInterface
   private interface EqualHandler<T> {
     boolean doEqual(T thisOne, T thatOne);
   }
-  
+
   @FunctionalInterface
   private interface HashHandler<T> {
     int doHashCode(T t);
