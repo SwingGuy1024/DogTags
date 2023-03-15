@@ -43,8 +43,12 @@ import java.util.function.ToLongFunction;
  * methods use the DogTag, they're guaranteed to be consistent.</p>
  * <p> <strong><big>Usage Examples:</big></strong></p>
  * <p><strong>Use reflection to include everything except the "alpha" property, including transients.</strong></p>
- * <p>This illustrates the standard way to create a DogTag. You first create a static factory. You set options and specify fields to
- * exclude/include in the factory. Then you call its {@code tag()} method to tag each instance.</p>
+ * <p>This illustrates the standard way to create a DogTag using reflection. You first create a static factory. You set options and
+ * specify fields to exclude in the factory. Then each instance calls the factory's {@code tag()} method to create its dogTag. Then
+ * you implement the {@code equals()} and {@code hashCode()} methods by delegating the work to the DogTag. The DogTag's {@code equals()}
+ * method tests the other object for null, then tests if it's an instance of your class, then uses the previously reflected methods to
+ * determine equality. Except for the {@code Method.invoke()} method, all reflective calls are done when the static factory is created,
+ * which boosts performance. This happens once, when the class is loaded.</p>
  * <pre>
  *   public final class MyClass implements Serializable {
  *     // Define various fields, getters, and methods here.
@@ -52,7 +56,7 @@ import java.util.function.ToLongFunction;
  *     private static final{@literal DogTag.Factory<MyClass>} factory 
  *           = DogTag.startWithAll(MyClass.class)
  *         .excludeFields("alpha") // exclude the alpha property
- *         .withTransients(true)
+ *         .withTransients(true)   // Specify your options.
  *         .build();
  *     private final {@literal DogTag<MyClass>} dogTag = factory.tag(this);
  *
@@ -117,7 +121,7 @@ import java.util.function.ToLongFunction;
  *   }
  * </pre>
  * <p>Note that the {@code equals()} method does not need to test the objects for identity, null, or if they're of the proper class. That
- * is done by the {@code equals()} method in the DogTag istelf. The equals comparison is implemented according to the guidelines set down
+ * is done by the {@code equals()} method in the DogTag itself. The equals comparison is implemented according to the guidelines set down
  * in <strong>Effective Java</strong> by Joshua Bloch. The hashCode is generated using the same formula as 
  * {@code java.lang.Objects.hash(Object...)}, although you are free to provide a different hash calculator. Floats and Doubles set to NaN
  * are all treated as equal, unless they are in arrays. All arrays are compared using the methods in {@code java.util.Arrays}. So for
@@ -240,7 +244,7 @@ public abstract class DogTag<T> {
     }
     
     @Override
-    protected final Function<T, DogTag<T>> chooseConstructor(boolean useCache) {
+    protected Function<T, DogTag<T>> chooseConstructor(boolean useCache) {
       return useCache ?
           (t) -> new CachingDogTag<>(this, t) :
           (t) -> new NonCachingDogTag<>(this, t);
@@ -449,16 +453,16 @@ public abstract class DogTag<T> {
     // pre-initialized fields
     private boolean testTransients = false;
 
-    protected DogTagReflectiveBuilder(Class<T> theClass, Class<? extends Annotation> defaultSelectionAnnotation) {
+    private DogTagReflectiveBuilder(Class<T> theClass, Class<? extends Annotation> defaultSelectionAnnotation) {
       super(theClass);
       annotationList = new LinkedList<>(Collections.singleton(defaultSelectionAnnotation));
     }
     
-    protected void addSelectedFields(String... selectedFields) {
+    private void addSelectedFields(String... selectedFields) {
       selectedFieldNames.addAll(Arrays.asList(selectedFields));
     }
 
-    protected void addSelectionAnnotation(Class<? extends Annotation> selectionAnnotation) {
+    private void addSelectionAnnotation(Class<? extends Annotation> selectionAnnotation) {
       annotationList.add(selectionAnnotation);
     }
 
@@ -505,10 +509,10 @@ public abstract class DogTag<T> {
     }
 
     /**
-     * Specify the superclass of the DogTag Type parameter class to include in the equals and hash code calculations.
-     * The classes inspected for fields to use are those of the type class, the specified superclass, and any
-     * class that is a superclass of the type class and a subclass of the specified superclass. Defaults to
-     * Object.class.
+     * Specify the highest superclass of the DogTag Type parameter class to include in the equals and hash code calculations.
+     * The ancestor classes included in the {@code equals()} and {@code hashCode()} methods are those of the type class, the 
+     * {@code reflectUpTo} superclass, and any class that is both a superclass of the type class and a subclass of the
+     * {@code reflectUpTo} superclass. Defaults to Object.class.
      *
      * @param reflectUpTo The superclass, up to which are inspected for fields to include.
      * @return this, for method chaining
@@ -519,14 +523,14 @@ public abstract class DogTag<T> {
     }
 
     /**
-     * tests the field to determine if was explicitly included or excluded;
+     * Tests the field to determine if was explicitly included or excluded;
      *
      * @param selectedFields The specified selectedFields
      * @param theField       The field to test for inclusion
      * @return true if it to be included, false otherwise.
      */
 //    @Override
-    protected boolean isFieldUsed(final Set<Field> selectedFields, final Field theField) {
+    private boolean isFieldUsed(final Set<Field> selectedFields, final Field theField) {
       return !isSelected(selectedFields, theField);
     }
 
@@ -590,35 +594,40 @@ public abstract class DogTag<T> {
      * Sets the UseCachedHash option. For speed, this will cache the hash value the first time {@code hashCode()} is called, and continue
      * using the cached value.
      * <p>
-     * This option should be used with extreme caution. If enabled and used incorrectly, it will break the guarantee that 
+     * This option should be used with caution. If enabled and used incorrectly, it will break the guarantee that 
      * {@code hashCode()} and {@code equals()} will be consistent. Even if you only specify final fields, this will fail if the final 
-     * fields are themselves mutable. For a hashCode to be eligible for the correct use of this option, the following two conditions must 
+     * fields are themselves mutable. For a hashCode to be eligible for the correct use of this option, your class should be
+     * <strong>deeply immutable</strong>. To be deeply immutable, the following two conditions must 
      * be true of every field you include in your DogTag:
      * <br>
-     * 1. It must not be possible to change the value once the owning object has been constructed.<br>
-     * 2. If the field is an Object, All if its internal fields used in its hash code calculation must meet both of these conditions.
+     * 1. The field should be final.<br>
+     * 2. If the field is an Object, it should itself be deeply immutable.
      * <p>
-     * The second, of course, makes this recursive. In other words, if any field anywhere in the object tree of any
-     * field is used to calculate a hash code, that field cannot change value once the outermost element of the tree
-     * is constructed.
+     * The second condition, of course, makes these conditions recursive. Strings and primitive wrapper classes like {@code Integer} are
+     * deeply immutable by default. 
+     * </p><p>
+     * In other words, for any field anywhere in the object tree that is used to calculate the hash code, that field cannot change value
+     * once the outermost element of the tree is constructed.
+     * 
+     * One reason why this should be used with caution is that code maintenance can inadvertently break deep immutability.
      */
     public DogTagReflectiveBuilder<T> withCachedHash(boolean useCachedHash) {
       setUseCachedHash(useCachedHash);
       return this;
     }
 
-    protected void setTransients(boolean useTransients) {
+    private void setTransients(boolean useTransients) {
       this.testTransients = useTransients;
     }
 
-    protected void setReflectUpTo(Class<? super T> superClass) { this.lastSuperClass = superClass; }
+    private void setReflectUpTo(Class<? super T> superClass) { this.lastSuperClass = superClass; }
 
     @Override
     public Factory<T> build() {
       return new ReflectiveFactory<>(getTargetClass(), makeGetterList(), getStartingHash(), getHashBuilder(), isUseCachedHash());
     }
 
-    protected Collection<FieldProcessor<T>> makeGetterList() {
+    private Collection<FieldProcessor<T>> makeGetterList() {
       Set<Field> selectedFields = new HashSet<>();
       collectMatchingFields(selectedFieldNames, selectedFields);
 
@@ -705,7 +714,7 @@ public abstract class DogTag<T> {
       }
     }
 
-    protected boolean isSelected(Set<Field> selectedFields, Field theField) {
+    private boolean isSelected(Set<Field> selectedFields, Field theField) {
       return selectedFields.contains(theField) || isAnnotatedWith(theField, annotationList);
     }
 
@@ -822,7 +831,7 @@ public abstract class DogTag<T> {
     // default DogTagFullBuilder:
 
 //    @Override
-    protected Collection<FieldProcessor<T>> createEmptyFieldProcessorList() {
+    private Collection<FieldProcessor<T>> createEmptyFieldProcessorList() {
       return new LinkedList<>();
     }
 
@@ -1125,15 +1134,17 @@ public abstract class DogTag<T> {
        * <p>
        * This option should be used with extreme caution. If enabled and used incorrectly, it will break the guarantee that 
        * {@code hashCode()} and {@code equals()} will be consistent. Even if you only specify final fields, this will fail if the final 
-       * fields are themselves mutable. For a hashCode to be eligible for the correct use of this option, the following two conditions must
-       * be true of every field you include in your DogTag:
+       * fields are themselves mutable objects. For a hashCode to be eligible for the correct use of this option, the following two
+       * conditions must be true of every field you include in your DogTag:
        * <br>
-       * 1. It must not be possible to change the value once the owning object has been constructed.<br>
+       * 1. It must be impossible to change the value once the owning object has been constructed.<br>
        * 2. If the field is an Object, All if its internal fields used in its hash code calculation must meet both of these conditions.
        * <p>
-       * The second, of course, makes this recursive. In other words, if any field anywhere in the object tree of any
+       * The second, of course, makes this condition recursive. In other words, if any field anywhere in the object tree of any
        * field is used to calculate a hash code, that field cannot change value once the outermost element of the tree
        * is constructed.
+       * <p>Of course, if all your Object fields are Strings, primitives, or primitive wrapper classes, and all are final, then
+       * your class qualifies.</p>
        */
       public LambdaBuilder<T> withCachedHash(boolean useCachedHash) {
         setUseCachedHash(useCachedHash);
