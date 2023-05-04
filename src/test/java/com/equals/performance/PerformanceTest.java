@@ -14,7 +14,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import static com.equals.DogTag.classFrom;
-import static com.equals.TimingUtility.*;
+import static com.equals.TimingUtility.reverse;
 
 /**
  * <p>Created by IntelliJ IDEA.
@@ -32,60 +32,60 @@ public class PerformanceTest {
   @Test
   public void timeTest() {
     System.out.println("Time Test. Comparing objects with 14 fields, including arrays\n-------------------------------------------------------------");
-    TestClass t0 = new TestClass(1, "bravo");
-    TestClass t1 = t0.duplicate(11, "bravo");
-    TestClass t2 = t0.duplicate(1, "bravisimo");
-    TestClass t3 = t0.duplicate();
+    final TestClass t0 = new TestClass(1, "bravo");
+    final TestClass t1 = t0.duplicate(11, "bravo");
+    final TestClass t2 = t0.duplicate(1, "bravisimo");
+    final TestClass t3 = t0.duplicate();
     t3.setCharlieInt(99);
-    TestClass t4 = t0.duplicate();
+    final TestClass t4 = t0.duplicate();
     t4.setDeltaLong(999L);
-    TestClass t5 = t0.duplicate();
+    final TestClass t5 = t0.duplicate();
     t5.setEchoString("Repeat");
-    TestClass t6 = t0.duplicate();
+    final TestClass t6 = t0.duplicate();
     t6.setFoxtrotPoint(new Point2D.Double(88.4, 928.5));
-    TestClass t7 = t0.duplicate();
+    final TestClass t7 = t0.duplicate();
     t7.setGolfInt(798);
-    TestClass t8 = t0.duplicate();
+    final TestClass t8 = t0.duplicate();
     t8.setHotelByte((byte) 34);
-    TestClass t9 = t0.duplicate();
+    final TestClass t9 = t0.duplicate();
     t9.setIndigoChar('P');
-    TestClass t10 = t0.duplicate();
+    final TestClass t10 = t0.duplicate();
     t10.setJulietBoolean(true);
-    TestClass t11 = t0.duplicate();
+    final TestClass t11 = t0.duplicate();
     t11.setKiloShort((short) 79);
-    TestClass t12 = t0.duplicate();
+    final TestClass t12 = t0.duplicate();
     t12.setLimaDouble(798.23);
-    TestClass t13 = t0.duplicate();
+    final TestClass t13 = t0.duplicate();
     t13.setMikeFloat(423.97F);
-    TestClass t14 = t0.duplicate();
+    final TestClass t14 = t0.duplicate();
     t14.setNovemberIntArray(15, 25, 42);
-    TestClass t15 = t0.duplicate();
+    final TestClass t15 = t0.duplicate();
     t15.setOperaStringArray("papa", "quebec", "romeo", "tango", "whiskey");
-    TestClass t16 = t0.duplicate();
+    final TestClass t16 = t0.duplicate();
     t16.setPapaLongArray(3L, 6L, 9L, 12L, 15L, 18L, 21L, 24L, 27L);
-    TestClass t17 = t0.duplicate();
+    final TestClass t17 = t0.duplicate();
     t17.setQuebecShortArray((short) 4, (short) 8, (short) 12, (short) 16, (short) 20, (short) 24, (short) 28, (short) 32, (short) 36);
-    TestClass t18 = t0.duplicate();
+    final TestClass t18 = t0.duplicate();
     t18.setRomeoByteArray((byte) 2, (byte) 4, (byte) 6, (byte) 8, (byte) 10, (byte) 12, (byte) 14, (byte) 16, (byte) 18);
-    TestClass t19 = t0.duplicate();
+    final TestClass t19 = t0.duplicate();
     t19.setSierraCharArray("different".toCharArray());
-    TestClass t20 = t0.duplicate();
+    final TestClass t20 = t0.duplicate();
     t20.setTangoBooleanArray(false, false, false, true, true, true, true, true, true);
-    TestClass t21 = t0.duplicate();
+    final TestClass t21 = t0.duplicate();
     t21.setUniformFloatArray(5.34F, 32.7F);
-    TestClass t22 = t0.duplicate();
+    final TestClass t22 = t0.duplicate();
     t22.setVictorDoubleArray(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0);
-    TestClass t23 = t0.duplicate();
+    final TestClass t23 = t0.duplicate();
     t23.setWhiskeyObjectArray("Whiskey", 33.5F, Boolean.FALSE);
-    TestClass[] instances = {t14, t15, t16, t17, t18, t19, t20, t21, t22, t23, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t0.duplicate()};
+    final TestClass[] instances = {t14, t15, t16, t17, t18, t19, t20, t21, t22, t23, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t0.duplicate()};
     reverse(instances);
 
-    DogTag.DogTagReflectiveBuilder<TestClass> classDogTagExclusionBuilder = DogTag.startWithAll(classFrom(t0));
-    DogTag.Factory<TestClass> dogTagfactory = classDogTagExclusionBuilder.build();
+    final DogTag.DogTagReflectiveBuilder<TestClass> classDogTagExclusionBuilder = DogTag.startWithAll(classFrom(t0));
+    final DogTag.Factory<TestClass> dogTagfactory = classDogTagExclusionBuilder.build();
 
     final BiFunction<TestClass, TestClass, Boolean> directEqual = TestClass::isEqual;
 //    TimingUtility.runTestCycles(dogTagfactory, t0, instances, directEqual, EMPTY_STRING_ARRAY);
-    DogTag.Factory<TestClass> lambdaFactory = DogTag.startEmpty(TestClass.class)
+    final DogTag.Factory<TestClass> lambdaFactory = DogTag.startEmpty(TestClass.class)
         .addArray(TestClass::getNovemberIntArray)
         .addArray(TestClass::getOperaStringArray)
         .addArray(TestClass::getPapaLongArray)
@@ -110,8 +110,7 @@ public class PerformanceTest {
         .addSimple(TestClass::getLimaDouble)
         .addSimple(TestClass::getMikeFloat)
         .build();
-    @SuppressWarnings("AccessingNonPublicFieldOfAnotherObject")
-    DogTag.Factory<TestClass> lambdaFactoryByField = DogTag.startEmpty(TestClass.class)
+    @SuppressWarnings("AccessingNonPublicFieldOfAnotherObject") final DogTag.Factory<TestClass> lambdaFactoryByField = DogTag.startEmpty(TestClass.class)
         .addArray((TestClass t) -> t.novemberIntArray)
         .addArray((TestClass t) -> t.operaStringArray)
         .addArray((TestClass t) -> t.papaLongArray)
@@ -137,7 +136,7 @@ public class PerformanceTest {
         .addSimple(TestClass::getMikeFloat)
         .build();
     TimingUtility.runTestCycles(dogTagfactory, t0, instances, directEqual, EMPTY_STRING_ARRAY, lambdaFactory, lambdaFactoryByField);
-        
+
   }
 
   @Ignore
@@ -152,36 +151,36 @@ public class PerformanceTest {
 //    DogTag<SingleValueTestClass> dogTagNoArrays = DogTag.createFromClass(SingleValueTestClass.class)
 //        .withExcludedFields(excludedFields)
 //        .getFactory();
-    SingleValueTestClass dummy = new SingleValueTestClass(1, "x");
-    DogTag.Factory<SingleValueTestClass> dogTagNoArrays = DogTag.startWithAll(classFrom(dummy)).build();
-    SingleValueTestClass t0 = new SingleValueTestClass(1, "bravo");
-    SingleValueTestClass t1 = new SingleValueTestClass(11, "bravo");
+    final SingleValueTestClass dummy = new SingleValueTestClass(1, "x");
+    final DogTag.Factory<SingleValueTestClass> dogTagNoArrays = DogTag.startWithAll(classFrom(dummy)).build();
+    final SingleValueTestClass t0 = new SingleValueTestClass(1, "bravo");
+    final SingleValueTestClass t1 = new SingleValueTestClass(11, "bravo");
 //    SingleValueTestClass t2 = new SingleValueTestClass(1, "bravisimo");
-    SingleValueTestClass t3 = new SingleValueTestClass(1, "bravo");
+    final SingleValueTestClass t3 = new SingleValueTestClass(1, "bravo");
     t3.setCharlieInt(33);
-    SingleValueTestClass t4 = new SingleValueTestClass(1, "bravo");
+    final SingleValueTestClass t4 = new SingleValueTestClass(1, "bravo");
     t4.setDeltaLong(44L);
-    SingleValueTestClass t5 = new SingleValueTestClass(1, "bravo");
+    final SingleValueTestClass t5 = new SingleValueTestClass(1, "bravo");
     t5.setEchoString("ECHO");
-    SingleValueTestClass t6 = new SingleValueTestClass(1, "bravo");
+    final SingleValueTestClass t6 = new SingleValueTestClass(1, "bravo");
     t6.setGolfInt(77);
-    SingleValueTestClass t7 = new SingleValueTestClass(1, "bravo");
+    final SingleValueTestClass t7 = new SingleValueTestClass(1, "bravo");
     t7.setHotelByte((byte) 88);
-    SingleValueTestClass t8 = new SingleValueTestClass(1, "bravo");
+    final SingleValueTestClass t8 = new SingleValueTestClass(1, "bravo");
     t8.setIndigoChar('i');
-    SingleValueTestClass t9 = new SingleValueTestClass(1, "bravo");
+    final SingleValueTestClass t9 = new SingleValueTestClass(1, "bravo");
     t9.setJulietBoolean(true);
-    SingleValueTestClass t10 = new SingleValueTestClass(1, "bravo");
+    final SingleValueTestClass t10 = new SingleValueTestClass(1, "bravo");
     t10.setKiloShort((short) 111);
-    SingleValueTestClass t11 = new SingleValueTestClass(1, "bravo");
+    final SingleValueTestClass t11 = new SingleValueTestClass(1, "bravo");
     t11.setLimaDouble(120.0);
-    SingleValueTestClass t12 = new SingleValueTestClass(1, "bravo");
+    final SingleValueTestClass t12 = new SingleValueTestClass(1, "bravo");
     t12.setMikeFloat(130.013F);
-    SingleValueTestClass tDup = new SingleValueTestClass(1, "bravo");
+    final SingleValueTestClass tDup = new SingleValueTestClass(1, "bravo");
 
-    SingleValueTestClass[] pInstances = { tDup, t12, t11, t10, t9, t8, t7, t6, t5, t4, t3, /* t2,*/ t1};
+    final SingleValueTestClass[] pInstances = { tDup, t12, t11, t10, t9, t8, t7, t6, t5, t4, t3, /* t2,*/ t1};
 
-    DogTag.Factory<SingleValueTestClass> lambdaFactory = DogTag.startEmpty(SingleValueTestClass.class)
+    final DogTag.Factory<SingleValueTestClass> lambdaFactory = DogTag.startEmpty(SingleValueTestClass.class)
         .addSimple(SingleValueTestClass::getAlphaInt)
         .addSimple(SingleValueTestClass::getCharlieInt)
         .addSimple(SingleValueTestClass::getDeltaLong)
@@ -195,7 +194,7 @@ public class PerformanceTest {
         .addSimple(SingleValueTestClass::getMikeFloat)
         .build();
     @SuppressWarnings("AccessingNonPublicFieldOfAnotherObject")
-    DogTag.Factory<SingleValueTestClass> lambdaFieldFactory = DogTag.startEmpty(SingleValueTestClass.class)
+    final DogTag.Factory<SingleValueTestClass> lambdaFieldFactory = DogTag.startEmpty(SingleValueTestClass.class)
         .addSimple((SingleValueTestClass t) -> t.alphaInt)
         .addSimple((SingleValueTestClass t) -> t.charlieInt)
         .addSimple((SingleValueTestClass t) -> t.deltaLong)
@@ -212,7 +211,7 @@ public class PerformanceTest {
   }
 
 
-  private static boolean singleValueDirectEqual(SingleValueTestClass t1, SingleValueTestClass t2) {
+  private static boolean singleValueDirectEqual(final SingleValueTestClass t1, final SingleValueTestClass t2) {
     //noinspection ObjectEquality
     if (t1 == t2) {
       return true;
@@ -233,15 +232,15 @@ public class PerformanceTest {
         && Objects.equals(Float.valueOf(t1.getMikeFloat()), t2.getMikeFloat());
   }
 
-  private static String dup(String s) {
-    String s2 = '1' + s;
+  private static String dup(final String s) {
+    final String s2 = '1' + s;
     return s2.substring(1);
   }
 
-  private static String[] dupArray(String[] array) {
-    String[] dup = new String[array.length];
+  private static String[] dupArray(final String[] array) {
+    final String[] dup = new String[array.length];
     int i=0;
-    for (String s: array) {
+    for (final String s: array) {
       dup[i++] = dup(s);
     }
     return dup;
@@ -250,7 +249,7 @@ public class PerformanceTest {
   @SuppressWarnings({"AssignmentOrReturnOfFieldWithMutableType", "WeakerAccess", "MagicNumber", "HardCodedStringLiteral", "EqualsAndHashcode"})
   private static class TestClass extends SingleValueTestClass {
 
-    TestClass(int alpha, String bravo) {
+    TestClass(final int alpha, final String bravo) {
       super(alpha, bravo);
     }
 
@@ -273,7 +272,7 @@ public class PerformanceTest {
       return novemberIntArray;
     }
 
-    public void setNovemberIntArray(int... novemberIntArray) {
+    public void setNovemberIntArray(final int... novemberIntArray) {
       this.novemberIntArray = novemberIntArray;
     }
 
@@ -281,7 +280,7 @@ public class PerformanceTest {
       return operaStringArray;
     }
 
-    public void setOperaStringArray(String... operaStringArray) {
+    public void setOperaStringArray(final String... operaStringArray) {
       this.operaStringArray = operaStringArray;
     }
 
@@ -289,7 +288,7 @@ public class PerformanceTest {
       return papaLongArray;
     }
 
-    public void setPapaLongArray(long... papaLongArray) {
+    public void setPapaLongArray(final long... papaLongArray) {
       this.papaLongArray = papaLongArray;
     }
 
@@ -297,7 +296,7 @@ public class PerformanceTest {
       return quebecShortArray;
     }
 
-    public void setQuebecShortArray(short... quebecShortArray) {
+    public void setQuebecShortArray(final short... quebecShortArray) {
       this.quebecShortArray = quebecShortArray;
     }
 
@@ -305,7 +304,7 @@ public class PerformanceTest {
       return romeoByteArray;
     }
 
-    public void setRomeoByteArray(byte... romeoByteArray) {
+    public void setRomeoByteArray(final byte... romeoByteArray) {
       this.romeoByteArray = romeoByteArray;
     }
 
@@ -313,7 +312,7 @@ public class PerformanceTest {
       return sierraCharArray;
     }
 
-    public void setSierraCharArray(char... sierraCharArray) {
+    public void setSierraCharArray(final char... sierraCharArray) {
       this.sierraCharArray = sierraCharArray;
     }
 
@@ -321,7 +320,7 @@ public class PerformanceTest {
       return tangoBooleanArray;
     }
 
-    public void setTangoBooleanArray(boolean... tangoBooleanArray) {
+    public void setTangoBooleanArray(final boolean... tangoBooleanArray) {
       this.tangoBooleanArray = tangoBooleanArray;
     }
 
@@ -329,7 +328,7 @@ public class PerformanceTest {
       return uniformFloatArray;
     }
 
-    public void setUniformFloatArray(float... uniformFloatArray) {
+    public void setUniformFloatArray(final float... uniformFloatArray) {
       this.uniformFloatArray = uniformFloatArray;
     }
 
@@ -337,7 +336,7 @@ public class PerformanceTest {
       return victorDoubleArray;
     }
 
-    public void setVictorDoubleArray(double... victorDoubleArray) {
+    public void setVictorDoubleArray(final double... victorDoubleArray) {
       this.victorDoubleArray = victorDoubleArray;
     }
 
@@ -345,7 +344,7 @@ public class PerformanceTest {
       return whiskeyObjectArray;
     }
 
-    public void setWhiskeyObjectArray(Object... whiskeyObjectArray) {
+    public void setWhiskeyObjectArray(final Object... whiskeyObjectArray) {
       this.whiskeyObjectArray = whiskeyObjectArray;
     }
 
@@ -353,8 +352,8 @@ public class PerformanceTest {
       return duplicate(getAlphaInt(), getBravoString());
     }
 
-    public TestClass duplicate(int alpha, String bravo) {
-      TestClass tail = new TestClass(alpha, bravo);
+    public TestClass duplicate(final int alpha, final String bravo) {
+      final TestClass tail = new TestClass(alpha, bravo);
       tail.setCharlieInt(getCharlieInt());
       tail.setDeltaLong(getDeltaLong());
       tail.setEchoString(dup(getEchoString()));
@@ -382,9 +381,13 @@ public class PerformanceTest {
 
     @Override
     public boolean equals(final Object obj) {
-      if (obj == this) { return true; }
-      if (!(obj instanceof TestClass)) { return false; }
-      TestClass tc = (TestClass) obj;
+      if (obj == this) {
+        return true;
+      }
+      if (!(obj instanceof TestClass)) {
+        return false;
+      }
+      final TestClass tc = (TestClass) obj;
       return new EqualsBuilder()
           .append(getNovemberIntArray(), tc.getNovemberIntArray())
           .append(getOperaStringArray(), tc.getOperaStringArray())
@@ -412,7 +415,7 @@ public class PerformanceTest {
           .isEquals();
     }
 
-    public static Boolean isEqual(TestClass thisOne, TestClass thatOne) {
+    public static Boolean isEqual(final TestClass thisOne, final TestClass thatOne) {
       //noinspection ObjectEquality
       if (thisOne == thatOne) {
         return true;
@@ -448,9 +451,9 @@ public class PerformanceTest {
 
   @SuppressWarnings({"WeakerAccess", "EqualsAndHashcode"})
   private static class SingleValueTestClass {
-    SingleValueTestClass(int alpha, String bravo) {
+    SingleValueTestClass(final int alpha, final String bravo) {
       alphaInt = alpha;
-      // I use new String(String) to avoid the identity check when comparing two identical Strings. 
+      // I use new String(String) to avoid the identity check when comparing two identical Strings.
       bravoString = new String(bravo);
     }
 
@@ -458,7 +461,7 @@ public class PerformanceTest {
     private final String bravoString;
     private int charlieInt = 3;
     private long deltaLong = 4L;
-    // I use new String(String) to avoid the identity check when comparing two identical Strings. 
+    // I use new String(String) to avoid the identity check when comparing two identical Strings.
     private String echoString = new String("echo");
     private Point2D foxtrotPoint = new Point2D.Double(6.54, 4.56);
     private int golfInt = 7;
@@ -481,7 +484,7 @@ public class PerformanceTest {
       return charlieInt;
     }
 
-    public void setCharlieInt(int charlieInt) {
+    public void setCharlieInt(final int charlieInt) {
       this.charlieInt = charlieInt;
     }
 
@@ -489,7 +492,7 @@ public class PerformanceTest {
       return deltaLong;
     }
 
-    public void setDeltaLong(long deltaLong) {
+    public void setDeltaLong(final long deltaLong) {
       this.deltaLong = deltaLong;
     }
 
@@ -497,7 +500,7 @@ public class PerformanceTest {
       return echoString;
     }
 
-    public void setEchoString(String echoString) {
+    public void setEchoString(final String echoString) {
       this.echoString = echoString;
     }
 
@@ -505,7 +508,7 @@ public class PerformanceTest {
       return foxtrotPoint;
     }
 
-    public void setFoxtrotPoint(Point2D foxtrotPoint) {
+    public void setFoxtrotPoint(final Point2D foxtrotPoint) {
       this.foxtrotPoint = foxtrotPoint;
     }
 
@@ -513,7 +516,7 @@ public class PerformanceTest {
       return golfInt;
     }
 
-    public void setGolfInt(int golfInt) {
+    public void setGolfInt(final int golfInt) {
       this.golfInt = golfInt;
     }
 
@@ -521,7 +524,7 @@ public class PerformanceTest {
       return hotelByte;
     }
 
-    public void setHotelByte(byte hotelByte) {
+    public void setHotelByte(final byte hotelByte) {
       this.hotelByte = hotelByte;
     }
 
@@ -529,7 +532,7 @@ public class PerformanceTest {
       return indigoChar;
     }
 
-    public void setIndigoChar(char indigoChar) {
+    public void setIndigoChar(final char indigoChar) {
       this.indigoChar = indigoChar;
     }
 
@@ -537,7 +540,7 @@ public class PerformanceTest {
       return julietBoolean;
     }
 
-    public void setJulietBoolean(boolean julietBoolean) {
+    public void setJulietBoolean(final boolean julietBoolean) {
       this.julietBoolean = julietBoolean;
     }
 
@@ -545,7 +548,7 @@ public class PerformanceTest {
       return kiloShort;
     }
 
-    public void setKiloShort(short kiloShort) {
+    public void setKiloShort(final short kiloShort) {
       this.kiloShort = kiloShort;
     }
 
@@ -553,7 +556,7 @@ public class PerformanceTest {
       return limaDouble;
     }
 
-    public void setLimaDouble(double limaDouble) {
+    public void setLimaDouble(final double limaDouble) {
       this.limaDouble = limaDouble;
     }
 
@@ -561,18 +564,22 @@ public class PerformanceTest {
       return mikeFloat;
     }
 
-    public void setMikeFloat(float mikeFloat) {
+    public void setMikeFloat(final float mikeFloat) {
       this.mikeFloat = mikeFloat;
     }
 
     @Override
     public boolean equals(final Object obj) {
-      if (obj == null) { return false; }
-      if (obj == this) { return true; }
+      if (obj == null) {
+        return false;
+      }
+      if (obj == this) {
+        return true;
+      }
       if (!(obj instanceof SingleValueTestClass)) {
         return false;
       }
-      SingleValueTestClass rhs = (SingleValueTestClass) obj;
+      final SingleValueTestClass rhs = (SingleValueTestClass) obj;
       return new EqualsBuilder()
           .append(getAlphaInt(), rhs.getAlphaInt())
           .append(getBravoString(), rhs.getBravoString())
@@ -592,29 +599,37 @@ public class PerformanceTest {
 
     private static DogTag.Factory<SingleValueTestClass> notUsed; // to avoid construction exception
   }
-  
+
   @SuppressWarnings("EqualsAndHashcode")
   private static class TwoStringClass {
     private String alpha;
     private String bravo;
 
-    TwoStringClass(String a, String b) {
-      // I use new String(String) to avoid the identity check when comparing two identical Strings. 
+    TwoStringClass(final String a, final String b) {
+      // I use new String(String) to avoid the identity check when comparing two identical Strings.
       alpha = new String(a);
       bravo = new String(b);
     }
 
-    public String getAlpha() { return alpha; }
-    public String getBravo() { return bravo; }
+    public String getAlpha() {
+      return alpha;
+    }
+    public String getBravo() {
+      return bravo;
+    }
 
     @Override
     public boolean equals(final Object obj) {
-      if (obj == null) { return false; }
-      if (obj == this) { return true; }
+      if (obj == null) {
+        return false;
+      }
+      if (obj == this) {
+        return true;
+      }
       if (!(obj instanceof TwoStringClass)) {
         return false;
       }
-      TwoStringClass rhs = (TwoStringClass) obj;
+      final TwoStringClass rhs = (TwoStringClass) obj;
       //noinspection NonFinalFieldReferenceInEquals
       return new EqualsBuilder()
           .append(alpha, rhs.alpha)
@@ -634,7 +649,7 @@ public class PerformanceTest {
   }
 
   @SuppressWarnings({"EqualsReplaceableByObjectsCall", "AccessingNonPublicFieldOfAnotherObject"})
-  private static boolean handCoded(TwoStringClass one, TwoStringClass two) {
+  private static boolean handCoded(final TwoStringClass one, final TwoStringClass two) {
     return one.alpha.equals(two.alpha) && one.bravo.equals(two.bravo);
   }
 
@@ -642,13 +657,13 @@ public class PerformanceTest {
   @Test
   public void testTwoStrings() {
     System.out.println("TestTwoStrings(): Test comparison of class with two strings.\n------------------------------------------------------------");
-    TwoStringClass t0 = new TwoStringClass("ALPHA", "BRAVO");
-    TwoStringClass t1 = new TwoStringClass("alpha", "BRAVO");
-    TwoStringClass t2 = new TwoStringClass("alpha", "bravo");
-    TwoStringClass t3 = new TwoStringClass("iALPHA".substring(1), "iBRAVO".substring(1));
+    final TwoStringClass t0 = new TwoStringClass("ALPHA", "BRAVO");
+    final TwoStringClass t1 = new TwoStringClass("alpha", "BRAVO");
+    final TwoStringClass t2 = new TwoStringClass("alpha", "bravo");
+    final TwoStringClass t3 = new TwoStringClass("iALPHA".substring(1), "iBRAVO".substring(1));
 
-    TwoStringClass[] array = { t3, t2, t1 };
-    TimingUtility.runTestCycles(TwoStringClass.dogTag, t0, array, PerformanceTest::handCoded, EMPTY_STRING_ARRAY, 
+    final TwoStringClass[] array = { t3, t2, t1 };
+    TimingUtility.runTestCycles(TwoStringClass.dogTag, t0, array, PerformanceTest::handCoded, EMPTY_STRING_ARRAY,
         TwoStringClass.referenceFactory, TwoStringClass.lambdaFactory);
   }
 
@@ -656,7 +671,7 @@ public class PerformanceTest {
 
   @SuppressWarnings({"EqualsAndHashcode", "UseOfClone", "PackageVisibleField"})
   private static class S26 implements Cloneable {
-    // I use new String(String) to avoid the identity check when comparing two identical Strings. 
+    // I use new String(String) to avoid the identity check when comparing two identical Strings.
     String a = new String("alpha");
     String b = new String("bravo");
     String c = new String("Charlie");
@@ -698,7 +713,7 @@ public class PerformanceTest {
       if (!(obj instanceof S26)) {
         return false;
       }
-      S26 other = (S26) obj;
+      final S26 other = (S26) obj;
       return new EqualsBuilder()
           .append(a, other.a)
           .append(b, other.b)
@@ -732,7 +747,7 @@ public class PerformanceTest {
   }
 
   @SuppressWarnings("EqualsReplaceableByObjectsCall")
-  private static boolean handCoded26(S26 a, S26 b) {
+  private static boolean handCoded26(final S26 a, final S26 b) {
     return a.a.equals(b.a)
         && a.b.equals(b.b)
         && a.c.equals(b.c)
@@ -766,81 +781,80 @@ public class PerformanceTest {
   @Test
   public void test26() throws CloneNotSupportedException {
     System.out.println("test26() Comparison of objects with 26 Strings.\n-----------------------------------------------");
-    S26 original = new S26();
-    S26 aa = new S26();
+    final S26 original = new S26();
+    final S26 aa = new S26();
     aa.a = "mismatch";
-    S26 bb = new S26();
+    final S26 bb = new S26();
     bb.b = "mismatch";
-    S26 cc = new S26();
+    final S26 cc = new S26();
     cc.c = "mismatch";
-    S26 dd = new S26();
+    final S26 dd = new S26();
     dd.d = "mismatch";
-    S26 ee = new S26();
+    final S26 ee = new S26();
     ee.e = "mismatch";
-    S26 ff = new S26();
+    final S26 ff = new S26();
     ff.f = "mismatch";
-    S26 gg = new S26();
+    final S26 gg = new S26();
     gg.g = "mismatch";
-    S26 hh = new S26();
+    final S26 hh = new S26();
     hh.h = "mismatch";
-    S26 ii = new S26();
+    final S26 ii = new S26();
     ii.i = "mismatch";
-    S26 jj = new S26();
+    final S26 jj = new S26();
     jj.j = "mismatch";
-    S26 kk = new S26();
+    final S26 kk = new S26();
     kk.k = "mismatch";
-    S26 ll = new S26();
+    final S26 ll = new S26();
     ll.l = "mismatch";
-    S26 mm = new S26();
+    final S26 mm = new S26();
     mm.m = "mismatch";
-    S26 nn = new S26();
+    final S26 nn = new S26();
     nn.n = "mismatch";
-    S26 oo = new S26();
+    final S26 oo = new S26();
     oo.o = "mismatch";
-    S26 pp = new S26();
+    final S26 pp = new S26();
     pp.p = "mismatch";
-    S26 qq = new S26();
+    final S26 qq = new S26();
     qq.q = "mismatch";
-    S26 rr = new S26();
+    final S26 rr = new S26();
     rr.r = "mismatch";
-    S26 ss = new S26();
+    final S26 ss = new S26();
     ss.s = "mismatch";
-    S26 tt = new S26();
+    final S26 tt = new S26();
     tt.t = "mismatch";
-    S26 uu = new S26();
+    final S26 uu = new S26();
     uu.u = "mismatch";
-    S26 vv = new S26();
+    final S26 vv = new S26();
     vv.v = "mismatch";
-    S26 ww = new S26();
+    final S26 ww = new S26();
     ww.w = "mismatch";
-    S26 xx = new S26();
+    final S26 xx = new S26();
     xx.x = "mismatch";
-    S26 yy = new S26();
+    final S26 yy = new S26();
     yy.y = "mismatch";
-    S26 zz = new S26();
+    final S26 zz = new S26();
     zz.z = "mismatch";
 
-    @SuppressWarnings("UseOfClone")
-    S26 clone = original.clone();
+    @SuppressWarnings("UseOfClone") final S26 clone = original.clone();
 
-    DogTag.Factory<S26> dogTag = DogTag.startWithAll(classFrom(zz)).build();
+    final DogTag.Factory<S26> dogTag = DogTag.startWithAll(classFrom(zz)).build();
 
-    S26[] i = {aa, bb, cc, dd, ee, ff, gg, hh, ii, jj, kk, ll, mm, nn, oo, pp, qq, rr, ss, tt, uu, vv, ww, xx, yy, zz, clone };
+    final S26[] i = {aa, bb, cc, dd, ee, ff, gg, hh, ii, jj, kk, ll, mm, nn, oo, pp, qq, rr, ss, tt, uu, vv, ww, xx, yy, zz, clone };
     reverse(i);
 
     TimingUtility.runTestCycles(dogTag, original, i, PerformanceTest::handCoded26, EMPTY_STRING_ARRAY);
   }
 
-  public static void main(String[] args) {
-    S26 s1 = new S26();
-    S26 s2 = new S26();
-    
-    PerformanceTest performanceTest = new PerformanceTest();
+  public static void main(final String[] args) {
+    final S26 s1 = new S26();
+    final S26 s2 = new S26();
+
+    final PerformanceTest performanceTest = new PerformanceTest();
     performanceTest.timeTest();
     performanceTest.testNoArrays();
     try {
       performanceTest.test26();
-    } catch (CloneNotSupportedException e) {
+    } catch (final CloneNotSupportedException e) {
       e.printStackTrace();
     }
     performanceTest.testTwoStrings();
@@ -889,7 +903,7 @@ public class PerformanceTest {
       if (!(obj instanceof S26Interned)) {
         return false;
       }
-      S26Interned other = (S26Interned) obj;
+      final S26Interned other = (S26Interned) obj;
       return new EqualsBuilder()
           .append(a, other.a)
           .append(b, other.b)
@@ -920,32 +934,110 @@ public class PerformanceTest {
           .isEquals();
     }
 
-    public String getA() { return a;}
-    public String getB() { return b;}
-    public String getC() { return c;}
-    public String getD() { return d;}
-    public String getE() { return e;}
-    public String getF() { return f;}
-    public String getG() { return g;}
-    public String getH() { return h;}
-    public String getI() { return i;}
-    public String getJ() { return j;}
-    public String getK() { return k;}
-    public String getL() { return l;}
-    public String getM() { return m;}
-    public String getN() { return n;}
-    public String getO() { return o;}
-    public String getP() { return p;}
-    public String getQ() { return q;}
-    public String getR() { return r;}
-    public String getS() { return s;}
-    public String getT() { return t;}
-    public String getU() { return u;}
-    public String getV() { return v;}
-    public String getW() { return w;}
-    public String getX() { return x;}
-    public String getY() { return y;}
-    public String getZ() { return z;}
+    public String getA() {
+      return a;
+    }
+
+    public String getB() {
+      return b;
+    }
+
+    public String getC() {
+      return c;
+    }
+
+    public String getD() {
+      return d;
+    }
+
+    public String getE() {
+      return e;
+    }
+
+    public String getF() {
+      return f;
+    }
+
+    public String getG() {
+      return g;
+    }
+
+    public String getH() {
+      return h;
+    }
+
+    public String getI() {
+      return i;
+    }
+
+    public String getJ() {
+      return j;
+    }
+
+    public String getK() {
+      return k;
+    }
+
+    public String getL() {
+      return l;
+    }
+
+    public String getM() {
+      return m;
+    }
+
+    public String getN() {
+      return n;
+    }
+
+    public String getO() {
+      return o;
+    }
+
+    public String getP() {
+      return p;
+    }
+
+    public String getQ() {
+      return q;
+    }
+
+    public String getR() {
+      return r;
+    }
+
+    public String getS() {
+      return s;
+    }
+
+    public String getT() {
+      return t;
+    }
+
+    public String getU() {
+      return u;
+    }
+
+    public String getV() {
+      return v;
+    }
+
+    public String getW() {
+      return w;
+    }
+
+    public String getX() {
+      return x;
+    }
+
+    public String getY() {
+      return y;
+    }
+
+    public String getZ() {
+      return z;
+    }
+
     private static final DogTag.Factory<S26Interned> reflectionFactory = DogTag.startWithAll(S26Interned.class).build();
     private static final DogTag.Factory<S26Interned> referenceFactory = DogTag.startEmpty(S26Interned.class)
         .addObject(S26Interned::getA)

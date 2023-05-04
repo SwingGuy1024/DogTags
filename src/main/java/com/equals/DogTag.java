@@ -19,7 +19,7 @@ import java.util.function.ToIntFunction;
 import java.util.function.ToLongFunction;
 
 /**
- * <p><big><strong>Warning:</strong> This code is in alpha development. The API is still in flux, but the major features are mostly in 
+ * <p><big><strong>Warning:</strong> This code is in alpha development. The API is still in flux, but the major features are mostly in
  * place. The API for creating DogTags will be still changing, and the documentation is not up-to-date, so don't use this in production
  * code yet.</big></p>
  * <p>Reasonably fast and easily maintainable {@code equals()} and {@code hashCode()} methods. Guarantees that {@code equals()}
@@ -53,7 +53,7 @@ import java.util.function.ToLongFunction;
  *   public final class MyClass implements Serializable {
  *     // Define various fields, getters, and methods here.
  *
- *     private static final{@literal DogTag.Factory<MyClass>} factory 
+ *     private static final{@literal DogTag.Factory<MyClass>} factory
  *           = DogTag.startWithAll(MyClass.class)
  *         .excludeFields("alpha") // exclude the alpha property
  *         .withTransients(true)   // Specify your options.
@@ -79,10 +79,10 @@ import java.util.function.ToLongFunction;
  * <pre>
  *   public final class MyClass implements Serializable {
  *     // Define various fields, getters, and methods here.
- *     
+ *
  *     // from() may only be used with final classes.
  *     private transient final{@literal DogTag<MyClass>} dogTag = DogTag.from(this);
- *     
+ *
  *    {@literal @Override}
  *     public boolean equals(Object that) {
  *       return dogTag.equals(that);
@@ -122,13 +122,13 @@ import java.util.function.ToLongFunction;
  * </pre>
  * <p>Note that the {@code equals()} method does not need to test the objects for identity, null, or if they're of the proper class. That
  * is done by the {@code equals()} method in the DogTag itself. The equals comparison is implemented according to the guidelines set down
- * in <strong>Effective Java</strong> by Joshua Bloch. The hashCode is generated using the same formula as 
+ * in <strong>Effective Java</strong> by Joshua Bloch. The hashCode is generated using the same formula as
  * {@code java.lang.Objects.hash(Object...)}, although you are free to provide a different hash calculator. Floats and Doubles set to NaN
  * are all treated as equal, unless they are in arrays. All arrays are compared using the methods in {@code java.util.Arrays}. So for
- * arrays of float and double values, NaN are treated according to the rules for ==, which means NaN values are never equal to 
+ * arrays of float and double values, NaN are treated according to the rules for ==, which means NaN values are never equal to
  * anything.</p>
  * <p> Options include testing transient fields, excluding specific fields by name, using a cached hash code under special
- * circumstances, and specifying a superclass to limit the reflective process. These options are invoked by using one 
+ * circumstances, and specifying a superclass to limit the reflective process. These options are invoked by using one
  * of the methods beginning with "with".
  * <p>
  * Here is an example of how to specify options:
@@ -144,7 +144,7 @@ import java.util.function.ToLongFunction;
  *     private final {@literal DogTag<MyClass>} dogTag = factory.tag(this);
  *
  *    {@literal @Override}
- *     public boolean equals(Object obj) {    // Implementations of equals() and hashCode() 
+ *     public boolean equals(Object obj) {    // Implementations of equals() and hashCode()
  *       return dogTag.equals(obj);           // are the same as before.
  *     }
  *
@@ -164,10 +164,10 @@ import java.util.function.ToLongFunction;
  *    </ul>
  * <p>
  * When using reflection, static fields are always excluded, as are the DogTag and DogTag.Factory fields.
- * <p> For each member Object used in the equals and hash code calculations, the DogTag will call the object's 
+ * <p> For each member Object used in the equals and hash code calculations, the DogTag will call the object's
  * {@code equals()} and {@code hashCode()} methods. DogTags do not recurse into member objects.
  * <p>
- * For performance reasons, DogTags make no effort to prevent cyclic dependencies. It is the responsibility of the 
+ * For performance reasons, DogTags make no effort to prevent cyclic dependencies. It is the responsibility of the
  * user to exclude any fields that could cause a cyclic dependency.
  * </p>
  * <p><em>A word about error codes:</em> Each exception message begins with an error code. The purpose of this is to let me write unit
@@ -182,7 +182,7 @@ public abstract class DogTag<T> {
   private final Factory<T> factory;
   private final T instance;
   private int cachedHash;
-  
+
   protected Factory<T> getFactory() {
     return factory;
   }
@@ -190,9 +190,9 @@ public abstract class DogTag<T> {
   protected T getInstance() {
     return instance;
   }
-  
+
   public abstract static class Factory<T> {
-    public final DogTag<T> tag(T t) {
+    public final DogTag<T> tag(final T t) {
       return constructor.apply(t); // Call the DogTag constructor that was specified in the Factory constructor
     }
 
@@ -205,14 +205,14 @@ public abstract class DogTag<T> {
     private final Function<T, DogTag<T>> constructor;
 
     @SuppressWarnings("AccessingNonPublicFieldOfAnotherObject")
-    final int doCachedHashCode(final T thisOne, DogTag<T> dogTag) {
+    final int doCachedHashCode(final T thisOne, final DogTag<T> dogTag) {
       if (dogTag.cachedHash == 0) {
         dogTag.cachedHash = doHashCodeInternal(thisOne);
       }
       return dogTag.cachedHash;
     }
-    
-    protected Factory(boolean useCache, HashBuilder hashBuilder, int startingHash) {
+
+    protected Factory(final boolean useCache, final HashBuilder hashBuilder, final int startingHash) {
       this.constructor = chooseConstructor(useCache);
       this.hashBuilder = hashBuilder;
       this.startingHash = startingHash;
@@ -232,19 +232,19 @@ public abstract class DogTag<T> {
     private final Collection<FieldProcessor<T>> fieldProcessors;
 
     private ReflectiveFactory(
-        Class<T> theClass,
-        Collection<FieldProcessor<T>> getters,
-        int startingHash,
-        HashBuilder hashBuilder,
-        boolean useCache
+        final Class<T> theClass,
+        final Collection<FieldProcessor<T>> getters,
+        final int startingHash,
+        final HashBuilder hashBuilder,
+        final boolean useCache
     ) {
       super(useCache, hashBuilder, startingHash);
       targetClass = theClass;
       fieldProcessors = Collections.unmodifiableCollection(getters);
     }
-    
+
     @Override
-    protected Function<T, DogTag<T>> chooseConstructor(boolean useCache) {
+    protected Function<T, DogTag<T>> chooseConstructor(final boolean useCache) {
       return useCache ?
           (t) -> new CachingDogTag<>(this, t) :
           (t) -> new NonCachingDogTag<>(this, t);
@@ -259,7 +259,7 @@ public abstract class DogTag<T> {
      */
     @Override
     @SuppressWarnings("ObjectEquality")
-    protected boolean doEqualsTest(T thisOneNeverNull, Object thatOneNullable) {
+    protected boolean doEqualsTest(final T thisOneNeverNull, final Object thatOneNullable) {
       if (thisOneNeverNull == thatOneNullable) {
         return true;
       }
@@ -269,17 +269,17 @@ public abstract class DogTag<T> {
         return false;
       }
 
-      T thatOneNeverNull = targetClass.cast(thatOneNullable);
+      final T thatOneNeverNull = targetClass.cast(thatOneNullable);
 
       // Putting the try/catch here instead of inside the testForEquals() method doubles the speed.
       try {
-        for (FieldProcessor<T> f : fieldProcessors) {
+        for (final FieldProcessor<T> f : fieldProcessors) {
           if (!f.testForEquals(thisOneNeverNull, thatOneNeverNull)) {
             return false;
           }
         }
         return true;
-      } catch (IllegalAccessException e) { // Shouldn't happen: Field.accessible has been set to true.
+      } catch (final IllegalAccessException e) { // Shouldn't happen: Field.accessible has been set to true.
         throw new AssertionError("E1: Illegal Access should not happen", e);
       }
     }
@@ -291,28 +291,28 @@ public abstract class DogTag<T> {
      * @return The hashCode
      */
     @Override
-    protected int doHashCodeInternal(T thisOne) {
+    protected int doHashCodeInternal(final T thisOne) {
       int hash = getStartingHash();
 
       // Putting the try/catch here instead of inside the testForEquals() method doubles the speed.
       try {
-        for (FieldProcessor<T> f : fieldProcessors) {
+        for (final FieldProcessor<T> f : fieldProcessors) {
           hash = getHashBuilder().newHash(hash, f.getHashValue(thisOne));
         }
-      } catch (IllegalAccessException e) { // Shouldn't happen: Field.accessible has been set to true.
+      } catch (final IllegalAccessException e) { // Shouldn't happen: Field.accessible has been set to true.
         throw new AssertionError("E3: Illegal Access shouldn't happen", e);
       }
       return hash;
     }
   }
-  
-  private DogTag(Factory<T> factory, T instance) {
+
+  private DogTag(final Factory<T> factory, final T instance) {
     this.factory = factory;
     this.instance = instance;
   }
 
   /**
-   * Instantiate a builder for a DogTag.Factory for class T that uses reflection to build a DogTag. By default, the factory will include 
+   * Instantiate a builder for a DogTag.Factory for class T that uses reflection to build a DogTag. By default, the factory will include
    * all non-transient, non-static fields in the DogTag, although you may change this behavior by calling additional methods before
    * building the factory.
    * You may exclude specific fields by calling {@code excludeFields(String... excludedFields)} specifying fields by name. The
@@ -340,7 +340,7 @@ public abstract class DogTag<T> {
    * @param <T>                The type of the enclosing class.
    * @return A builder for a {@literal DogTag<T>}, from which you can set options and build your DogTag.Factory.
    */
-  public static <T> DogTagReflectiveBuilder<T> startWithAll(Class<T> theClass) {
+  public static <T> DogTagReflectiveBuilder<T> startWithAll(final Class<T> theClass) {
     return new DogTagReflectiveBuilder<>(theClass);
   }
 
@@ -351,12 +351,11 @@ public abstract class DogTag<T> {
    * @param <T> The inferred type of the object
    * @return the class of T, as a {@literal Class<T>} object
    */
-  public static <T> Class<T> classFrom(T t) {
-    @SuppressWarnings("unchecked")
-    Class<T> targetClass = (Class<T>) t.getClass(); // I need to cast this because the getClass() method returns Class<?>
+  public static <T> Class<T> classFrom(final T t) {
+    @SuppressWarnings("unchecked") final Class<T> targetClass = (Class<T>) t.getClass(); // I need to cast this because the getClass() method returns Class<?>
     return targetClass;
   }
-  
+
   /**
    * Instantiate a builder for a DogTag for class T using inclusion mode, specifying a list of names of fields to be
    * included. The fields must be in the class specified by the type parameter for the DogTag, or any superclass.
@@ -386,7 +385,7 @@ public abstract class DogTag<T> {
    * @param <T>        The type of the enclosing class.
    * @return A builder for a {@literal DogTag<T>}, from which you can specify methods, set options, and build your DogTag.
    */
-  public static <T> LambdaFactory.LambdaBuilder<T> startEmpty(Class<T> targetClass) {
+  public static <T> LambdaFactory.LambdaBuilder<T> startEmpty(final Class<T> targetClass) {
     return new LambdaFactory.LambdaBuilder<>(targetClass);
   }
 
@@ -398,7 +397,7 @@ public abstract class DogTag<T> {
     private static final HashBuilder defaultHashBuilder = (int h, Object o) -> (h * 31) + o.hashCode(); // Same as Objects.class
     private HashBuilder hashBuilder = defaultHashBuilder; // Reuse the same HashBuilder
 
-    DogTagBaseBuilder(Class<T> theClass) {
+    DogTagBaseBuilder(final Class<T> theClass) {
       targetClass = theClass;
     }
 
@@ -439,31 +438,32 @@ public abstract class DogTag<T> {
 
   public static final class DogTagReflectiveBuilder<T> extends DogTagBaseBuilder<T> {
 
-    private DogTagReflectiveBuilder(Class<T> theClass) {
+    private DogTagReflectiveBuilder(final Class<T> theClass) {
       this(theClass, DogTagExclude.class);
     }
 
 
     // fields initialized in constructor
     private final Set<String> selectedFieldNames = new HashSet<>();
-    private final List<Class<? extends Annotation>> annotationList;
+    private final List<Class<? extends Annotation>> exclusionAnnotationList;
 
     private Class<? super T> lastSuperClass = Object.class;    // not final. May change with options.
 
     // pre-initialized fields
     private boolean testTransients = false;
 
-    private DogTagReflectiveBuilder(Class<T> theClass, Class<? extends Annotation> defaultSelectionAnnotation) {
+    private DogTagReflectiveBuilder(final Class<T> theClass, final Class<? extends Annotation> defaultSelectionAnnotation) {
       super(theClass);
-      annotationList = new LinkedList<>(Collections.singleton(defaultSelectionAnnotation));
+      exclusionAnnotationList = new LinkedList<>();
+      exclusionAnnotationList.add(defaultSelectionAnnotation);
     }
-    
-    private void addSelectedFields(String... selectedFields) {
+
+    private void addSelectedFields(final String... selectedFields) {
       selectedFieldNames.addAll(Arrays.asList(selectedFields));
     }
 
-    private void addSelectionAnnotation(Class<? extends Annotation> selectionAnnotation) {
-      annotationList.add(selectionAnnotation);
+    private void addExclusionAnnotation(final Class<? extends Annotation> selectionAnnotation) {
+      exclusionAnnotationList.add(selectionAnnotation);
     }
 
     /**
@@ -474,7 +474,7 @@ public abstract class DogTag<T> {
      *                       {@code withReflectUpTo()} option.
      * @return this, for method chaining.
      */
-    public DogTagReflectiveBuilder<T> excludeFields(String... excludedFields) {
+    public DogTagReflectiveBuilder<T> excludeFields(final String... excludedFields) {
       addSelectedFields(excludedFields);
       return this;
     }
@@ -488,8 +488,8 @@ public abstract class DogTag<T> {
      *                        exclude.
      * @return this, for method chaining.
      */
-    public DogTagReflectiveBuilder<T> withExclusionAnnotation(Class<? extends Annotation> annotationClass) {
-      addSelectionAnnotation(validateAnnotationClass(annotationClass));
+    public DogTagReflectiveBuilder<T> withExclusionAnnotation(final Class<? extends Annotation> annotationClass) {
+      addExclusionAnnotation(validateAnnotationClass(annotationClass));
       return this;
     }
 
@@ -503,21 +503,21 @@ public abstract class DogTag<T> {
      * @param useTransients true if you want transient fields included in the equals and hashCode methods
      * @return this, for method chaining
      */
-    public DogTagReflectiveBuilder<T> withTransients(boolean useTransients) {
+    public DogTagReflectiveBuilder<T> withTransients(final boolean useTransients) {
       setTransients(useTransients);
       return this;
     }
 
     /**
      * Specify the highest superclass of the DogTag Type parameter class to include in the equals and hash code calculations.
-     * The ancestor classes included in the {@code equals()} and {@code hashCode()} methods are those of the type class, the 
+     * The ancestor classes included in the {@code equals()} and {@code hashCode()} methods are those of the type class, the
      * {@code reflectUpTo} superclass, and any class that is both a superclass of the type class and a subclass of the
      * {@code reflectUpTo} superclass. Defaults to Object.class.
      *
      * @param reflectUpTo The superclass, up to which are inspected for fields to include.
      * @return this, for method chaining
      */
-    public DogTagReflectiveBuilder<T> withReflectUpTo(Class<? super T> reflectUpTo) {
+    public DogTagReflectiveBuilder<T> withReflectUpTo(final Class<? super T> reflectUpTo) {
       setReflectUpTo(reflectUpTo);
       return this;
     }
@@ -531,7 +531,7 @@ public abstract class DogTag<T> {
      */
 //    @Override
     private boolean isFieldUsed(final Set<Field> selectedFields, final Field theField) {
-      return !isSelected(selectedFields, theField);
+      return !isExcluded(selectedFields, theField);
     }
 
     /**
@@ -540,15 +540,15 @@ public abstract class DogTag<T> {
      * @param fieldName The Field name
      * @return A Field, from one of the classes in the range from the target class to lastSuperClass.
      */
-    private Field getFieldFromName(String fieldName) {
-      Class<T> targetClass = getTargetClass();
+    private Field getFieldFromName(final String fieldName) {
+      final Class<T> targetClass = getTargetClass();
       Class<?> theClass = targetClass;
       Class<?> previousClass = targetClass;
       boolean inProgress = true;
       while (inProgress) {
         try {
           return theClass.getDeclaredField(fieldName);
-        } catch (NoSuchFieldException e) {
+        } catch (final NoSuchFieldException e) {
           previousClass = theClass;
 
           // This test must come before moving to the superClass
@@ -584,7 +584,7 @@ public abstract class DogTag<T> {
      * @return this, for method chaining
      * @see HashBuilder
      */
-    public DogTagReflectiveBuilder<T> withHashBuilder(int startingHash, HashBuilder hashBuilder) {
+    public DogTagReflectiveBuilder<T> withHashBuilder(final int startingHash, final HashBuilder hashBuilder) {
       setStartingHash(startingHash);
       setHashBuilder(hashBuilder);
       return this;
@@ -594,33 +594,37 @@ public abstract class DogTag<T> {
      * Sets the UseCachedHash option. For speed, this will cache the hash value the first time {@code hashCode()} is called, and continue
      * using the cached value.
      * <p>
-     * This option should be used with caution. If enabled and used incorrectly, it will break the guarantee that 
-     * {@code hashCode()} and {@code equals()} will be consistent. Even if you only specify final fields, this will fail if the final 
+     * This option should be used with caution. If enabled and used incorrectly, it will break the guarantee that
+     * {@code hashCode()} and {@code equals()} will be consistent. Even if you only specify final fields, this will fail if the final
      * fields are themselves mutable. For a hashCode to be eligible for the correct use of this option, your class should be
-     * <strong>deeply immutable</strong>. To be deeply immutable, the following two conditions must 
+     * <strong>deeply immutable</strong>. To be deeply immutable, the following two conditions must
      * be true of every field you include in your DogTag:
      * <br>
      * 1. The field should be final.<br>
      * 2. If the field is an Object, it should itself be deeply immutable.
      * <p>
      * The second condition, of course, makes these conditions recursive. Strings and primitive wrapper classes like {@code Integer} are
-     * deeply immutable by default. 
+     * deeply immutable by default.
      * </p><p>
      * In other words, for any field anywhere in the object tree that is used to calculate the hash code, that field cannot change value
      * once the outermost element of the tree is constructed.
-     * 
+     *
      * One reason why this should be used with caution is that code maintenance can inadvertently break deep immutability.
+     * @param useCachedHash true to enable the cached hash
+     * @return this, for method chaining
      */
-    public DogTagReflectiveBuilder<T> withCachedHash(boolean useCachedHash) {
+    public DogTagReflectiveBuilder<T> withCachedHash(final boolean useCachedHash) {
       setUseCachedHash(useCachedHash);
       return this;
     }
 
-    private void setTransients(boolean useTransients) {
+    private void setTransients(final boolean useTransients) {
       this.testTransients = useTransients;
     }
 
-    private void setReflectUpTo(Class<? super T> superClass) { this.lastSuperClass = superClass; }
+    private void setReflectUpTo(final Class<? super T> superClass) {
+      this.lastSuperClass = superClass;
+    }
 
     @Override
     public Factory<T> build() {
@@ -628,31 +632,33 @@ public abstract class DogTag<T> {
     }
 
     private Collection<FieldProcessor<T>> makeGetterList() {
-      Set<Field> selectedFields = new HashSet<>();
-      collectMatchingFields(selectedFieldNames, selectedFields);
+      final Set<Field> excludedFields = new HashSet<>();
+      collectMatchingFields(selectedFieldNames, excludedFields);
 
       // two different inclusion modes exist. Each requires a different kind of collection.
-      Collection<FieldProcessor<T>> fieldProcessorList = createEmptyFieldProcessorList();
+      final Collection<FieldProcessor<T>> fieldProcessorList = createEmptyFieldProcessorList();
       Class<? super T> theClass = getTargetClass();
-      int index = 0;
+      final int index = 0;
       boolean isStaticFactoryMissing = true;
 
       // We shouldn't ever reach Object.class unless someone specifies it as the reflect-up-to superclass.
       while (theClass != Object.class) {
-        Field[] declaredFields = theClass.getDeclaredFields();
-        for (Field field : declaredFields) {
+        final Field[] declaredFields = theClass.getDeclaredFields();
+        for (final Field field : declaredFields) {
           final Class<?> fieldType = field.getType();
-          int modifiers = field.getModifiers();
+          final int modifiers = field.getModifiers();
           final boolean isStatic = Modifier.isStatic(modifiers);
           final boolean isDogTag = fieldType == DogTag.class;
           final boolean isFactory = fieldType == DogTag.Factory.class;
           if (isDogTag && isStatic) {
-            throw new IllegalArgumentException(String.format("E8: %s - Your DogTag instance must be not static. Private and final are recommended.", getTargetClass()));
+            throw new IllegalArgumentException(String.format("E8: %s - Your DogTag instance must be not static. Private and final are recommended.",
+                getTargetClass()));
           }
           if (isFactory && !isStatic) {
             // I'm not sure it's possible to construct an object with a non-static factory without throwing a
             // StackOverflowError or NullPointerException, but in case I'm wrong, we disallow a non-static Factory.
-            throw new IllegalArgumentException(String.format("E9: %s - Your DogTag.Factory must be static. Private and final are recommended.", getTargetClass()));
+            throw new IllegalArgumentException(String.format("E9: %s - Your DogTag.Factory must be static. Private and final are recommended.",
+                getTargetClass()));
           }
           if (isFactory) {
             isStaticFactoryMissing = false;
@@ -663,11 +669,11 @@ public abstract class DogTag<T> {
           if (!isStatic
               && !isDogTag
               && (testTransients || !Modifier.isTransient(modifiers))
-              && isFieldUsed(selectedFields, field)
+              && isFieldUsed(excludedFields, field)
               && (field.getName().indexOf('$') < 0) // disallow anonymous inner class fields
           ) {
             field.setAccessible(true); // move this into getFPForType?
-            FieldProcessor<T> fieldProcessor = getFieldProcessorForType(field, fieldType);
+            final FieldProcessor<T> fieldProcessor = getFieldProcessorForType(field, fieldType);
 
             //The wrapper contains ordering information for lists that specify an order
             fieldProcessorList.add(fieldProcessor);
@@ -678,7 +684,7 @@ public abstract class DogTag<T> {
         }
         theClass = theClass.getSuperclass();
       }
-      
+
       if (isStaticFactoryMissing) {
         throw new IllegalArgumentException(String.format("E12: No static DogTag.Factory found in %s", getTargetClass()));
       }
@@ -692,16 +698,16 @@ public abstract class DogTag<T> {
     }
 
     // Todo: Test annotated field overridden by non-annotated field. What should it do?
-    private FieldProcessor<T> getFieldProcessorForType(Field field, Class<?> fieldType) {
-      FieldProcessor<T> fieldProcessor;
+    private FieldProcessor<T> getFieldProcessorForType(final Field field, final Class<?> fieldType) {
+      final FieldProcessor<T> fieldProcessor;
       if (fieldType.isArray()) {
         fieldProcessor = getProcessorForArray(field, fieldType);
       } else if (fieldType.isPrimitive()) {
         fieldProcessor = getProcessorForPrimitive(field, fieldType);
       } else {
-        ToBooleanBiFunction<T> objectToBooleanBiFunction
+        final ToBooleanBiFunction<T> objectToBooleanBiFunction
             = (thisOne, thatOne) -> Objects.equals(field.get(thisOne), (field.get(thatOne)));
-        ToIntThrowingFunction<T> hashFunction = (t) -> Objects.hashCode(field.get(t));
+        final ToIntThrowingFunction<T> hashFunction = (t) -> Objects.hashCode(field.get(t));
         fieldProcessor = new FieldProcessor<>(objectToBooleanBiFunction, hashFunction);
       }
       return fieldProcessor;
@@ -709,18 +715,18 @@ public abstract class DogTag<T> {
 
     @SuppressWarnings("BoundedWildcard")
     private void collectMatchingFields(final Set<String> fieldNames, final Set<Field> searchField) {
-      for (String fieldName : fieldNames) {
+      for (final String fieldName : fieldNames) {
         searchField.add(getFieldFromName(fieldName));
       }
     }
 
-    private boolean isSelected(Set<Field> selectedFields, Field theField) {
-      return selectedFields.contains(theField) || isAnnotatedWith(theField, annotationList);
+    private boolean isExcluded(final Set<Field> selectedFields, final Field theField) {
+      return selectedFields.contains(theField) || isAnnotatedWith(theField, exclusionAnnotationList);
     }
 
-    private boolean isAnnotatedWith(Field field, List<Class<? extends Annotation>> annotationList) {
-      for (Class<? extends Annotation> annotationClass : annotationList) {
-        
+    private boolean isAnnotatedWith(final Field field, final List<Class<? extends Annotation>> annotationList) {
+      for (final Class<? extends Annotation> annotationClass : annotationList) {
+
         // This will fail if the user is using two annotations on the same field, and one without an order field is detected first.
         if (field.isAnnotationPresent(annotationClass)) {
           recordOrder(field, annotationClass);
@@ -740,9 +746,10 @@ public abstract class DogTag<T> {
      * That turned out to be slightly slower than the current implementation.
      * @param primitiveField The field
      * @param fieldType The type of the field
+     * @param <T> The type of DogTag
      * @return A field processor for the specified field.
      */
-    private static <T> FieldProcessor<T> getProcessorForPrimitive(Field primitiveField, Class<?> fieldType) {
+    private static <T> FieldProcessor<T> getProcessorForPrimitive(final Field primitiveField, final Class<?> fieldType) {
 
       ToBooleanBiFunction<T> primitiveEquals = null;
       ToIntThrowingFunction<T> primitiveHash = null;
@@ -768,7 +775,8 @@ public abstract class DogTag<T> {
             == Double.doubleToLongBits(primitiveField.getDouble(thatOne));
         primitiveHash = (instance) -> Double.hashCode(primitiveField.getDouble(instance));
       } else if (fieldType == Float.TYPE) {
-        primitiveEquals = (thisOne, thatOne) -> Float.floatToIntBits(primitiveField.getFloat(thisOne)) == Float.floatToIntBits(primitiveField.getFloat(thatOne));
+        primitiveEquals = (thisOne, thatOne)
+            -> Float.floatToIntBits(primitiveField.getFloat(thisOne)) == Float.floatToIntBits(primitiveField.getFloat(thatOne));
         primitiveHash = (instance) -> Float.hashCode(primitiveField.getFloat(instance));
       } else if (fieldType == Boolean.TYPE) {
         primitiveEquals = (thisOne, thatOne) -> primitiveField.getBoolean(thisOne) == primitiveField.getBoolean(thatOne);
@@ -778,10 +786,10 @@ public abstract class DogTag<T> {
       return new FieldProcessor<>(primitiveEquals, primitiveHash);
     }
 
-    private static <T> FieldProcessor<T> getProcessorForArray(Field field, Class<?> fieldType) {
-      Class<?> componentType = fieldType.getComponentType();
-      ToBooleanBiFunction<T> arrayEquals;
-      ToIntThrowingFunction<T> arrayHash;
+    private static <T> FieldProcessor<T> getProcessorForArray(final Field field, final Class<?> fieldType) {
+      final Class<?> componentType = fieldType.getComponentType();
+      final ToBooleanBiFunction<T> arrayEquals;
+      final ToIntThrowingFunction<T> arrayHash;
 
       // I can't use a switch statement, because fieldType isn't a number, String, or enum!
       if (componentType == Integer.TYPE) {
@@ -819,13 +827,13 @@ public abstract class DogTag<T> {
     }
 
     /**
-     * Record the order of the field in a temporary map. Only used in Inclusion mode. 
+     * Record the order of the field in a temporary map. Only used in Inclusion mode.
      * @param field The field to record
-     * @param nullableAnnotationClass The annotation class used on the field. May be null, if the fields is not included with 
+     * @param nullableAnnotationClass The annotation class used on the field. May be null, if the fields is not included with
      *                                an annotation class.
      */
     @SuppressWarnings("NoopMethodInAbstractClass")
-    protected void recordOrder(Field field, Class<? extends Annotation> nullableAnnotationClass) { } // default implementation does nothing.
+    protected void recordOrder(final Field field, final Class<? extends Annotation> nullableAnnotationClass) { } // default implementation does nothing.
 
     // All inherited "with<Option> methods must be overridden to return DogTagReflectiveBuilder instead of the
     // default DogTagFullBuilder:
@@ -841,12 +849,11 @@ public abstract class DogTag<T> {
 //    }
   }
 
-  private static Class<? extends Annotation> validateAnnotationClass(Class<?> annotationClass) {
+  private static Class<? extends Annotation> validateAnnotationClass(final Class<?> annotationClass) {
     if (annotationClass.isAnnotation()) {
-      @SuppressWarnings("unchecked")
-      Class<? extends Annotation> aClass = (Class<? extends Annotation>) annotationClass;
-      Target target = aClass.getAnnotation(Target.class);
-      for (ElementType elementType: target.value()) {
+      @SuppressWarnings("unchecked") final Class<? extends Annotation> aClass = (Class<? extends Annotation>) annotationClass;
+      final Target target = aClass.getAnnotation(Target.class);
+      for (final ElementType elementType: target.value()) {
         if (elementType == ElementType.FIELD) {
           return aClass;
         }
@@ -898,9 +905,9 @@ public abstract class DogTag<T> {
    *   Strictly speaking, for a series of hash values, H<sub>n</sub>, the formula combines them into a single hash
    *   value by processing each value in turn, according to this formula: <p>
    *     &nbsp;&nbsp;V<sub>n</sub> = newHash(V<sub>n-1</sub>, H<sub>n</sub>)<p>
-   *   where V<sub>n</sub> is the new hash value, V<sub>n-1</sub> is the result from the previous iteration, and 
+   *   where V<sub>n</sub> is the new hash value, V<sub>n-1</sub> is the result from the previous iteration, and
    *   newHash() is the implemented method. For the first iteration, the calling method must specify a starting value
-   *   for H<sub>0</sub>, which is usually one or zero. The final value of V<sub>n</sub> is returned. 
+   *   for H<sub>0</sub>, which is usually one or zero. The final value of V<sub>n</sub> is returned.
    *   The default implementation sets a starting value of 1, and uses this formula:<p>
    *     &nbsp;&nbsp;V<sub>n</sub> = (31 * V<sub>n-1</sub>) + H<sub>n</sub><p>
    *   This is the same formula used by the {@code java.util.Objects.hash(Object...)} method.
@@ -912,7 +919,7 @@ public abstract class DogTag<T> {
 
   /**
    * This class knows how to extract a value from a field, determine if two fields are equal, and get the hash code,
-   * based on the stored reflected objects. 
+   * based on the stored reflected objects.
    * Every object used by equals and hash code calculations is either a single value or an array. Arrays must be
    * handled differently from single values, and methods returning primitives must be handled differently than those
    * returning Objects. This class holds the methods for equals and hash code. The appropriate methods are passed in to
@@ -921,17 +928,17 @@ public abstract class DogTag<T> {
   static final class FieldProcessor<T> {
     private final ToBooleanBiFunction<T> compareFieldMethod; //
     private final ToIntThrowingFunction<T> hashMethod; // This will be from either Arrays or Objects::hashCode
-    
-    private FieldProcessor(ToBooleanBiFunction<T> equalMethod, ToIntThrowingFunction<T> hashMethod) {
+
+    private FieldProcessor(final ToBooleanBiFunction<T> equalMethod, final ToIntThrowingFunction<T> hashMethod) {
       compareFieldMethod = equalMethod;
       this.hashMethod = hashMethod;
     }
-    
-    private boolean testForEquals(T thisOne, T thatOne) throws IllegalAccessException {
+
+    private boolean testForEquals(final T thisOne, final T thatOne) throws IllegalAccessException {
       return compareFieldMethod.eval(thisOne, thatOne);
     }
-    
-    private int getHashValue(T thisOne) throws IllegalAccessException {
+
+    private int getHashValue(final T thisOne) throws IllegalAccessException {
       return hashMethod.get(thisOne);
     }
   }
@@ -1051,12 +1058,12 @@ public abstract class DogTag<T> {
     private final Class<T> targetClass;
 
     LambdaFactory(
-        Class<T> theClass,
-        int startingHash,
-        HashBuilder hashBuilder,
-        boolean useCache,
-        List<EqualHandler<T>> equalHandlerList,
-        List<HashHandler<T>> hashHandlerList
+        final Class<T> theClass,
+        final int startingHash,
+        final HashBuilder hashBuilder,
+        final boolean useCache,
+        final List<EqualHandler<T>> equalHandlerList,
+        final List<HashHandler<T>> hashHandlerList
     ) {
       super(useCache, hashBuilder, startingHash);
       targetClass = theClass;
@@ -1072,9 +1079,13 @@ public abstract class DogTag<T> {
     }
 
     // TODO: Handle this using Iterable
-    Collection<EqualHandler<T>> getEqualHandlerList() { return equalHandlerList; }
+    Collection<EqualHandler<T>> getEqualHandlerList() {
+      return equalHandlerList;
+    }
 
-    Collection<HashHandler<T>> getHashHandlerList() { return hashHandlerList; }
+    Collection<HashHandler<T>> getHashHandlerList() {
+      return hashHandlerList;
+    }
 
     Class<T> getTargetClass() {
       return targetClass;
@@ -1089,15 +1100,15 @@ public abstract class DogTag<T> {
       if (thatOne == null) {
         return false;
       }
-      Class<T> thisClass = getTargetClass();
+      final Class<T> thisClass = getTargetClass();
       if (!thisClass.isAssignableFrom(thatOne.getClass())) {
         return false;
       }
-      T thatOneNotNull = thisClass.cast(thatOne);
-      Collection<EqualHandler<T>> equalHandlers = getEqualHandlerList();
+      final T thatOneNotNull = thisClass.cast(thatOne);
+      final Collection<EqualHandler<T>> equalHandlers = getEqualHandlerList();
 
       /* This imperative loop outperforms the stream expression that's commented out below. */
-      for (EqualHandler<T> handler : equalHandlers) {
+      for (final EqualHandler<T> handler : equalHandlers) {
         if (!handler.doEqual(thisOne, thatOneNotNull)) {
           return false;
         }
@@ -1110,10 +1121,10 @@ public abstract class DogTag<T> {
     }
 
     @Override
-    public int doHashCodeInternal(T thisOne) {
-      List<Integer> hashValues = new LinkedList<>();
-      Collection<HashHandler<T>> hashHandlers = getHashHandlerList();
-      for (HashHandler<T> hashHandler : hashHandlers) {
+    public int doHashCodeInternal(final T thisOne) {
+      final List<Integer> hashValues = new LinkedList<>();
+      final Collection<HashHandler<T>> hashHandlers = getHashHandlerList();
+      for (final HashHandler<T> hashHandler : hashHandlers) {
         hashValues.add(hashHandler.doHashCode(thisOne));
       }
       return Arrays.deepHashCode(hashValues.toArray());
@@ -1124,7 +1135,7 @@ public abstract class DogTag<T> {
       private final List<EqualHandler<T>> equalHandlerList = new LinkedList<>();
       private final List<HashHandler<T>> hashHandlerList = new LinkedList<>();
 
-      LambdaBuilder(Class<T> theClass) {
+      LambdaBuilder(final Class<T> theClass) {
         super(theClass);
       }
 
@@ -1132,8 +1143,8 @@ public abstract class DogTag<T> {
        * Sets the usedCachedHash option. This will cache the hash value the first time {@code hashCode()} is called, and continue using
        * the cached value.
        * <p>
-       * This option should be used with extreme caution. If enabled and used incorrectly, it will break the guarantee that 
-       * {@code hashCode()} and {@code equals()} will be consistent. Even if you only specify final fields, this will fail if the final 
+       * This option should be used with extreme caution. If enabled and used incorrectly, it will break the guarantee that
+       * {@code hashCode()} and {@code equals()} will be consistent. Even if you only specify final fields, this will fail if the final
        * fields are themselves mutable objects. For a hashCode to be eligible for the correct use of this option, the following two
        * conditions must be true of every field you include in your DogTag:
        * <br>
@@ -1145,8 +1156,10 @@ public abstract class DogTag<T> {
        * is constructed.
        * <p>Of course, if all your Object fields are Strings, primitives, or primitive wrapper classes, and all are final, then
        * your class qualifies.</p>
+       * @param useCachedHash True if a cached hash should be used
+       * @return this, for method chaining
        */
-      public LambdaBuilder<T> withCachedHash(boolean useCachedHash) {
+      public LambdaBuilder<T> withCachedHash(final boolean useCachedHash) {
         setUseCachedHash(useCachedHash);
         return this;
       }
@@ -1182,14 +1195,14 @@ public abstract class DogTag<T> {
       }
 
       public LambdaBuilder<T> addSimple(final ToFloatFunction<T> floatFunction) {
-        equalHandlerList.add((thisOne, thatOne) 
+        equalHandlerList.add((thisOne, thatOne)
             -> Float.floatToIntBits(floatFunction.applyAsFloat(thisOne)) == Float.floatToIntBits(floatFunction.applyAsFloat(thatOne)));
         hashHandlerList.add(thisOne -> Float.hashCode(floatFunction.applyAsFloat(thisOne)));
         return this;
       }
 
       public LambdaBuilder<T> addSimple(final ToDoubleFunction<T> doubleFunction) {
-        equalHandlerList.add((thisOne, thatOne) 
+        equalHandlerList.add((thisOne, thatOne)
             -> Double.doubleToLongBits(doubleFunction.applyAsDouble(thisOne)) == Double.doubleToLongBits(doubleFunction.applyAsDouble(thatOne)));
         hashHandlerList.add(thisOne -> Double.hashCode(doubleFunction.applyAsDouble(thisOne)));
         return this;
@@ -1201,8 +1214,8 @@ public abstract class DogTag<T> {
           // method overloading can't distinguish between Object and Object[], so the user may accidentally call this instead of
           // the addObjectArray() method. To make this class foolproof, we test for arrays here and call the Arrays.deepEquals() method
           // if appropriate.
-          Object thisArray = objectFunction.applyAsObject(thisOne);
-          Object thatThing = objectFunction.applyAsObject(thatOne);
+          final Object thisArray = objectFunction.applyAsObject(thisOne);
+          final Object thatThing = objectFunction.applyAsObject(thatOne);
           if ((thisArray != null) && thisArray.getClass().isArray()) {
             return (thatThing != null) && thatThing.getClass().isArray() && Arrays.deepEquals((Object[]) thisArray, (Object[]) thatThing);
           }
@@ -1213,7 +1226,7 @@ public abstract class DogTag<T> {
           // method overloading can't distinguish between Object and Object[], so the user may accidentally call this instead of
           // the addObjectArray() method. To make this class foolproof, we test for arrays here and call the Arrays.deepHashCode() method
           // if appropriate.
-          Object thisObject = objectFunction.applyAsObject(thisOne);
+          final Object thisObject = objectFunction.applyAsObject(thisOne);
           if ((thisObject != null) && thisObject.getClass().isArray()) {
             return Arrays.deepHashCode((Object[]) thisObject);
           }
@@ -1227,7 +1240,7 @@ public abstract class DogTag<T> {
         hashHandlerList.add(thisOne -> Boolean.hashCode(booleanFunction.applyAsBoolean(thisOne)));
         return this;
       }
-      
+
       public LambdaBuilder<T> addArray(final ToIntArrayFunction<T> intArrayFunction) {
         equalHandlerList.add((thisOne, thatOne) -> Arrays.equals(intArrayFunction.applyAsIntArray(thisOne), intArrayFunction.applyAsIntArray(thatOne)));
         hashHandlerList.add((thisOne) -> Arrays.hashCode(intArrayFunction.applyAsIntArray(thisOne)));
@@ -1266,20 +1279,22 @@ public abstract class DogTag<T> {
       }
 
       public LambdaBuilder<T> addArray(final ToDoubleArrayFunction<T> doubleArrayFunction) {
-        equalHandlerList.add((thisOne, thatOne) -> Arrays.equals(doubleArrayFunction.applyAsDoubleArray(thisOne), doubleArrayFunction.applyAsDoubleArray(thatOne)));
+        equalHandlerList.add((thisOne, thatOne)
+            -> Arrays.equals(doubleArrayFunction.applyAsDoubleArray(thisOne), doubleArrayFunction.applyAsDoubleArray(thatOne)));
         hashHandlerList.add((thisOne) -> Arrays.hashCode(doubleArrayFunction.applyAsDoubleArray(thisOne)));
         return this;
       }
 
       public LambdaBuilder<T> addArray(final ToBooleanArrayFunction<T> booleanArrayFunction) {
-        equalHandlerList.add((thisOne, thatOne) -> Arrays.equals(booleanArrayFunction.applyAsBooleanArray(thisOne), booleanArrayFunction.applyAsBooleanArray(thatOne)));
+        equalHandlerList.add((thisOne, thatOne)
+            -> Arrays.equals(booleanArrayFunction.applyAsBooleanArray(thisOne), booleanArrayFunction.applyAsBooleanArray(thatOne)));
         hashHandlerList.add((thisOne) -> Arrays.hashCode(booleanArrayFunction.applyAsBooleanArray(thisOne)));
         return this;
       }
 
       public LambdaBuilder<T> addArray(final ToObjectArrayFunction<T> objectArrayFunction) {
         // Because this could be a multi-dimensional array, we call the deep version of equals and hashCode.
-          equalHandlerList.add((thisOne, thatOne) 
+          equalHandlerList.add((thisOne, thatOne)
               -> Arrays.deepEquals(objectArrayFunction.applyAsObjectArray(thisOne), objectArrayFunction.applyAsObjectArray(thatOne)));
           hashHandlerList.add((thisOne) -> Arrays.deepHashCode(objectArrayFunction.applyAsObjectArray(thisOne)));
         return this;
@@ -1289,13 +1304,13 @@ public abstract class DogTag<T> {
       public Factory<T> build() {
         // Check for a static factory
         boolean isFactoryMissing = true;
-        Class<T> targetClass = getTargetClass();
-        
+        final Class<T> targetClass = getTargetClass();
+
         // We don't need to recurse into subclasses.
-        Field[] declaredFields = targetClass.getDeclaredFields();
-        for (Field m: declaredFields) {
+        final Field[] declaredFields = targetClass.getDeclaredFields();
+        for (final Field m: declaredFields) {
           if (m.getType().equals(DogTag.Factory.class)) {
-            int modifiers = m.getModifiers();
+            final int modifiers = m.getModifiers();
             if (Modifier.isStatic(modifiers)) {
               isFactoryMissing = false;
               break;

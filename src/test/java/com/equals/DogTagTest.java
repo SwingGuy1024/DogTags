@@ -1,5 +1,15 @@
 package com.equals;
 
+import static com.equals.DogTag.classFrom;
+import static com.equals.TestUtility.verifyMatches;
+import static com.equals.TestUtility.verifyNoMatch;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.awt.geom.Point2D;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -7,38 +17,35 @@ import java.util.List;
 import org.hamcrest.core.StringContains;
 import org.junit.Test;
 
-import static com.equals.DogTag.classFrom;
-import static com.equals.TestUtility.*;
-import static org.junit.Assert.*;
-
 // Todo: Write test of cached hash in inclusion mode
-@SuppressWarnings({"HardCodedStringLiteral", "MagicNumber", "MagicCharacter", "UseOfClone", "AccessStaticViaInstance", "EqualsReplaceableByObjectsCall", "EqualsWhichDoesntCheckParameterClass", "unused"})
+@SuppressWarnings({"HardCodedStringLiteral", "MagicNumber", "MagicCharacter", "UseOfClone", "AccessStaticViaInstance", "EqualsReplaceableByObjectsCall",
+    "EqualsWhichDoesntCheckParameterClass", "unused"})
 public class DogTagTest {
   private static final String CHARLIE_INT = "charlieInt";
 
   @Test
   public void testEquals() {
-    DogTagTestBase baseTest5b75 = new DogTagTestBase(5, "bravo", 7, 5L);
-    DogTagTestBase baseTest5bx5 = baseTest5b75.duplicate();
+    final DogTagTestBase baseTest5b75 = new DogTagTestBase(5, "bravo", 7, 5L);
+    final DogTagTestBase baseTest5bx5 = baseTest5b75.duplicate();
     baseTest5bx5.setCharlieInt(12);
-    DogTagTestBase baseTest9b75 = new DogTagTestBase(90, "bravo", 7, 5L);
-    DogTagTestBase baseTest5x75 = new DogTagTestBase(5, "bravissimo", 7, 5L);
-    DogTagTestBase baseTest5b45 = new DogTagTestBase(5, "bravo", 44, 5L);
-    DogTagTestBase baseTest5b7x = new DogTagTestBase(5, "bravo", 7, 17L);
-    DogTagTestBase baseTestDupl = new DogTagTestBase(5, "bravo", 7, 5L);
-    
-    DogTag.Factory<DogTagTestBase> excludeCReflect = DogTag.startWithAll(classFrom(baseTest5b75))
+    final DogTagTestBase baseTest9b75 = new DogTagTestBase(90, "bravo", 7, 5L);
+    final DogTagTestBase baseTest5x75 = new DogTagTestBase(5, "bravissimo", 7, 5L);
+    final DogTagTestBase baseTest5b45 = new DogTagTestBase(5, "bravo", 44, 5L);
+    final DogTagTestBase baseTest5b7x = new DogTagTestBase(5, "bravo", 7, 17L);
+    final DogTagTestBase baseTestDupl = new DogTagTestBase(5, "bravo", 7, 5L);
+
+    final DogTag.Factory<DogTagTestBase> excludeCReflect = DogTag.startWithAll(classFrom(baseTest5b75))
         .excludeFields(CHARLIE_INT)
         .build();
-    DogTag.Factory<DogTagTestBase> excludeCLambda = DogTag.startEmpty(DogTagTestBase.class)
+    final DogTag.Factory<DogTagTestBase> excludeCLambda = DogTag.startEmpty(DogTagTestBase.class)
         .addSimple(DogTagTestBase::getAlphaInt)
         .addObject(DogTagTestBase::getBravoString)
         .addSimple(DogTagTestBase::getDeltaLong)
         .build();
 
     List<DogTag.Factory<DogTagTestBase>> dList = Arrays.asList(excludeCReflect, excludeCLambda);
-    
-    for (DogTag.Factory<DogTagTestBase> excludeC : dList){
+
+    for (final DogTag.Factory<DogTagTestBase> excludeC : dList){
       verifyMatches(excludeC, baseTest5b75, baseTest5bx5);
       verifyNoMatch(excludeC, baseTest5b75, baseTest9b75);
       verifyNoMatch(excludeC, baseTest5b75, baseTest5x75);
@@ -57,8 +64,8 @@ public class DogTagTest {
       verifyMatches(excludeC, baseTest5b75, baseTestDupl);
     }
 
-    DogTag.Factory<DogTagTestBase> includeBaseOnlyReflect = DogTag.startWithAll(classFrom(baseTest5b75)).build();
-    DogTag.Factory<DogTagTestBase> includeBaseOnlyLambda = DogTag.startEmpty(DogTagTestBase.class)
+    final DogTag.Factory<DogTagTestBase> includeBaseOnlyReflect = DogTag.startWithAll(classFrom(baseTest5b75)).build();
+    final DogTag.Factory<DogTagTestBase> includeBaseOnlyLambda = DogTag.startEmpty(DogTagTestBase.class)
         .addSimple(DogTagTestBase::getAlphaInt)
         .addSimple(DogTagTestBase::getDeltaLong)
         .addObject(DogTagTestBase::getBravoString)
@@ -66,7 +73,7 @@ public class DogTagTest {
         .build();
 
     dList = Arrays.asList(includeBaseOnlyReflect, includeBaseOnlyLambda);
-    for (DogTag.Factory<DogTagTestBase> includeBaseOnly: dList) {
+    for (final DogTag.Factory<DogTagTestBase> includeBaseOnly: dList) {
       verifyNoMatch(includeBaseOnly, baseTest5b75, baseTest5bx5);
       verifyNoMatch(includeBaseOnly, baseTest5b75, baseTest5bx5);
       verifyNoMatch(includeBaseOnly, baseTest5b75, baseTest9b75);
@@ -86,9 +93,9 @@ public class DogTagTest {
       verifyMatches(includeBaseOnly, baseTest5b75, baseTestDupl);
     }
 
-    DogTagTestMid midTest = new DogTagTestMid(5, "bravo", 7, 5L, "echo", 
+    final DogTagTestMid midTest = new DogTagTestMid(5, "bravo", 7, 5L, "echo",
         new Point2D.Double(14.2, 2.14), 44, (byte)12, 'I');
-    DogTagTestMid midTest2 = midTest.duplicate();
+    final DogTagTestMid midTest2 = midTest.duplicate();
     verifyMatches(includeBaseOnlyReflect, midTest, midTest2);
     verifyMatches(includeBaseOnlyLambda, midTest, midTest2);
     midTest2.setIndigoChar('J');
@@ -98,22 +105,22 @@ public class DogTagTest {
     midTest2.setEchoString("Could you repeat that?");
     verifyMatches(includeBaseOnlyReflect, midTest, midTest2); // should still match,
     verifyMatches(includeBaseOnlyLambda, midTest, midTest2); // should still match,
-    
-    DogTag.Factory<DogTagTestBase> includeAllButCReflect = DogTag.startWithAll(classFrom(baseTest5b75))
+
+    final DogTag.Factory<DogTagTestBase> includeAllButCReflect = DogTag.startWithAll(classFrom(baseTest5b75))
         .excludeFields("charlieInt")
 //            "alphaInt",
 //            "bravoString",
 //            "deltaLong"
 //        )
         .build();
-    DogTag.Factory<DogTagTestBase> includeAllButCLambda = DogTag.startEmpty(DogTagTestBase.class)
+    final DogTag.Factory<DogTagTestBase> includeAllButCLambda = DogTag.startEmpty(DogTagTestBase.class)
         .addSimple(DogTagTestBase::getAlphaInt)
         .addObject(DogTagTestBase::getBravoString)
         .addSimple(DogTagTestBase::getDeltaLong)
         .build();
     dList = Arrays.asList(includeAllButCReflect, includeAllButCLambda);
-    
-    for (DogTag.Factory<DogTagTestBase> includeAllButC: dList) {
+
+    for (final DogTag.Factory<DogTagTestBase> includeAllButC: dList) {
       verifyMatches(includeAllButC, baseTest5b75, baseTest5bx5);
       verifyNoMatch(includeAllButC, baseTest5b75, baseTest9b75);
       verifyNoMatch(includeAllButC, baseTest5b75, baseTest5x75);
@@ -134,16 +141,16 @@ public class DogTagTest {
 
   @Test
   public void testTransient() {
-    DogTagTestMid mid1 = new DogTagTestMid(12, "bravo", 3, 4L, "echo", new Point2D.Double(14.2, 2.14), 7, (byte)8, 'I');
-    DogTagTestMid mid2 = mid1.duplicate();
-    DogTag.Factory<DogTagTestMid> defaultFactory = DogTag.startWithAll(classFrom(mid1)).build(); // Tests may construct their own DogTags.
+    final DogTagTestMid mid1 = new DogTagTestMid(12, "bravo", 3, 4L, "echo", new Point2D.Double(14.2, 2.14), 7, (byte)8, 'I');
+    final DogTagTestMid mid2 = mid1.duplicate();
+    final DogTag.Factory<DogTagTestMid> defaultFactory = DogTag.startWithAll(classFrom(mid1)).build(); // Tests may construct their own DogTags.
     mid2.setGolfIntTr(77); // transient value
     verifyMatches(defaultFactory, mid1, mid2);
-    
+
     mid2.setFoxtrotPoint(new Point2D.Double(3.3, 4.4));
     verifyNoMatch(defaultFactory, mid1, mid2);
 
-    DogTag.Factory<DogTagTestMid> FactoryWithTransients = DogTag.startWithAll(classFrom(mid1))
+    final DogTag.Factory<DogTagTestMid> FactoryWithTransients = DogTag.startWithAll(classFrom(mid1))
         .withTransients(true)
         .build();
     mid2.setFoxtrotPoint((Point2D) mid1.getFoxtrotPoint().clone()); // reset Point2D
@@ -151,10 +158,10 @@ public class DogTagTest {
     mid2.setGolfIntTr(mid1.getGolfIntTr());
     verifyMatches(FactoryWithTransients, mid1, mid2);
 
-    DogTagTestTail tail1 = new DogTagTestTail();
-    DogTagTestTail tail2 = new DogTagTestTail();
+    final DogTagTestTail tail1 = new DogTagTestTail();
+    final DogTagTestTail tail2 = new DogTagTestTail();
 
-    DogTag.Factory<DogTagTestTail> FactoryTail = DogTag.startWithAll(classFrom(tail1))
+    final DogTag.Factory<DogTagTestTail> FactoryTail = DogTag.startWithAll(classFrom(tail1))
         .withReflectUpTo(DogTagTestMid.class)
         .withTransients(true)
         .build();
@@ -167,18 +174,18 @@ public class DogTagTest {
     tail2.setDeltaLong(65537L*65537L);
     verifyMatches(FactoryTail, tail1, tail2);
   }
-  
+
   @Test
   public void testFinalOnly() {
-    DogTagTestBase b1b23 = new DogTagTestBase(1, "bravo", 2, 3L);
-    DogTagTestBase b1bx4 = new DogTagTestBase(1, "bravo", 22, 4L);
-    DogTagTestBase b2b23 = new DogTagTestBase(2, "bravo", 2, 3);
-    DogTagTestBase b1Xx4 = new DogTagTestBase(1, "Boo!", 22, 4L);
-    DogTagTestBase D1b23 = new DogTagTestBase(1, "bravo", 2, 3L);
-    DogTagTestBase b1n23 = new DogTagTestBase(1, null, 2, 3L);
-    DogTagTestBase D1n23 = new DogTagTestBase(1, null, 2, 3L);
+    final DogTagTestBase b1b23 = new DogTagTestBase(1, "bravo", 2, 3L);
+    final DogTagTestBase b1bx4 = new DogTagTestBase(1, "bravo", 22, 4L);
+    final DogTagTestBase b2b23 = new DogTagTestBase(2, "bravo", 2, 3);
+    final DogTagTestBase b1Xx4 = new DogTagTestBase(1, "Boo!", 22, 4L);
+    final DogTagTestBase D1b23 = new DogTagTestBase(1, "bravo", 2, 3L);
+    final DogTagTestBase b1n23 = new DogTagTestBase(1, null, 2, 3L);
+    final DogTagTestBase D1n23 = new DogTagTestBase(1, null, 2, 3L);
 
-    DogTag.Factory<DogTagTestBase> baseFactoryEx = DogTag.startWithAll(classFrom(b1b23))
+    final DogTag.Factory<DogTagTestBase> baseFactoryEx = DogTag.startWithAll(classFrom(b1b23))
         .excludeFields("charlieInt", "deltaLong") // include alpha, bravo
         .withCachedHash(true)
         .build();
@@ -189,7 +196,7 @@ public class DogTagTest {
 
     List<DogTag.Factory<DogTagTestBase>> factories = Arrays.asList(baseFactoryEx, lambdaBaseFactory);
 
-    for (DogTag.Factory<DogTagTestBase> baseFactory : factories) {
+    for (final DogTag.Factory<DogTagTestBase> baseFactory : factories) {
       verifyMatches(baseFactory, b1b23, b1bx4); // c, d differ
       verifyNoMatch(baseFactory, b1b23, b2b23); // a
       verifyNoMatch(baseFactory, b1b23, b1Xx4); // b, c, d
@@ -208,7 +215,7 @@ public class DogTagTest {
       verifyMatches(baseFactory, b1n23, D1n23); // -
     }
 
-    DogTag.Factory<DogTagTestBase> factoryBase2 = DogTag.startWithAll(classFrom(b1b23))
+    final DogTag.Factory<DogTagTestBase> factoryBase2 = DogTag.startWithAll(classFrom(b1b23))
         .excludeFields("bravoString") // include a, c, d
         .build();
     lambdaBaseFactory = DogTag.startEmpty(DogTagTestBase.class)
@@ -218,7 +225,7 @@ public class DogTagTest {
         .build();
     factories = Arrays.asList(factoryBase2, lambdaBaseFactory);
 
-    for (DogTag.Factory<DogTagTestBase> factory2 : factories) {
+    for (final DogTag.Factory<DogTagTestBase> factory2 : factories) {
       verifyNoMatch(factory2, b1b23, b1bx4);
       verifyNoMatch(factory2, b1b23, b2b23);
       verifyNoMatch(factory2, b1b23, b1Xx4);
@@ -236,7 +243,7 @@ public class DogTagTest {
       verifyMatches(factory2, D1b23, b1n23);
     }
 
-    DogTag.Factory<DogTagTestBase> factory3Base = DogTag.startWithAll(classFrom(b1b23))
+    final DogTag.Factory<DogTagTestBase> factory3Base = DogTag.startWithAll(classFrom(b1b23))
         .excludeFields("alphaInt", "charlieInt", "deltaLong")
         .withCachedHash(true)
         .build();
@@ -245,7 +252,7 @@ public class DogTagTest {
         .build();
     factories = Arrays.asList(factory3Base, lambdaBaseFactory);
 
-    for (DogTag.Factory<DogTagTestBase> factory3 : factories) {
+    for (final DogTag.Factory<DogTagTestBase> factory3 : factories) {
       verifyMatches(factory3, b1b23, b1bx4);
       verifyMatches(factory3, b1b23, b2b23);
       verifyNoMatch(factory3, b1b23, b1Xx4);
@@ -267,18 +274,18 @@ public class DogTagTest {
   @Test
   public void testSuperClasses() {
     // The names reflect where the differences are.
-    DogTagTestTail tail1 = new DogTagTestTail();
-    DogTagTestTail tail2_JK = new DogTagTestTail();
-    DogTagTestTail tail3_JKL = new DogTagTestTail();
-    DogTagTestTail tail4_P = new DogTagTestTail();
-    DogTagTestTail tail5_V = new DogTagTestTail();
-    DogTagTestTail tail6_L = new DogTagTestTail();
-    DogTagTestTail tail7_P = new DogTagTestTail();
-    DogTagTestTail mid_1_E = new DogTagTestTail();
-    DogTagTestTail mid_2_F = new DogTagTestTail();
-    DogTagTestTail base1_C = new DogTagTestTail();
-    DogTagTestTail base2_D = new DogTagTestTail();
-    
+    final DogTagTestTail tail1 = new DogTagTestTail();
+    final DogTagTestTail tail2_JK = new DogTagTestTail();
+    final DogTagTestTail tail3_JKL = new DogTagTestTail();
+    final DogTagTestTail tail4_P = new DogTagTestTail();
+    final DogTagTestTail tail5_V = new DogTagTestTail();
+    final DogTagTestTail tail6_L = new DogTagTestTail();
+    final DogTagTestTail tail7_P = new DogTagTestTail();
+    final DogTagTestTail mid_1_E = new DogTagTestTail();
+    final DogTagTestTail mid_2_F = new DogTagTestTail();
+    final DogTagTestTail base1_C = new DogTagTestTail();
+    final DogTagTestTail base2_D = new DogTagTestTail();
+
     // Suffix letters tell which fields are different from test1
     tail2_JK.setJulietBoolean(!tail1.isJulietBoolean());
     tail2_JK.setKiloShort((short) 999);
@@ -294,7 +301,7 @@ public class DogTagTest {
     base1_C.setCharlieInt(7654);
     base2_D.setDeltaLong(96L);
 
-    DogTag.Factory<DogTagTestTail> tailFactory = DogTag.startWithAll(classFrom(tail1))
+    final DogTag.Factory<DogTagTestTail> tailFactory = DogTag.startWithAll(classFrom(tail1))
         .excludeFields("kiloShort", "julietBoolean")
         .withReflectUpTo(DogTagTestBase.class)
         .build();
@@ -323,7 +330,7 @@ public class DogTagTest {
         .build();
     List<DogTag.Factory<DogTagTestTail>> factories = Arrays.asList(tailFactory, lambdaFactory);
 
-    for (DogTag.Factory<DogTagTestTail> factory : factories) {
+    for (final DogTag.Factory<DogTagTestTail> factory : factories) {
       verifyMatches(factory, tail1, tail2_JK);
       verifyNoMatch(factory, tail1, tail3_JKL);
       verifyNoMatch(factory, tail1, tail4_P);
@@ -361,10 +368,10 @@ public class DogTagTest {
         .addArray(DogTagTestTail::getVictorDoubleArray)
         .addArray(DogTagTestTail::getWhiskeyObjectArray)
         .build();
-    
+
     factories = Arrays.asList(tail2Factory, lambdaFactory);
 
-    for (DogTag.Factory<DogTagTestTail> factory : factories) {
+    for (final DogTag.Factory<DogTagTestTail> factory : factories) {
       verifyNoMatch(factory, tail1, tail2_JK);
       verifyNoMatch(factory, tail1, tail3_JKL);
       verifyNoMatch(factory, tail1, tail4_P);
@@ -379,7 +386,7 @@ public class DogTagTest {
 
     // -----
 
-    DogTag.Factory<DogTagTestTail> factoryToObject = DogTag.startWithAll(classFrom(tail1))
+    final DogTag.Factory<DogTagTestTail> factoryToObject = DogTag.startWithAll(classFrom(tail1))
         .excludeFields("kiloShort", "julietBoolean")
         .withReflectUpTo(DogTagTestTail.class)
         .build();
@@ -397,10 +404,10 @@ public class DogTagTest {
         .addArray(DogTagTestTail::getVictorDoubleArray)
         .addArray(DogTagTestTail::getWhiskeyObjectArray)
         .build();
-    
+
     factories = Arrays.asList(factoryToObject, lambdaFactory);
-    
-    for (DogTag.Factory<DogTagTestTail> factory : factories) {
+
+    for (final DogTag.Factory<DogTagTestTail> factory : factories) {
       verifyMatches(factory, tail1, tail2_JK);
       verifyNoMatch(factory, tail1, tail3_JKL);
       verifyNoMatch(factory, tail1, tail4_P);
@@ -433,7 +440,7 @@ public class DogTagTest {
 
     factories = Arrays.asList(tail2Factory, lambdaFactory);
 
-    for (DogTag.Factory<DogTagTestTail> factory : factories) {
+    for (final DogTag.Factory<DogTagTestTail> factory : factories) {
       verifyNoMatch(factory, tail1, tail2_JK);
       verifyNoMatch(factory, tail1, tail3_JKL);
       verifyMatches(factory, tail1, tail4_P);
@@ -452,7 +459,7 @@ public class DogTagTest {
     tail2_JK.setIndigoChar('X');
     tail2_JK.setHotelByte((byte) 126);
 
-    DogTag.Factory<DogTagTestTail> factoryToMid = DogTag.startWithAll(classFrom(tail1))
+    final DogTag.Factory<DogTagTestTail> factoryToMid = DogTag.startWithAll(classFrom(tail1))
         .excludeFields("kiloShort", "julietBoolean", "hotelByte", "indigoChar")
         .withReflectUpTo(DogTagTestMid.class)
         .build();
@@ -475,7 +482,7 @@ public class DogTagTest {
         .build();
     factories = Arrays.asList(factoryToMid, lambdaFactory);
 
-    for (DogTag.Factory<DogTagTestTail> factory : factories) {
+    for (final DogTag.Factory<DogTagTestTail> factory : factories) {
       verifyMatches(factory, tail1, tail2_JK);
       verifyNoMatch(factory, tail1, tail3_JKL);
       verifyNoMatch(factory, tail1, tail4_P);
@@ -489,7 +496,7 @@ public class DogTagTest {
 
     // -----
 
-    DogTag.Factory<DogTagTestTail> factoryNoSuper = DogTag.startWithAll(classFrom(tail1))
+    final DogTag.Factory<DogTagTestTail> factoryNoSuper = DogTag.startWithAll(classFrom(tail1))
         .excludeFields("kiloShort", "julietBoolean")
         .withReflectUpTo(DogTagTestTail.class)
         .build();
@@ -509,7 +516,7 @@ public class DogTagTest {
         .build();
     factories = Arrays.asList(factoryNoSuper, lambdaFactory);
 
-    for (DogTag.Factory<DogTagTestTail> factory : factories) {
+    for (final DogTag.Factory<DogTagTestTail> factory : factories) {
       verifyMatches(factory, tail1, tail2_JK);
       verifyNoMatch(factory, tail1, tail3_JKL);
       verifyNoMatch(factory, tail1, tail4_P);
@@ -524,10 +531,10 @@ public class DogTagTest {
 
   @Test
   public void testGoodExcludedFieldName() {
-    DogTagTestBase base1 = new DogTagTestBase(5, "bravo", 6, 8L);
-    DogTagTestBase base2 = base1.duplicate();
+    final DogTagTestBase base1 = new DogTagTestBase(5, "bravo", 6, 8L);
+    final DogTagTestBase base2 = base1.duplicate();
     base2.setCharlieInt(12);
-    DogTag.Factory<DogTagTestBase> factory = DogTag.startWithAll(classFrom(base1))
+    final DogTag.Factory<DogTagTestBase> factory = DogTag.startWithAll(classFrom(base1))
         .excludeFields(CHARLIE_INT)
         .build();
 
@@ -538,7 +545,7 @@ public class DogTagTest {
 
   @Test(expected=IllegalArgumentException.class)
   public void testBadExcludedFieldName() {
-    DogTagTestTail tail = new DogTagTestTail();
+    final DogTagTestTail tail = new DogTagTestTail();
     DogTag.startWithAll(classFrom(tail))
         .excludeFields(CHARLIE_INT)
         .withReflectUpTo(DogTagTestTail.class)// CHARLIE_INT is a superclass method, but the superclass wasn't included.
@@ -547,7 +554,7 @@ public class DogTagTest {
 
   @Test(expected=IllegalArgumentException.class)
   public void testBadExcludedFieldName2() {
-    DogTagTestTail tail = new DogTagTestTail();
+    final DogTagTestTail tail = new DogTagTestTail();
     DogTag.startWithAll(classFrom(tail))
         .excludeFields("hotelByte")
         .withReflectUpTo(DogTagTestTail.class)
@@ -556,7 +563,7 @@ public class DogTagTest {
 
   @Test
   public void testNoStatic() {
-    DogTagTestTail tail = new DogTagTestTail();
+    final DogTagTestTail tail = new DogTagTestTail();
 //    DogTag<DogTagTestTail> dogTag = DogTag.from(tail);
 //    int hashCode = dogTag.hashCode();
 
@@ -571,14 +578,14 @@ public class DogTagTest {
   @Test(expected = IllegalArgumentException.class)
   public void testBadFieldName() {
     try {
-      DogTagTestTail tail = new DogTagTestTail();
+      final DogTagTestTail tail = new DogTagTestTail();
       // Include fields from all three classes
       DogTag.startWithAll(classFrom(tail))
           .excludeFields("kiloShort", "indigoChar", "alphaInt", "missing")
           .withReflectUpTo(Object.class)
           .build();
       fail();
-    } catch (IllegalArgumentException e) {
+    } catch (final IllegalArgumentException e) {
       assertTrue(e.getMessage().contains("missing"));
       assertTrue(e.getMessage().contains("E7:"));
       throw e;
@@ -588,14 +595,14 @@ public class DogTagTest {
   @Test(expected = IllegalArgumentException.class)
   public void testBadFieldName2() {
     try {
-      DogTagTestTail tail = new DogTagTestTail();
+      final DogTagTestTail tail = new DogTagTestTail();
       // Include fields from all three classes
       DogTag.startWithAll(classFrom(tail))
           .excludeFields("kiloShort", "mikeFloat", "julietBoolean", "missing")
           .withReflectUpTo(DogTagTestTail.class) // Differs here from previous test
           .build();
       fail();
-    } catch (IllegalArgumentException e) {
+    } catch (final IllegalArgumentException e) {
       assertTrue(e.getMessage().contains("missing"));
       assertTrue(e.getMessage().contains("E6:"));
       throw e;
@@ -613,21 +620,21 @@ public class DogTagTest {
     // All these values are Not a Number or NaN. (See Float#intBitsToFloat)
     // When tested with ==, all NaN values will return false, even if they're the same NaN value.
     // When tested with Float.equals(), they all return true, even if they're different NaN values.
-    float notA = Float.NaN;
-    float notB = -Float.NaN;
-    float notC = Float.intBitsToFloat(0x7f900000); // All 4 of these are NaN!
-    float notD = Float.intBitsToFloat(0x7fA00000);
-    float notE = Float.intBitsToFloat(0xff900000);
-    float notF = Float.intBitsToFloat(0xffa00000);
-    float[] notNumbers = { notA, notB, notC, notD, notE, notF };
+    final float notA = Float.NaN;
+    final float notB = -Float.NaN;
+    final float notC = Float.intBitsToFloat(0x7f900000); // All 4 of these are NaN!
+    final float notD = Float.intBitsToFloat(0x7fA00000);
+    final float notE = Float.intBitsToFloat(0xff900000);
+    final float notF = Float.intBitsToFloat(0xffa00000);
+    final float[] notNumbers = { notA, notB, notC, notD, notE, notF };
 
-    DogTagTestTail tail1 = new DogTagTestTail();
-    DogTagTestTail tail2 = tail1.duplicate();
-    DogTag.Factory<DogTagTestTail> factory = DogTag.startWithAll(classFrom(tail1))
+    final DogTagTestTail tail1 = new DogTagTestTail();
+    final DogTagTestTail tail2 = tail1.duplicate();
+    final DogTag.Factory<DogTagTestTail> factory = DogTag.startWithAll(classFrom(tail1))
         .excludeFields("novemberIntArray", "operaStringArray")
         .build();
-    for (float f1: notNumbers) {
-      for (float f2: notNumbers) {
+    for (final float f1: notNumbers) {
+      for (final float f2: notNumbers) {
         tail1.setMikeFloat(f1);
         tail2.setMikeFloat(f2);
         verifyMatches(factory, tail1, tail2);
@@ -646,21 +653,21 @@ public class DogTagTest {
     // All these values are Not a Number, or NaN. (See Double#longBitsToDouble)
     // When tested with ==, all NaN values will return false, even if they're the same NaN value.
     // When tested with Double.equals(), they all return true, even if they're different NaN values.
-    double notA = Double.NaN;
-    double notB = -Double.NaN;
-    double notC = Double.longBitsToDouble(0x7ff9000000000000L); // All 4 of these are NaN!
-    double notD = Double.longBitsToDouble(0x7ffA000000000000L);
-    double notE = Double.longBitsToDouble(0xfff9000000000000L);
-    double notF = Double.longBitsToDouble(0xfffa000000000000L);
-    double[] notNumbers = { notA, notB, notC, notD, notE, notF };
+    final double notA = Double.NaN;
+    final double notB = -Double.NaN;
+    final double notC = Double.longBitsToDouble(0x7ff9000000000000L); // All 4 of these are NaN!
+    final double notD = Double.longBitsToDouble(0x7ffA000000000000L);
+    final double notE = Double.longBitsToDouble(0xfff9000000000000L);
+    final double notF = Double.longBitsToDouble(0xfffa000000000000L);
+    final double[] notNumbers = { notA, notB, notC, notD, notE, notF };
 
-    DogTagTestTail tail1 = new DogTagTestTail();
-    DogTagTestTail tail2 = tail1.duplicate();
-    DogTag.Factory<DogTagTestTail> factory = DogTag.startWithAll(classFrom(tail1))
+    final DogTagTestTail tail1 = new DogTagTestTail();
+    final DogTagTestTail tail2 = tail1.duplicate();
+    final DogTag.Factory<DogTagTestTail> factory = DogTag.startWithAll(classFrom(tail1))
         .excludeFields("novemberIntArray", "operaStringArray")
         .build();
-    for (double f1: notNumbers) {
-      for (double f2: notNumbers) {
+    for (final double f1: notNumbers) {
+      for (final double f2: notNumbers) {
         tail1.setLimaDouble(f1);
         tail2.setLimaDouble(f2);
         verifyMatches(factory, tail1, tail2);
@@ -670,9 +677,9 @@ public class DogTagTest {
 
   @Test
   public void testIntArrays() {
-    DogTagTestTail tail1 = new DogTagTestTail();
-    DogTagTestTail tail2 = tail1.duplicate();
-    DogTag.Factory<DogTagTestTail> factory = DogTag.startWithAll(classFrom(tail1)).build();
+    final DogTagTestTail tail1 = new DogTagTestTail();
+    final DogTagTestTail tail2 = tail1.duplicate();
+    final DogTag.Factory<DogTagTestTail> factory = DogTag.startWithAll(classFrom(tail1)).build();
 
     verifyMatches(factory, tail1, tail2);
 
@@ -682,11 +689,11 @@ public class DogTagTest {
 
   @Test
   public void testNull() {
-    DogTagTestTail tail1 = new DogTagTestTail();
-    DogTagTestTail tail2 = new DogTagTestTail();
+    final DogTagTestTail tail1 = new DogTagTestTail();
+    final DogTagTestTail tail2 = new DogTagTestTail();
     tail2.setFoxtrotPoint(null);
 
-    DogTag.Factory<DogTagTestTail> factory = DogTag.startWithAll(classFrom(tail1))
+    final DogTag.Factory<DogTagTestTail> factory = DogTag.startWithAll(classFrom(tail1))
         .withReflectUpTo(DogTagTestBase.class)
         .build();
     verifyNoMatch(factory, tail1, tail2);
@@ -696,11 +703,11 @@ public class DogTagTest {
 
   @Test
   public void testArrays() {
-    DogTagTestTail tail = new DogTagTestTail();
-    DogTag.Factory<DogTagTestTail> factory = DogTag.startWithAll(classFrom(tail)).build();
+    final DogTagTestTail tail = new DogTagTestTail();
+    final DogTag.Factory<DogTagTestTail> factory = DogTag.startWithAll(classFrom(tail)).build();
 
     // ints
-    DogTagTestTail tail1 = new DogTagTestTail();
+    final DogTagTestTail tail1 = new DogTagTestTail();
     DogTagTestTail tail2 = tail1.duplicate();
     verifyMatches(factory, tail1, tail2);
     tail2.setNovemberIntArray(new int[] {3, 2, 1}); // different length
@@ -793,14 +800,14 @@ public class DogTagTest {
     verifyNoMatch(factory, tail1, tail2);
 
     // MultiDimensions
-    int[][] twoDInt = { {1, 2}, {3, 4}, {5, 6} };
+    final int[][] twoDInt = { {1, 2}, {3, 4}, {5, 6} };
     tail1.setWhiskeyObjectArray(twoDInt);
     tail2.setWhiskeyObjectArray(twoDInt);
     verifyMatches(factory, tail1, tail2);
-    int[][] twoDIntB = { {1, 2}, {3, 4}, {50, 60} };
+    final int[][] twoDIntB = { {1, 2}, {3, 4}, {50, 60} };
     tail2.setWhiskeyObjectArray(twoDIntB);
     verifyNoMatch(factory, tail1, tail2);
-    int[][][] threeDArray = { { { 1, 2 }, { 3, 4 }, { 5, 6 } } };
+    final int[][][] threeDArray = { { { 1, 2 }, { 3, 4 }, { 5, 6 } } };
     tail2.setWhiskeyObjectArray(threeDArray);
     verifyNoMatch(factory, tail1, tail2);
   }
@@ -809,11 +816,11 @@ public class DogTagTest {
   public void paradigmTest() {
     // Here we test the full paradigm used by the DogTag class. The other test classes don't actually implement a
     // DogTag-based equals() or hashCode() method. So we test with a class that does.
-    ParadigmTest pt1 = new ParadigmTest("a", 1, 1.0f);
-    ParadigmTest pt2 = new ParadigmTest("b", 1, 1.0f);
-    ParadigmTest pt3 = new ParadigmTest("a", 2, 1.0f);
-    ParadigmTest pt4 = new ParadigmTest("a", 1, 3.0f);
-    ParadigmTest pt5 = new ParadigmTest("a", 1, 1.0f);
+    final ParadigmTest pt1 = new ParadigmTest("a", 1, 1.0f);
+    final ParadigmTest pt2 = new ParadigmTest("b", 1, 1.0f);
+    final ParadigmTest pt3 = new ParadigmTest("a", 2, 1.0f);
+    final ParadigmTest pt4 = new ParadigmTest("a", 1, 3.0f);
+    final ParadigmTest pt5 = new ParadigmTest("a", 1, 1.0f);
 
     // We don't use TestUtility.verifyMatch() because we need to test a direct call to isEquals and hashCode from the
     // tagged objects themselves.
@@ -830,7 +837,7 @@ public class DogTagTest {
   }
 
   @SuppressWarnings({"SimplifiableJUnitAssertion", "EqualsWithItself", "EqualsBetweenInconvertibleTypes"})
-  private void testMatch__(ParadigmTest a, ParadigmTest b) {
+  private void testMatch__(final ParadigmTest a, final ParadigmTest b) {
     assertTrue(a.equals(b));
     assertTrue(b.equals(a));
     assertTrue(a.equals(a));
@@ -843,7 +850,7 @@ public class DogTagTest {
   }
 
   @SuppressWarnings({"SimplifiableJUnitAssertion", "EqualsWithItself", "EqualsBetweenInconvertibleTypes"})
-  private void testNoMatch(ParadigmTest a, ParadigmTest b) {
+  private void testNoMatch(final ParadigmTest a, final ParadigmTest b) {
     assertFalse(a.equals(b));
     assertFalse(b.equals(a));
     assertTrue(a.equals(a));
@@ -864,7 +871,7 @@ public class DogTagTest {
 
     try {
       new ClassWithBadDogTag();
-    } catch (ExceptionInInitializerError e) {
+    } catch (final ExceptionInInitializerError e) {
       assertThat(e.getCause().getMessage(), StringContains.containsString("E8:"));
       throw (RuntimeException) e.getCause();
     }
@@ -892,7 +899,7 @@ public class DogTagTest {
     private static int staticInt = 5;
     private static final DogTag.Factory<?> factory = null; // prevent superfluous test failure
 
-    public DogTagTestBase(int alphaInt, String bravoString, int charlieInt, long deltaLong) {
+    public DogTagTestBase(final int alphaInt, final String bravoString, final int charlieInt, final long deltaLong) {
       this.alphaInt = alphaInt;
       this.bravoString = bravoString;
       this.charlieInt = charlieInt;
@@ -911,7 +918,7 @@ public class DogTagTest {
       return charlieInt;
     }
 
-    public void setCharlieInt(int charlieInt) {
+    public void setCharlieInt(final int charlieInt) {
       this.charlieInt = charlieInt;
     }
 
@@ -919,7 +926,7 @@ public class DogTagTest {
       return deltaLong;
     }
 
-    public void setDeltaLong(long deltaLong) {
+    public void setDeltaLong(final long deltaLong) {
       this.deltaLong = deltaLong;
     }
 
@@ -927,7 +934,7 @@ public class DogTagTest {
       return new DogTagTestBase(getAlphaInt(), getBravoString(), getCharlieInt(), getDeltaLong());
     }
 
-    public static void setStaticInt(int i) {
+    public static void setStaticInt(final int i) {
       staticInt = i;
     }
 
@@ -945,8 +952,8 @@ public class DogTagTest {
     private char indigoChar;
     private static final DogTag.Factory<?> factory = null; // prevent superfluous test failure
 
-    DogTagTestMid(int alphaInt, String bravoString, int charlieInt, long deltaLong, String echoString, 
-                         Point2D foxtrotPoint, int golfIntTr, byte hotelByte, char indigoChar) {
+    DogTagTestMid(final int alphaInt, final String bravoString, final int charlieInt, final long deltaLong, final String echoString,
+                  final Point2D foxtrotPoint, final int golfIntTr, final byte hotelByte, final char indigoChar) {
       super(alphaInt, bravoString, charlieInt, deltaLong);
       this.echoString = echoString;
       this.foxtrotPoint = foxtrotPoint;
@@ -959,7 +966,7 @@ public class DogTagTest {
       return echoString;
     }
 
-    public void setEchoString(String echoString) {
+    public void setEchoString(final String echoString) {
       this.echoString = echoString;
     }
 
@@ -967,7 +974,7 @@ public class DogTagTest {
       return foxtrotPoint;
     }
 
-    public void setFoxtrotPoint(Point2D foxtrotPoint) {
+    public void setFoxtrotPoint(final Point2D foxtrotPoint) {
       this.foxtrotPoint = foxtrotPoint;
     }
 
@@ -975,7 +982,7 @@ public class DogTagTest {
       return golfIntTr;
     }
 
-    public void setGolfIntTr(int golfIntTr) {
+    public void setGolfIntTr(final int golfIntTr) {
       this.golfIntTr = golfIntTr;
     }
 
@@ -983,7 +990,7 @@ public class DogTagTest {
       return hotelByte;
     }
 
-    public void setHotelByte(byte hotelByte) {
+    public void setHotelByte(final byte hotelByte) {
       this.hotelByte = hotelByte;
     }
 
@@ -991,14 +998,14 @@ public class DogTagTest {
       return indigoChar;
     }
 
-    public void setIndigoChar(char indigoChar) {
+    public void setIndigoChar(final char indigoChar) {
       this.indigoChar = indigoChar;
     }
 
     @Override
     public DogTagTestMid duplicate() {
       final Point2D pt = getFoxtrotPoint();
-      return new DogTagTestMid(getAlphaInt(), getBravoString(), getCharlieInt(), getDeltaLong(), getEchoString(), 
+      return new DogTagTestMid(getAlphaInt(), getBravoString(), getCharlieInt(), getDeltaLong(), getEchoString(),
           (Point2D) pt.clone(), getGolfIntTr(), getHotelByte(), getIndigoChar());
     }
   }
@@ -1006,10 +1013,10 @@ public class DogTagTest {
   @SuppressWarnings({"AssignmentOrReturnOfFieldWithMutableType", "WeakerAccess"})
   private static final class DogTagTestTail extends DogTagTestMid {
 
-    DogTagTestTail(int alphaInt, String bravoString, int charlieInt, long deltaLong, String echoString, 
-                          Point2D foxtrotPoint, int golfIntTr, byte hotelByte, char indigoChar,
-                          boolean julietBoolean, short kiloShort, double limaDouble, float mikeFloat,
-                          int[] novemberIntArray, String[] operaStringArray) {
+    DogTagTestTail(final int alphaInt, final String bravoString, final int charlieInt, final long deltaLong, final String echoString,
+                   final Point2D foxtrotPoint, final int golfIntTr, final byte hotelByte, final char indigoChar,
+                   final boolean julietBoolean, final short kiloShort, final double limaDouble, final float mikeFloat,
+                   final int[] novemberIntArray, final String[] operaStringArray) {
       super(alphaInt, bravoString, charlieInt, deltaLong, echoString, foxtrotPoint, golfIntTr, hotelByte, indigoChar);
       this.julietBoolean = julietBoolean;
       this.kiloShort = kiloShort;
@@ -1047,7 +1054,7 @@ public class DogTagTest {
       return novemberIntArray;
     }
 
-    public void setNovemberIntArray(int[] novemberIntArray) {
+    public void setNovemberIntArray(final int[] novemberIntArray) {
       this.novemberIntArray = novemberIntArray;
     }
 
@@ -1055,7 +1062,7 @@ public class DogTagTest {
       return operaStringArray;
     }
 
-    public void setOperaStringArray(String[] operaStringArray) {
+    public void setOperaStringArray(final String[] operaStringArray) {
       this.operaStringArray = operaStringArray;
     }
 
@@ -1063,7 +1070,7 @@ public class DogTagTest {
       return julietBoolean;
     }
 
-    public void setJulietBoolean(boolean julietBoolean) {
+    public void setJulietBoolean(final boolean julietBoolean) {
       this.julietBoolean = julietBoolean;
     }
 
@@ -1071,7 +1078,7 @@ public class DogTagTest {
       return kiloShort;
     }
 
-    public void setKiloShort(short kiloShort) {
+    public void setKiloShort(final short kiloShort) {
       this.kiloShort = kiloShort;
     }
 
@@ -1079,7 +1086,7 @@ public class DogTagTest {
       return limaDouble;
     }
 
-    public void setLimaDouble(double limaDouble) {
+    public void setLimaDouble(final double limaDouble) {
       this.limaDouble = limaDouble;
     }
 
@@ -1087,7 +1094,7 @@ public class DogTagTest {
       return mikeFloat;
     }
 
-    public void setMikeFloat(float mikeFloat) {
+    public void setMikeFloat(final float mikeFloat) {
       this.mikeFloat = mikeFloat;
     }
 
@@ -1095,7 +1102,7 @@ public class DogTagTest {
       return papaLongArray;
     }
 
-    public void setPapaLongArray(long[] papaLongArray) {
+    public void setPapaLongArray(final long[] papaLongArray) {
       this.papaLongArray = papaLongArray;
     }
 
@@ -1103,7 +1110,7 @@ public class DogTagTest {
       return quebecShortArray;
     }
 
-    public void setQuebecShortArray(short[] quebecShortArray) {
+    public void setQuebecShortArray(final short[] quebecShortArray) {
       this.quebecShortArray = quebecShortArray;
     }
 
@@ -1111,7 +1118,7 @@ public class DogTagTest {
       return romeoByteArray;
     }
 
-    public void setRomeoByteArray(byte[] romeoByteArray) {
+    public void setRomeoByteArray(final byte[] romeoByteArray) {
       this.romeoByteArray = romeoByteArray;
     }
 
@@ -1119,7 +1126,7 @@ public class DogTagTest {
       return sierraCharArray;
     }
 
-    public void setSierraCharArray(char[] sierraCharArray) {
+    public void setSierraCharArray(final char[] sierraCharArray) {
       this.sierraCharArray = sierraCharArray;
     }
 
@@ -1127,7 +1134,7 @@ public class DogTagTest {
       return tangoBooleanArray;
     }
 
-    public void setTangoBooleanArray(boolean[] tangoBooleanArray) {
+    public void setTangoBooleanArray(final boolean[] tangoBooleanArray) {
       this.tangoBooleanArray = tangoBooleanArray;
     }
 
@@ -1135,7 +1142,7 @@ public class DogTagTest {
       return uniformFloatArray;
     }
 
-    public void setUniformFloatArray(float[] uniformFloatArray) {
+    public void setUniformFloatArray(final float[] uniformFloatArray) {
       this.uniformFloatArray = uniformFloatArray;
     }
 
@@ -1143,7 +1150,7 @@ public class DogTagTest {
       return victorDoubleArray;
     }
 
-    public void setVictorDoubleArray(double[] victorDoubleArray) {
+    public void setVictorDoubleArray(final double[] victorDoubleArray) {
       this.victorDoubleArray = victorDoubleArray;
     }
 
@@ -1151,46 +1158,46 @@ public class DogTagTest {
       return whiskeyObjectArray;
     }
 
-    public void setWhiskeyObjectArray(Object[] whiskeyObjectArray) {
+    public void setWhiskeyObjectArray(final Object[] whiskeyObjectArray) {
       this.whiskeyObjectArray = whiskeyObjectArray;
     }
 
     @Override
     public DogTagTestTail duplicate() {
-      DogTagTestTail tail = new DogTagTestTail(getAlphaInt(), getBravoString(), getCharlieInt(), getDeltaLong(), 
-          getEchoString(), getFoxtrotPoint(), getGolfIntTr(), getHotelByte(), getIndigoChar(), isJulietBoolean(), 
+      final DogTagTestTail tail = new DogTagTestTail(getAlphaInt(), getBravoString(), getCharlieInt(), getDeltaLong(),
+          getEchoString(), getFoxtrotPoint(), getGolfIntTr(), getHotelByte(), getIndigoChar(), isJulietBoolean(),
           getKiloShort(), getLimaDouble(), getMikeFloat(), getNovemberIntArray(), getOperaStringArray());
-      int[] n = getNovemberIntArray();
+      final int[] n = getNovemberIntArray();
       tail.setNovemberIntArray(Arrays.copyOf(n, n.length));
-      String[] osa = getOperaStringArray();
+      final String[] osa = getOperaStringArray();
       tail.setOperaStringArray(Arrays.copyOf(osa, osa.length));
-      long[] pla = getPapaLongArray();
+      final long[] pla = getPapaLongArray();
       tail.setPapaLongArray(Arrays.copyOf(pla, pla.length));
-      short[] sqa = getQuebecShortArray();
+      final short[] sqa = getQuebecShortArray();
       tail.setQuebecShortArray(Arrays.copyOf(sqa, sqa.length));
-      byte[] rba = getRomeoByteArray();
+      final byte[] rba = getRomeoByteArray();
       tail.setRomeoByteArray(Arrays.copyOf(rba, rba.length));
-      char[] csa = getSierraCharArray();
+      final char[] csa = getSierraCharArray();
       tail.setSierraCharArray(Arrays.copyOf(csa, csa.length));
-      boolean[] bta = getTangoBooleanArray();
+      final boolean[] bta = getTangoBooleanArray();
       tail.setTangoBooleanArray(Arrays.copyOf(bta, bta.length));
-      float[] fua = getUniformFloatArray();
+      final float[] fua = getUniformFloatArray();
       tail.setUniformFloatArray(Arrays.copyOf(fua, fua.length));
-      double[] vda = getVictorDoubleArray();
+      final double[] vda = getVictorDoubleArray();
       tail.setVictorDoubleArray(Arrays.copyOf(vda, vda.length));
-      Object[] woa = getWhiskeyObjectArray();
+      final Object[] woa = getWhiskeyObjectArray();
       tail.setWhiskeyObjectArray(woa);
       return tail;
     }
   }
-  
+
   @SuppressWarnings("unused")
   private static final class ParadigmTest {
     private final String alphaString;
     private final int bravoInt;
     private final float charlieFloat;
-    
-    ParadigmTest(String alpha, int bravo, float charlie) {
+
+    ParadigmTest(final String alpha, final int bravo, final float charlie) {
       alphaString = alpha;
       bravoInt = bravo;
       charlieFloat = charlie;
@@ -1222,7 +1229,7 @@ public class DogTagTest {
       return charlieFloat;
     }
   }
-  
+
   private static final class ClassWithBadDogTag {
     private static final ClassWithBadDogTag badInstance = new ClassWithBadDogTag();
     private static final DogTag.DogTagReflectiveBuilder<ClassWithBadDogTag> builder = DogTag.startWithAll(classFrom(badInstance));
@@ -1239,29 +1246,29 @@ public class DogTagTest {
 
   @Test
   public void testDeepArrays() {
-    int[] iArray1a = { 1, 2, 3 };
-    int[] iArray_2 = { 1, 2, 4 };
-    int[] iArray1b = { 1, 2, 3 };
-    int[] iArray_3 = { 1, 2, 3, 4 };
-    int[] iArrayNl = null;
-    String[] sArray1a = { "Whiskey", "Tango", "Foxtrot" };
-    String[] sArray2_ = { "Whiskey", "Tango", "Hotel" };
-    String[] sArray1b = { "Whiskey", "Tango", "Foxtrot" };
-    String[] sArray3_ = { "Whiskey", "Tango", "Foxtrot", "Echo" };
-    String[] sArrayNl = { "Whiskey", null, "Foxtrot" };
-    String[] sArrayN2 = null;
+    final int[] iArray1a = { 1, 2, 3 };
+    final int[] iArray_2 = { 1, 2, 4 };
+    final int[] iArray1b = { 1, 2, 3 };
+    final int[] iArray_3 = { 1, 2, 3, 4 };
+    final int[] iArrayNl = null;
+    final String[] sArray1a = { "Whiskey", "Tango", "Foxtrot" };
+    final String[] sArray2_ = { "Whiskey", "Tango", "Hotel" };
+    final String[] sArray1b = { "Whiskey", "Tango", "Foxtrot" };
+    final String[] sArray3_ = { "Whiskey", "Tango", "Foxtrot", "Echo" };
+    final String[] sArrayNl = { "Whiskey", null, "Foxtrot" };
+    final String[] sArrayN2 = null;
 
-    DogTagTestTail i1a = new DogTagTestTail();
-    DogTagTestTail i2_ = new DogTagTestTail();
-    DogTagTestTail i1b = new DogTagTestTail();
-    DogTagTestTail i3_ = new DogTagTestTail();
-    DogTagTestTail iNl = new DogTagTestTail();
-    DogTagTestTail a1a = new DogTagTestTail();
-    DogTagTestTail a2_ = new DogTagTestTail();
-    DogTagTestTail a1b = new DogTagTestTail();
-    DogTagTestTail a3_ = new DogTagTestTail();
-    DogTagTestTail aNl = new DogTagTestTail();
-    DogTagTestTail aN2 = new DogTagTestTail();
+    final DogTagTestTail i1a = new DogTagTestTail();
+    final DogTagTestTail i2_ = new DogTagTestTail();
+    final DogTagTestTail i1b = new DogTagTestTail();
+    final DogTagTestTail i3_ = new DogTagTestTail();
+    final DogTagTestTail iNl = new DogTagTestTail();
+    final DogTagTestTail a1a = new DogTagTestTail();
+    final DogTagTestTail a2_ = new DogTagTestTail();
+    final DogTagTestTail a1b = new DogTagTestTail();
+    final DogTagTestTail a3_ = new DogTagTestTail();
+    final DogTagTestTail aNl = new DogTagTestTail();
+    final DogTagTestTail aN2 = new DogTagTestTail();
 
 
     i1a.setWhiskeyObjectArray(of("alpha", iArray1a, "bravo"));
@@ -1278,12 +1285,12 @@ public class DogTagTest {
 
 //    DogTag.Factory<DogTagTestTail> deepFactory = DogTag.createByInclusion(DogTagTestTail.class, "whiskeyObjectArray", "alphaInt")
 //        .build();
-    DogTag.Factory<DogTagTestTail> deepExFactory = DogTag.startWithAll(DogTagTestTail.class).build();
-    DogTag.Factory<DogTagTestTail> lambdaFactory = DogTag.startEmpty(DogTagTestTail.class)
+    final DogTag.Factory<DogTagTestTail> deepExFactory = DogTag.startWithAll(DogTagTestTail.class).build();
+    final DogTag.Factory<DogTagTestTail> lambdaFactory = DogTag.startEmpty(DogTagTestTail.class)
         .addSimple(DogTagTestTail::getAlphaInt)
         .addArray(DogTagTestTail::getWhiskeyObjectArray)
         .build();
-    
+
 //    List<DogTag.Factory<DogTagTestTail>> factories = Arrays.asList(deepFactory, deepExFactory, lambdaFactory);
 //    for (DogTag.Factory<DogTagTestTail> factory: factories) {
 //      verifyNoMatch(factory, i1a, i2_);
@@ -1299,25 +1306,25 @@ public class DogTagTest {
 //      verifyNoMatch(factory, a1a, aN2);
 //    }
   }
-  
+
   @Test
   public void testTwoDArray() {
-    int[][] i2ArrayA = {{1, 2, 3}, {2, 3, 4}, {3, 4, 5}};
-    int[][] i2ArrayB = {{1, 2, 3}, {2, 4, 9}, {3, 4, 5}};
-    int[][] i2ArrayC = {{1, 2, 3}, {2, 3, 4}, {3, 4, 5}};
+    final int[][] i2ArrayA = {{1, 2, 3}, {2, 3, 4}, {3, 4, 5}};
+    final int[][] i2ArrayB = {{1, 2, 3}, {2, 4, 9}, {3, 4, 5}};
+    final int[][] i2ArrayC = {{1, 2, 3}, {2, 3, 4}, {3, 4, 5}};
 
-    TwoDArray a = new TwoDArray(i2ArrayA);
-    TwoDArray b = new TwoDArray(i2ArrayB);
-    TwoDArray c = new TwoDArray(i2ArrayC);
+    final TwoDArray a = new TwoDArray(i2ArrayA);
+    final TwoDArray b = new TwoDArray(i2ArrayB);
+    final TwoDArray c = new TwoDArray(i2ArrayC);
 
-    DogTag<TwoDArray> dogTag = a.getDogTag();
-    DogTag.Factory<TwoDArray> factory = dogTag.getFactory();
-    
+    final DogTag<TwoDArray> dogTag = a.getDogTag();
+    final DogTag.Factory<TwoDArray> factory = dogTag.getFactory();
+
     verifyNoMatch(factory, a, b);
     verifyMatches(factory, a, c);
     verifyNoMatch(factory, b, c);
-    
-    DogTag.Factory<TwoDArray> lambdaFactory = DogTag.startEmpty(TwoDArray.class)
+
+    final DogTag.Factory<TwoDArray> lambdaFactory = DogTag.startEmpty(TwoDArray.class)
         .addArray(TwoDArray::getAlphaIntArray)
         .build();
 
@@ -1325,7 +1332,7 @@ public class DogTagTest {
     verifyMatches(lambdaFactory, a, c);
     verifyNoMatch(lambdaFactory, b, c);
   }
-  
+
   @SuppressWarnings("AssignmentOrReturnOfFieldWithMutableType")
   private static final class TwoDArray {
     private final int[][] alphaIntArray;
@@ -1333,8 +1340,8 @@ public class DogTagTest {
         .build(); // prevent superfluous test failure
 
     private final DogTag<TwoDArray> dogTag = factory.tag(this); // DogTag.from(this);
-    
-    TwoDArray(int[][] alpha) {
+
+    TwoDArray(final int[][] alpha) {
       this.alphaIntArray = alpha;
     }
 
@@ -1347,6 +1354,8 @@ public class DogTagTest {
       return dogTag;
     }
   }
-  
-  private static Object[] of(Object... data) { return data; }
+
+  private static Object[] of(final Object... data) {
+    return data;
+  }
 }

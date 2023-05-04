@@ -20,42 +20,47 @@ public class PerformanceTestWithWrappersUnCached {
   private static final String[] EMPTY_STRING_ARRAY = new String[0];
 
   @SuppressWarnings("NumericCastThatLosesPrecision")
-  private static Short toShort(int i) { return (short) i;}
+  private static Short toShort(final int i) {
+    return (short) i;
+  }
 
   @SuppressWarnings("NumericCastThatLosesPrecision")
-  private static Byte toByte(int i) { return (byte) i; }
+  private static Byte toByte(final int i) {
+    return (byte) i;
+  }
 
   @Ignore
   @Test
   public void timeTest() {
     System.out.printf("Java version = %s%n", System.getProperty("java.version"));
-    TestClass t0 = new TestClass(1111, "bravo");
-    TestClass t1 = t0.duplicate(2222, "bravo");
-    TestClass t2 = t0.duplicate(1111, "bravisimo");
-    TestClass t3 = t0.duplicate();
+    final TestClass t0 = new TestClass(1111, "bravo");
+    final TestClass t1 = t0.duplicate(2222, "bravo");
+    final TestClass t2 = t0.duplicate(1111, "bravisimo");
+    final TestClass t3 = t0.duplicate();
     t3.setCharlieInt(9999);
-    TestClass t4 = t0.duplicate();
+    final TestClass t4 = t0.duplicate();
     t4.setDeltaLong(999L);
-    TestClass t5 = t0.duplicate();
+    final TestClass t5 = t0.duplicate();
     t5.setEchoString("Repeat");
-    TestClass t6 = t0.duplicate();
+    final TestClass t6 = t0.duplicate();
     t6.setFoxtrotPoint(new Point2D.Double(88.4, 928.5));
-    TestClass t7 = t0.duplicate();
+    final TestClass t7 = t0.duplicate();
     t7.setGolfInt(798);
-    TestClass t8 = t0.duplicate();
+    final TestClass t8 = t0.duplicate();
     t8.setHotelByte( toByte(34));
-    TestClass t9 = t0.duplicate();
+    final TestClass t9 = t0.duplicate();
     t9.setIndigoChar('\u3412');
-    TestClass t10 = t0.duplicate();
+    final TestClass t10 = t0.duplicate();
     t10.setJulietBoolean(true);
-    TestClass t11 = t0.duplicate();
+    final TestClass t11 = t0.duplicate();
     t11.setKiloShort(toShort(790));
-    TestClass t12 = t0.duplicate();
+    final TestClass t12 = t0.duplicate();
     t12.setLimaDouble(798.23);
-    TestClass t13 = t0.duplicate();
+    final TestClass t13 = t0.duplicate();
     t13.setMikeFloat(423.97F);
 
-    TestClass[] instances = { t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, /* t14, t15, t16, t17, t18, t19, t20, t21, t22, t23, */ t0.duplicate() };
+    final TestClass[] instances = { t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13,
+        /* t14, t15, t16, t17, t18, t19, t20, t21, t22, t23, */ t0.duplicate() };
     TimingUtility.reverse(instances);
 
     final BiFunction<TestClass, TestClass, Boolean> directEqual = PerformanceTestWithWrappersUnCached::isEqual;
@@ -63,7 +68,7 @@ public class PerformanceTestWithWrappersUnCached {
   }
 
   @SuppressWarnings("EqualsReplaceableByObjectsCall")
-  private static boolean isEqual(TestClass t1, TestClass t2) {
+  private static boolean isEqual(final TestClass t1, final TestClass t2) {
     //noinspection ObjectEquality
     if (t1 == t2) {
       return true;
@@ -87,7 +92,7 @@ public class PerformanceTestWithWrappersUnCached {
   @SuppressWarnings({"WeakerAccess", "MagicCharacter", "MagicNumber", "HardCodedStringLiteral", "EqualsAndHashcode"})
   private static class TestClass {
 
-    TestClass(Integer alpha, String bravo) {
+    TestClass(final Integer alpha, final String bravo) {
       alphaInt = alpha;
       bravoString = bravo;
     }
@@ -118,7 +123,7 @@ public class PerformanceTestWithWrappersUnCached {
       return charlieInt;
     }
 
-    public void setCharlieInt(Integer charlieInt) {
+    public void setCharlieInt(final Integer charlieInt) {
       this.charlieInt = charlieInt;
     }
 
@@ -126,7 +131,7 @@ public class PerformanceTestWithWrappersUnCached {
       return deltaLong;
     }
 
-    public void setDeltaLong(Long deltaLong) {
+    public void setDeltaLong(final Long deltaLong) {
       this.deltaLong = deltaLong;
     }
 
@@ -134,7 +139,7 @@ public class PerformanceTestWithWrappersUnCached {
       return echoString;
     }
 
-    public void setEchoString(String echoString) {
+    public void setEchoString(final String echoString) {
       this.echoString = echoString;
     }
 
@@ -142,7 +147,7 @@ public class PerformanceTestWithWrappersUnCached {
       return foxtrotPoint;
     }
 
-    public void setFoxtrotPoint(Point2D foxtrotPoint) {
+    public void setFoxtrotPoint(final Point2D foxtrotPoint) {
       this.foxtrotPoint = foxtrotPoint;
     }
 
@@ -150,7 +155,7 @@ public class PerformanceTestWithWrappersUnCached {
       return golfInt;
     }
 
-    public void setGolfInt(Integer golfInt) {
+    public void setGolfInt(final Integer golfInt) {
       this.golfInt = golfInt;
     }
 
@@ -158,7 +163,7 @@ public class PerformanceTestWithWrappersUnCached {
       return hotelByte;
     }
 
-    public void setHotelByte(Byte hotelByte) {
+    public void setHotelByte(final Byte hotelByte) {
       this.hotelByte = hotelByte;
     }
 
@@ -166,7 +171,7 @@ public class PerformanceTestWithWrappersUnCached {
       return indigoChar;
     }
 
-    public void setIndigoChar(Character indigoChar) {
+    public void setIndigoChar(final Character indigoChar) {
       this.indigoChar = indigoChar;
     }
 
@@ -174,7 +179,7 @@ public class PerformanceTestWithWrappersUnCached {
       return julietBoolean;
     }
 
-    public void setJulietBoolean(Boolean julietBoolean) {
+    public void setJulietBoolean(final Boolean julietBoolean) {
       this.julietBoolean = julietBoolean;
     }
 
@@ -182,7 +187,7 @@ public class PerformanceTestWithWrappersUnCached {
       return kiloShort;
     }
 
-    public void setKiloShort(Short kiloShort) {
+    public void setKiloShort(final Short kiloShort) {
       this.kiloShort = kiloShort;
     }
 
@@ -190,7 +195,7 @@ public class PerformanceTestWithWrappersUnCached {
       return limaDouble;
     }
 
-    public void setLimaDouble(Double limaDouble) {
+    public void setLimaDouble(final Double limaDouble) {
       this.limaDouble = limaDouble;
     }
 
@@ -198,7 +203,7 @@ public class PerformanceTestWithWrappersUnCached {
       return mikeFloat;
     }
 
-    public void setMikeFloat(Float mikeFloat) {
+    public void setMikeFloat(final Float mikeFloat) {
       this.mikeFloat = mikeFloat;
     }
 
@@ -206,8 +211,8 @@ public class PerformanceTestWithWrappersUnCached {
       return duplicate(getAlphaInt(), getBravoString());
     }
 
-    public TestClass duplicate(Integer alpha, String bravo) {
-      TestClass tail = new TestClass(alpha, bravo);
+    public TestClass duplicate(final Integer alpha, final String bravo) {
+      final TestClass tail = new TestClass(alpha, bravo);
       tail.setCharlieInt(getCharlieInt());
       tail.setDeltaLong(getDeltaLong());
       tail.setEchoString(dup(getEchoString()));
@@ -224,15 +229,15 @@ public class PerformanceTestWithWrappersUnCached {
 
     @SuppressWarnings({"NonFinalFieldReferenceInEquals", "ObjectInstantiationInEqualsHashCode"})
     @Override
-    public boolean equals(Object obj) {
+    public boolean equals(final Object obj) {
       if (this == obj) {
         return true;
       }
       if (!(obj instanceof TestClass)) {
         return false;
       }
-      TestClass rhs = (TestClass) obj;
-      TestClass lhs = this;
+      final TestClass rhs = (TestClass) obj;
+      final TestClass lhs = this;
       return new EqualsBuilder()
           .append(lhs.alphaInt, rhs.alphaInt)
           .append(lhs.bravoString, rhs.bravoString)
@@ -253,12 +258,12 @@ public class PerformanceTestWithWrappersUnCached {
     private static final DogTag.Factory<TestClass> dogTag = DogTag.startWithAll(TestClass.class).build();
   }
 
-  private static String dup(String s) {
-    String s2 = '1' + s;
+  private static String dup(final String s) {
+    final String s2 = '1' + s;
     return s2.substring(1);
   }
 
-  public static void main(String[] args) {
+  public static void main(final String[] args) {
     new PerformanceTestWithWrappersUnCached().timeTest();
   }
 }

@@ -23,60 +23,64 @@ public class PerformanceTestPrimitiveArrays {
   private static final String[] EMPTY_STRING_ARRAY = new String[0];
 
   @SuppressWarnings("NumericCastThatLosesPrecision")
-  private static Short toShort(int i) { return (short) i;}
+  private static Short toShort(final int i) {
+    return (short) i;
+  }
 
   @SuppressWarnings("NumericCastThatLosesPrecision")
-  private static Byte toByte(int i) { return (byte) i; }
+  private static Byte toByte(final int i) {
+    return (byte) i;
+  }
 
   @Ignore
   @Test
   public void timeTest() {
-    TestClass t0 = new TestClass(1, "bravo");
-    TestClass t1 = t0.duplicate(11, "bravo");
-    TestClass t2 = t0.duplicate(1, "bravisimo");
-    TestClass t3 = t0.duplicate();
+    final TestClass t0 = new TestClass(1, "bravo");
+    final TestClass t1 = t0.duplicate(11, "bravo");
+    final TestClass t2 = t0.duplicate(1, "bravisimo");
+    final TestClass t3 = t0.duplicate();
     t3.setCharlieInt(99);
-    TestClass t4 = t0.duplicate();
+    final TestClass t4 = t0.duplicate();
     t4.setDeltaLong(999L);
-    TestClass t5 = t0.duplicate();
+    final TestClass t5 = t0.duplicate();
     t5.setEchoString("Repeat");
-    TestClass t6 = t0.duplicate();
+    final TestClass t6 = t0.duplicate();
     t6.setFoxtrotPoint(new Point2D.Double(88.4, 928.5));
-    TestClass t7 = t0.duplicate();
+    final TestClass t7 = t0.duplicate();
     t7.setGolfInt(798);
-    TestClass t8 = t0.duplicate();
+    final TestClass t8 = t0.duplicate();
     t8.setHotelByte( toByte(34));
-    TestClass t9 = t0.duplicate();
+    final TestClass t9 = t0.duplicate();
     t9.setIndigoChar('P');
-    TestClass t10 = t0.duplicate();
+    final TestClass t10 = t0.duplicate();
     t10.setJulietBoolean(true);
-    TestClass t11 = t0.duplicate();
+    final TestClass t11 = t0.duplicate();
     t11.setKiloShort(toShort(79));
-    TestClass t12 = t0.duplicate();
+    final TestClass t12 = t0.duplicate();
     t12.setLimaDouble(798.23);
-    TestClass t13 = t0.duplicate();
+    final TestClass t13 = t0.duplicate();
     t13.setMikeFloat(423.97F);
-    TestClass t14 = t0.duplicate();
+    final TestClass t14 = t0.duplicate();
     t14.setNovemberIntArray(15, 25, 42);
-    TestClass t15 = t0.duplicate();
+    final TestClass t15 = t0.duplicate();
     t15.setOperaStringArray("papa", "quebec", "romeo", "tango", "whiskey");
-    TestClass t16 = t0.duplicate();
+    final TestClass t16 = t0.duplicate();
     t16.setPapaLongArray(3L, 6L, 9L, 12L, 15L, 18L, 21L, 24L, 27L);
-    TestClass t17 = t0.duplicate();
+    final TestClass t17 = t0.duplicate();
     t17.setQuebecShortArray(toShort(4), toShort(8), toShort(12), toShort(16), toShort(20), toShort(24), toShort(28), toShort(32), toShort(36));
-    TestClass t18 = t0.duplicate();
+    final TestClass t18 = t0.duplicate();
     t18.setRomeoByteArray(toByte(2), toByte(4), toByte(6), toByte(8), toByte(10), toByte(12), toByte(14), toByte(16), toByte(18));
-    TestClass t19 = t0.duplicate();
+    final TestClass t19 = t0.duplicate();
     t19.setSierraCharArray("different".toCharArray());
-    TestClass t20 = t0.duplicate();
+    final TestClass t20 = t0.duplicate();
     t20.setTangoBooleanArray(false, false, false, true, true, true, true, true, true);
-    TestClass t21 = t0.duplicate();
+    final TestClass t21 = t0.duplicate();
     t21.setUniformFloatArray(5.34F, 32.7F);
-    TestClass t22 = t0.duplicate();
+    final TestClass t22 = t0.duplicate();
     t22.setVictorDoubleArray(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0);
-    TestClass t23 = t0.duplicate();
+    final TestClass t23 = t0.duplicate();
     t23.setWhiskeyObjectArray("Whiskey", 33.5F, Boolean.FALSE);
-    TestClass[] instances = { t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16, t17, t18, t19, t20, t21, t22, t23, t0.duplicate() };
+    final TestClass[] instances = { t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16, t17, t18, t19, t20, t21, t22, t23, t0.duplicate() };
     TimingUtility.reverse(instances);
 
     final BiFunction<TestClass, TestClass, Boolean> directEqual = PerformanceTestPrimitiveArrays::isEqual;
@@ -84,7 +88,7 @@ public class PerformanceTestPrimitiveArrays {
   }
 
   @SuppressWarnings("EqualsReplaceableByObjectsCall")
-  private static boolean isEqual(TestClass t1, TestClass t2) {
+  private static boolean isEqual(final TestClass t1, final TestClass t2) {
     //noinspection ObjectEquality
     if (t1 == t2) {
       return true;
@@ -115,10 +119,11 @@ public class PerformanceTestPrimitiveArrays {
   }
 
 
-  @SuppressWarnings({"AssignmentOrReturnOfFieldWithMutableType", "WeakerAccess", "MagicCharacter", "MagicNumber", "HardCodedStringLiteral", "EqualsAndHashcode"})
+  @SuppressWarnings(
+      {"AssignmentOrReturnOfFieldWithMutableType", "WeakerAccess", "MagicCharacter", "MagicNumber", "HardCodedStringLiteral", "EqualsAndHashcode"})
   private static class TestClass {
 
-    TestClass(Integer alpha, String bravo) {
+    TestClass(final Integer alpha, final String bravo) {
       alphaInt = alpha;
       bravoString = bravo;
     }
@@ -161,7 +166,7 @@ public class PerformanceTestPrimitiveArrays {
       return charlieInt;
     }
 
-    public void setCharlieInt(Integer charlieInt) {
+    public void setCharlieInt(final Integer charlieInt) {
       this.charlieInt = charlieInt;
     }
 
@@ -169,7 +174,7 @@ public class PerformanceTestPrimitiveArrays {
       return deltaLong;
     }
 
-    public void setDeltaLong(Long deltaLong) {
+    public void setDeltaLong(final Long deltaLong) {
       this.deltaLong = deltaLong;
     }
 
@@ -177,7 +182,7 @@ public class PerformanceTestPrimitiveArrays {
       return echoString;
     }
 
-    public void setEchoString(String echoString) {
+    public void setEchoString(final String echoString) {
       this.echoString = echoString;
     }
 
@@ -185,7 +190,7 @@ public class PerformanceTestPrimitiveArrays {
       return foxtrotPoint;
     }
 
-    public void setFoxtrotPoint(Point2D foxtrotPoint) {
+    public void setFoxtrotPoint(final Point2D foxtrotPoint) {
       this.foxtrotPoint = foxtrotPoint;
     }
 
@@ -193,7 +198,7 @@ public class PerformanceTestPrimitiveArrays {
       return golfInt;
     }
 
-    public void setGolfInt(Integer golfInt) {
+    public void setGolfInt(final Integer golfInt) {
       this.golfInt = golfInt;
     }
 
@@ -201,7 +206,7 @@ public class PerformanceTestPrimitiveArrays {
       return hotelByte;
     }
 
-    public void setHotelByte(Byte hotelByte) {
+    public void setHotelByte(final Byte hotelByte) {
       this.hotelByte = hotelByte;
     }
 
@@ -209,7 +214,7 @@ public class PerformanceTestPrimitiveArrays {
       return indigoChar;
     }
 
-    public void setIndigoChar(Character indigoChar) {
+    public void setIndigoChar(final Character indigoChar) {
       this.indigoChar = indigoChar;
     }
 
@@ -217,7 +222,7 @@ public class PerformanceTestPrimitiveArrays {
       return julietBoolean;
     }
 
-    public void setJulietBoolean(Boolean julietBoolean) {
+    public void setJulietBoolean(final Boolean julietBoolean) {
       this.julietBoolean = julietBoolean;
     }
 
@@ -225,7 +230,7 @@ public class PerformanceTestPrimitiveArrays {
       return kiloShort;
     }
 
-    public void setKiloShort(Short kiloShort) {
+    public void setKiloShort(final Short kiloShort) {
       this.kiloShort = kiloShort;
     }
 
@@ -233,7 +238,7 @@ public class PerformanceTestPrimitiveArrays {
       return limaDouble;
     }
 
-    public void setLimaDouble(Double limaDouble) {
+    public void setLimaDouble(final Double limaDouble) {
       this.limaDouble = limaDouble;
     }
 
@@ -241,7 +246,7 @@ public class PerformanceTestPrimitiveArrays {
       return mikeFloat;
     }
 
-    public void setMikeFloat(Float mikeFloat) {
+    public void setMikeFloat(final Float mikeFloat) {
       this.mikeFloat = mikeFloat;
     }
 
@@ -249,7 +254,7 @@ public class PerformanceTestPrimitiveArrays {
       return novemberIntArray;
     }
 
-    public void setNovemberIntArray(int... novemberIntArray) {
+    public void setNovemberIntArray(final int... novemberIntArray) {
       this.novemberIntArray = novemberIntArray;
     }
 
@@ -257,7 +262,7 @@ public class PerformanceTestPrimitiveArrays {
       return operaStringArray;
     }
 
-    public void setOperaStringArray(String... operaStringArray) {
+    public void setOperaStringArray(final String... operaStringArray) {
       this.operaStringArray = operaStringArray;
     }
 
@@ -265,7 +270,7 @@ public class PerformanceTestPrimitiveArrays {
       return papaLongArray;
     }
 
-    public void setPapaLongArray(long... papaLongArray) {
+    public void setPapaLongArray(final long... papaLongArray) {
       this.papaLongArray = papaLongArray;
     }
 
@@ -273,7 +278,7 @@ public class PerformanceTestPrimitiveArrays {
       return quebecShortArray;
     }
 
-    public void setQuebecShortArray(short... quebecShortArray) {
+    public void setQuebecShortArray(final short... quebecShortArray) {
       this.quebecShortArray = quebecShortArray;
     }
 
@@ -281,7 +286,7 @@ public class PerformanceTestPrimitiveArrays {
       return romeoByteArray;
     }
 
-    public void setRomeoByteArray(byte... romeoByteArray) {
+    public void setRomeoByteArray(final byte... romeoByteArray) {
       this.romeoByteArray = romeoByteArray;
     }
 
@@ -289,7 +294,7 @@ public class PerformanceTestPrimitiveArrays {
       return sierraCharArray;
     }
 
-    public void setSierraCharArray(char... sierraCharArray) {
+    public void setSierraCharArray(final char... sierraCharArray) {
       this.sierraCharArray = sierraCharArray;
     }
 
@@ -297,7 +302,7 @@ public class PerformanceTestPrimitiveArrays {
       return tangoBooleanArray;
     }
 
-    public void setTangoBooleanArray(boolean... tangoBooleanArray) {
+    public void setTangoBooleanArray(final boolean... tangoBooleanArray) {
       this.tangoBooleanArray = tangoBooleanArray;
     }
 
@@ -305,7 +310,7 @@ public class PerformanceTestPrimitiveArrays {
       return uniformFloatArray;
     }
 
-    public void setUniformFloatArray(float... uniformFloatArray) {
+    public void setUniformFloatArray(final float... uniformFloatArray) {
       this.uniformFloatArray = uniformFloatArray;
     }
 
@@ -313,7 +318,7 @@ public class PerformanceTestPrimitiveArrays {
       return victorDoubleArray;
     }
 
-    public void setVictorDoubleArray(double... victorDoubleArray) {
+    public void setVictorDoubleArray(final double... victorDoubleArray) {
       this.victorDoubleArray = victorDoubleArray;
     }
 
@@ -321,7 +326,7 @@ public class PerformanceTestPrimitiveArrays {
       return whiskeyObjectArray;
     }
 
-    public void setWhiskeyObjectArray(Object... whiskeyObjectArray) {
+    public void setWhiskeyObjectArray(final Object... whiskeyObjectArray) {
       this.whiskeyObjectArray = whiskeyObjectArray;
     }
 
@@ -329,8 +334,8 @@ public class PerformanceTestPrimitiveArrays {
       return duplicate(getAlphaInt(), getBravoString());
     }
 
-    public TestClass duplicate(Integer alpha, String bravo) {
-      TestClass tail = new TestClass(alpha, bravo);
+    public TestClass duplicate(final Integer alpha, final String bravo) {
+      final TestClass tail = new TestClass(alpha, bravo);
       tail.setCharlieInt(getCharlieInt());
       tail.setDeltaLong(getDeltaLong());
       tail.setEchoString(dup(getEchoString()));
@@ -357,15 +362,15 @@ public class PerformanceTestPrimitiveArrays {
 
       @SuppressWarnings("ObjectInstantiationInEqualsHashCode")
       @Override
-      public boolean equals (Object obj) {
+      public boolean equals (final Object obj) {
         if (this == obj) {
           return true;
         }
         if (!(obj instanceof TestClass)) {
           return false;
         }
-        TestClass rhs = (TestClass) obj;
-        TestClass lhs = this;
+        final TestClass rhs = (TestClass) obj;
+        final TestClass lhs = this;
         return new EqualsBuilder()
             /* Using getter methods rather than direct access doesn't change the performance */
 //            .append(lhs.alphaInt, rhs.alphaInt)
@@ -421,21 +426,21 @@ public class PerformanceTestPrimitiveArrays {
     private static final DogTag.Factory<TestClass> dogTag = DogTag.startWithAll(TestClass.class).build();
   }
 
-  private static String dup(String s) {
-    String s2 = '1' + s;
+  private static String dup(final String s) {
+    final String s2 = '1' + s;
     return s2.substring(1);
   }
 
-  private static String[] dupArray(String[] array) {
-    String[] dup = new String[array.length];
+  private static String[] dupArray(final String[] array) {
+    final String[] dup = new String[array.length];
     int i=0;
-    for (String s: array) {
+    for (final String s: array) {
       dup[i++] = dup(s);
     }
     return dup;
   }
 
-  public static void main(String[] args) {
+  public static void main(final String[] args) {
     new PerformanceTestPrimitiveArrays().timeTest();
   }
 }

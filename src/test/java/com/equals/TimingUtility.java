@@ -16,11 +16,11 @@ public enum TimingUtility {
   ;
 
   /**
-   * Time the class, comparing DogTag, EqualsBuilder, and hand-coding. This tests a single item with an array of that 
+   * Time the class, comparing DogTag, EqualsBuilder, and hand-coding. This tests a single item with an array of that
    * same kind of item. The array consists of a clone of t1, t1 itself, and a number of objects that differ from t1 by
    * each possible field. The clone should be first, then t13 down to t1, the objects that differ, then t0, for the
    * identity test last. t13 is the element where the difference will be in the field tested last, and t1, it will be
-   * tested first. 
+   * tested first.
    * @param dogTagFactory The DogTag instance
    * @param t0 The instance of T which all the others will be compared against
    * @param instances The array of other instances of T. This should start with a clone of t0, Then go for farthest to
@@ -31,12 +31,15 @@ public enum TimingUtility {
    */
   @SafeVarargs
   @SuppressWarnings("StringConcatenation")
-  public static <T> void runTestCycles(DogTag.Factory<T> dogTagFactory, final T t0, final T[] instances, final BiFunction<T, T, Boolean> directEqual, String[] excluded, DogTag.Factory<T>... moreFactories) {
+  public static <T> void runTestCycles(
+      final DogTag.Factory<T> dogTagFactory,
+      final T t0,
+      final T[] instances,
+      final BiFunction<T, T, Boolean> directEqual, final String[] excluded, final DogTag.Factory<T>... moreFactories) {
     System.out.printf("Java version %s%n", System.getProperty("java.version"));
-    @SuppressWarnings({"unchecked", "SuspiciousArrayCast"})
-    T[] fullInstances = (T[]) new Object[instances.length+1];
+    @SuppressWarnings({"unchecked", "SuspiciousArrayCast"}) final T[] fullInstances = (T[]) new Object[instances.length+1];
     int ii=0;
-    for (T t: instances) {
+    for (final T t: instances) {
       fullInstances[ii++] = t;
     }
     fullInstances[ii] = t0;
@@ -50,7 +53,7 @@ public enum TimingUtility {
       }
       System.out.println("R.Eq/DgTg");
       int index = 0;
-      for (T t : fullInstances) {
+      for (final T t : fullInstances) {
         TimingUtility.runTimedTest(dogTagFactory, directEqual, index++, t0, t, 1_000_000, instances.length - 1, excluded, moreFactories);
       }
       System.out.println("\nKey: DgTg: DogTags\n" +
@@ -59,27 +62,36 @@ public enum TimingUtility {
           "     Eq.B: new EqualsBuilder()\n");
     }
   }
-  
+
   // TODO: Move this to main package and make doEqualsTest non-public.
 
   /** @noinspection SameParameterValue*/
   @SafeVarargs
-  static <T> void runTimedTest(DogTag.Factory<T> dogTag, BiFunction<T, T, Boolean> direct, int i, T t1, T t2, int iterations, int count, String[] excluded, DogTag.Factory<T>... more) {
-    BiFunction<T, T, Boolean> dogTagTest = dogTag::doEqualsTest;
-    Runnable dogTagRunner = makeRunner(t1, t2, dogTagTest);
-    BiFunction<T, T, Boolean> refEq = (a, b) -> EqualsBuilder.reflectionEquals(a, b, excluded);
-    Runnable eBRunner = makeRunner(t1, t2, refEq);
-    Runnable directRunner = makeRunner(t1, t2, direct);
-    Runnable eB2Runner = makeRunner(t1, t2, Object::equals);
-    Runnable[] moreRunners = new Runnable[more.length];
+  static <T> void runTimedTest(
+      final DogTag.Factory<T> dogTag,
+      final BiFunction<T, T, Boolean> direct,
+      final int i,
+      final T t1,
+      final T t2,
+      final int iterations,
+      final int count,
+      final String[] excluded,
+      final DogTag.Factory<T>... more) {
+    final BiFunction<T, T, Boolean> dogTagTest = dogTag::doEqualsTest;
+    final Runnable dogTagRunner = makeRunner(t1, t2, dogTagTest);
+    final BiFunction<T, T, Boolean> refEq = (a, b) -> EqualsBuilder.reflectionEquals(a, b, excluded);
+    final Runnable eBRunner = makeRunner(t1, t2, refEq);
+    final Runnable directRunner = makeRunner(t1, t2, direct);
+    final Runnable eB2Runner = makeRunner(t1, t2, Object::equals);
+    final Runnable[] moreRunners = new Runnable[more.length];
     int index = 0;
-    for (DogTag.Factory<T> extra: more) {
-      BiFunction<T, T, Boolean> nextTest = extra::doEqualsTest;
+    for (final DogTag.Factory<T> extra: more) {
+      final BiFunction<T, T, Boolean> nextTest = extra::doEqualsTest;
       moreRunners[index++] = makeRunner(t1, t2, nextTest);
     }
     boolean eq = dogTagTest.apply(t1, t2);
 
-    boolean eqRef = refEq.apply(t1, t2);
+    final boolean eqRef = refEq.apply(t1, t2);
     if (eq != eqRef) {
       eq = dogTagTest.apply(t1, t2); // This line is for a breakpoint
       throw new IllegalStateException(String.format("Mismatch with refEq: %b != %b", eq, eqRef));
@@ -97,17 +109,17 @@ public enum TimingUtility {
       throw new IllegalStateException(String.format("Mismatch with EqualBuilder: %b != %b", eq, objectEq));
     }
 
-    long dtTime = time(dogTagRunner, iterations);
-    long ebTime = time(eBRunner, iterations);
-    long drTime = time(directRunner, iterations);
-    long d2Time = time(eB2Runner, iterations);
-    long[] extraTimes = new long[more.length];
+    final long dtTime = time(dogTagRunner, iterations);
+    final long ebTime = time(eBRunner, iterations);
+    final long drTime = time(directRunner, iterations);
+    final long d2Time = time(eB2Runner, iterations);
+    final long[] extraTimes = new long[more.length];
     index = 0;
-    for (Runnable runner: moreRunners) {
+    for (final Runnable runner: moreRunners) {
       extraTimes[index++] = time(runner, iterations);
     }
 
-    String label;
+    final String label;
     if (i == 0) {
       label = "All are Equal:";
     } else if (i > count) {
@@ -116,32 +128,32 @@ public enum TimingUtility {
       label = String.format("Fields Tried %2d:", (count + 1) - i);
     }
     System.out.printf("%16s\t%5d\t%5d\t%5d\t%5d\t", label, dtTime, ebTime, drTime, d2Time); //NON-NLS
-    for (long time: extraTimes) {
+    for (final long time: extraTimes) {
       System.out.printf("%5d\t", time);
     }
     System.out.printf("%8.3f%n", ((double) ebTime) / dtTime);
   }
 
-  private static <T> Runnable makeRunner(T a, T b, BiFunction<T, T, Boolean> equal) {
+  private static <T> Runnable makeRunner(final T a, final T b, final BiFunction<T, T, Boolean> equal) {
     return () -> equal.apply(a, b);
   }
 
-  private static long time(Runnable runner, int count) {
+  private static long time(final Runnable runner, final int count) {
     runner.run(); // load all classes ahead of time.
     runner.run(); // Avoid spurious early results
-    long start = System.currentTimeMillis();
+    final long start = System.currentTimeMillis();
     for (int ii = 0; ii < count; ++ii) {
       runner.run();
     }
-    long end = System.currentTimeMillis();
+    final long end = System.currentTimeMillis();
     return end - start;
   }
 
-  public static <T> void reverse(T[] a) {
+  public static <T> void reverse(final T[] a) {
     int tail = a.length;
-    int half = tail/2;
+    final int half = tail/2;
     for (int i=0; i<half; ++i) {
-      T swap = a[i];
+      final T swap = a[i];
       a[i] = a[--tail];
       a[tail] = swap;
     }

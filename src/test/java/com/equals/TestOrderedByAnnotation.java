@@ -1,15 +1,15 @@
 package com.equals;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Field;
 import java.util.List;
-import org.hamcrest.core.StringContains;
 import org.junit.Test;
-
-import static org.junit.Assert.*;
 
 /**
  * <p>Created by IntelliJ IDEA.
@@ -36,13 +36,13 @@ public class TestOrderedByAnnotation {
     private final int second=2;
 
 //    private static final DogTag.Factory<OrderedByAnnotationClass> factory = DogTag.createByInclusion(OrderedByAnnotationClass.class).build();
-//    
+//
 //    private final DogTag<OrderedByAnnotationClass> dogTag = factory.tag(this);
   }
 
   @Test
   public void testOrdering() {
-    OrderedByAnnotationClass orderedClass = new OrderedByAnnotationClass();
+    final OrderedByAnnotationClass orderedClass = new OrderedByAnnotationClass();
 //    DogTag.Factory<OrderedByAnnotationClass> factory = OrderedByAnnotationClass.factory;
 //    testForOrder(orderedClass, factory);
 //    DogTag.Factory<OrderedByAnnotationClass> customFactory = DogTag.createByInclusion(OrderedByAnnotationClass.class, TestIncludeWithOrder.class)
@@ -52,21 +52,19 @@ public class TestOrderedByAnnotation {
 
   private <T> void testForOrder(final T orderedClass, final DogTag.Factory<T> factory) {
     try {
-      Field fieldProcessorField = DogTag.ReflectiveFactory.class.getDeclaredField("fieldProcessors");
+      final Field fieldProcessorField = DogTag.ReflectiveFactory.class.getDeclaredField("fieldProcessors");
       fieldProcessorField.setAccessible(true);
-      @SuppressWarnings("unchecked")
-      List<Object> fieldProcessors = (List<Object>) fieldProcessorField.get(factory);
+      @SuppressWarnings("unchecked") final List<Object> fieldProcessors = (List<Object>) fieldProcessorField.get(factory);
       int expectedValue = 0;
-      for (Object fieldProcessor : fieldProcessors) {
-        DogTag.FieldProcessor<?> fp0 = (DogTag.FieldProcessor<?>) fieldProcessor;
-        Field getter = fp0.getClass().getDeclaredField("hashMethod"); // The hash value of an Integer is equal to its value.
+      for (final Object fieldProcessor : fieldProcessors) {
+        final DogTag.FieldProcessor<?> fp0 = (DogTag.FieldProcessor<?>) fieldProcessor;
+        final Field getter = fp0.getClass().getDeclaredField("hashMethod"); // The hash value of an Integer is equal to its value.
         getter.setAccessible(true);
-        @SuppressWarnings("unchecked")
-        DogTag.ToIntThrowingFunction<T> g = (DogTag.ToIntThrowingFunction<T>) getter.get(fp0);
-        int hash = g.get(orderedClass);
+        @SuppressWarnings("unchecked") final DogTag.ToIntThrowingFunction<T> g = (DogTag.ToIntThrowingFunction<T>) getter.get(fp0);
+        final int hash = g.get(orderedClass);
         assertEquals(++expectedValue, hash);
       }
-    } catch (NoSuchFieldException | IllegalAccessException e) {
+    } catch (final NoSuchFieldException | IllegalAccessException e) {
       e.printStackTrace();
       fail();
     }
@@ -96,28 +94,26 @@ public class TestOrderedByAnnotation {
 
   @Test
   public void testForCustomOrdering() {
-    OrderedByCustomAnnotationClass orderedByClass = new OrderedByCustomAnnotationClass();
+    final OrderedByCustomAnnotationClass orderedByClass = new OrderedByCustomAnnotationClass();
 //    DogTag.Factory<OrderedByCustomAnnotationClass> factory = OrderedByCustomAnnotationClass.factory;
 //    testForCustomOrder(orderedByClass, factory);
   }
   private <T> void testForCustomOrder(final T orderedClass, final DogTag.Factory<T> factory) {
     try {
-      Field fieldProcessorField = DogTag.ReflectiveFactory.class.getDeclaredField("fieldProcessors");
+      final Field fieldProcessorField = DogTag.ReflectiveFactory.class.getDeclaredField("fieldProcessors");
       fieldProcessorField.setAccessible(true);
-      @SuppressWarnings("unchecked")
-      List<Object> fieldProcessors = (List<Object>) fieldProcessorField.get(factory);
+      @SuppressWarnings("unchecked") final List<Object> fieldProcessors = (List<Object>) fieldProcessorField.get(factory);
       int count = 0;
-      for (Object fieldProcessor : fieldProcessors) {
-        DogTag.FieldProcessor<?> fp0 = (DogTag.FieldProcessor<?>) fieldProcessor;
-        Field getter = fp0.getClass().getDeclaredField("hashMethod"); // The hash value of an Integer is equal to its value.
+      for (final Object fieldProcessor : fieldProcessors) {
+        final DogTag.FieldProcessor<?> fp0 = (DogTag.FieldProcessor<?>) fieldProcessor;
+        final Field getter = fp0.getClass().getDeclaredField("hashMethod"); // The hash value of an Integer is equal to its value.
         getter.setAccessible(true);
-        @SuppressWarnings("unchecked")
-        DogTag.ToIntThrowingFunction<T> g = (DogTag.ToIntThrowingFunction<T>) getter.get(fp0);
-        int hash = g.get(orderedClass);
+        @SuppressWarnings("unchecked") final DogTag.ToIntThrowingFunction<T> g = (DogTag.ToIntThrowingFunction<T>) getter.get(fp0);
+        final int hash = g.get(orderedClass);
         assertEquals(++count, hash);
       }
       assertEquals(4, count);
-    } catch (NoSuchFieldException | IllegalAccessException e) {
+    } catch (final NoSuchFieldException | IllegalAccessException e) {
       e.printStackTrace();
       fail();
     }
@@ -134,7 +130,7 @@ public class TestOrderedByAnnotation {
 //      assertThat(e.getMessage(), StringContains.containsString("E2:"));
 //    }
 //  }
-  
+
 //  @Test
 //  public void testNotAnnotation() {
 //    try {
@@ -144,7 +140,7 @@ public class TestOrderedByAnnotation {
 //    } catch (IllegalArgumentException e) {
 //      assertThat(e.getMessage(), StringContains.containsString("E5:"));
 //    }
-//    
+//
 //    try {
 //      DogTag.createByNamedAnnotation(OrderedByAnnotationClass.class, "Not a class name")
 //          .build();
@@ -167,7 +163,16 @@ public class TestOrderedByAnnotation {
   public @interface TestIncludeUnordered { }
 
   @Retention(RetentionPolicy.RUNTIME)
-  @Target({ElementType.CONSTRUCTOR, ElementType.LOCAL_VARIABLE, ElementType.TYPE, ElementType.ANNOTATION_TYPE, ElementType.METHOD, ElementType.PACKAGE, ElementType.PARAMETER, ElementType.TYPE_PARAMETER, ElementType.TYPE_USE})
+  @Target({
+      ElementType.CONSTRUCTOR,
+      ElementType.LOCAL_VARIABLE,
+      ElementType.TYPE,
+      ElementType.ANNOTATION_TYPE,
+      ElementType.METHOD,
+      ElementType.PACKAGE,
+      ElementType.PARAMETER,
+      ElementType.TYPE_PARAMETER,
+      ElementType.TYPE_USE})
   public @interface TestIncludeWrongTarget {
   }
 }

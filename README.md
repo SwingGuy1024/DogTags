@@ -225,3 +225,4 @@ methods will be consistent. Of course, consistency is easy to accomplish. But wi
 
 ### Write `startWithNothing()` or `startUsingInclusion()`
 Right now, there's no starter that uses reflection, includes nothing by default, and uses the `DogTagInclude` annotation.
+### Write field ordering.
